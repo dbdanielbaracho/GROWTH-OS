@@ -11,7 +11,8 @@
     "dev:web": "npm run dev -w @growth-os/web",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "db:apply": "node db/scripts/apply-migration.mjs"
   },
   "engines": {
     "node": ">=22"
