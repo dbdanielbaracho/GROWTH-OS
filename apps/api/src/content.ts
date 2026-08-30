@@ -3,6 +3,35 @@ import type { PoolClient } from "pg";
 import { z } from "zod";
 import type { AuthPrincipal } from "./auth.js";
 
+const MAX_JSON_BYTES = 100_000;
+
+function jsonByteLength(value: unknown): number {
+  return Buffer.byteLength(JSON.stringify(value), "utf8");
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => [key, canonicalize(item)])
+    );
+  }
+  return value;
+}
+
+const BoundedJsonObjectSchema = z
+  .record(z.string().max(200), z.unknown())
+  .superRefine((value, ctx) => {
+    if (jsonByteLength(value) > MAX_JSON_BYTES) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `JSON object exceeds ${MAX_JSON_BYTES} bytes`
+      });
+    }
+  });
+
 export const CreateContentSchema = z.object({
   objective: z.string().trim().min(1).max(500).optional(),
   market: z.string().trim().min(1).max(100),
@@ -10,11 +39,16 @@ export const CreateContentSchema = z.object({
   platformTarget: z.string().trim().min(1).max(50).optional(),
   sourceType: z.string().trim().min(1).max(50),
   body: z.string().max(100_000).default(""),
-  structure: z.record(z.string(), z.unknown()).default({}),
-  aiProvenance: z.record(z.string(), z.unknown()).optional()
+  structure: BoundedJsonObjectSchema.default({}),
+  aiProvenance: BoundedJsonObjectSchema.optional()
 });
 
 export type CreateContentInput = z.infer<typeof CreateContentSchema>;
+
+export function contentChecksum(body: string, structure: Record<string, unknown>): string {
+  const canonicalPayload = JSON.stringify(canonicalize({ body, structure }));
+  return createHash("sha256").update(canonicalPayload).digest("hex");
+}
 
 export async function createContent(
   client: PoolClient,
@@ -23,9 +57,7 @@ export async function createContent(
 ) {
   const contentItemId = randomUUID();
   const contentVersionId = randomUUID();
-  const checksum = createHash("sha256")
-    .update(JSON.stringify({ body: input.body, structure: input.structure }))
-    .digest("hex");
+  const checksum = contentChecksum(input.body, input.structure);
 
   const itemResult = await client.query(
     `insert into growth.content_items
@@ -84,7 +116,7 @@ export async function listContent(
           limit 1
        ) cv on true
       where ci.workspace_id = $1
-      order by ci.created_at desc
+      order by ci.created_at desc, ci.id desc
       limit $2`,
     [principal.workspaceId, safeLimit]
   );
