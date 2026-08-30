@@ -5,6 +5,7 @@ import { resolvePrincipal } from "./auth.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
 import { listInsights, listOpportunities } from "./intelligence.js";
+import { CreateContentSchema, createContent, listContent } from "./content.js";
 
 export function buildApp(logger = false) {
   const app = Fastify({ logger });
@@ -95,6 +96,33 @@ export function buildApp(logger = false) {
     } catch (error) {
       app.log.warn(error);
       return reply.code(401).send({ status: "unauthorized" });
+    }
+  });
+
+  app.get("/v1/content", async (request, reply) => {
+    try {
+      const principal = resolvePrincipal(request);
+      const content = await withTenantTransaction(principal, (client) =>
+        listContent(client, principal)
+      );
+      return { status: "ok", content };
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+  });
+
+  app.post("/v1/content", async (request, reply) => {
+    try {
+      const principal = resolvePrincipal(request);
+      const input = CreateContentSchema.parse(request.body);
+      const created = await withTenantTransaction(principal, (client) =>
+        createContent(client, principal, input)
+      );
+      return reply.code(201).send({ status: "created", ...created });
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(400).send({ status: "invalid_request" });
     }
   });
 
