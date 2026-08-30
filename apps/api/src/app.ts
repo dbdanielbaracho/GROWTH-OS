@@ -7,6 +7,20 @@ import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
 import { listInsights, listOpportunities } from "./intelligence.js";
 import { CreateContentSchema, createContent, listContent } from "./content.js";
 
+function databaseStatus(error: unknown): { code: number; status: string } {
+  const pgCode =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+
+  if (pgCode === "42501") return { code: 403, status: "forbidden" };
+  if (pgCode === "23505" || pgCode === "23503") return { code: 409, status: "conflict" };
+  if (["08000", "08001", "08003", "08004", "08006", "08007", "08P01", "57P01", "53300"].includes(pgCode)) {
+    return { code: 503, status: "service_unavailable" };
+  }
+  return { code: 500, status: "internal_error" };
+}
+
 export function buildApp(logger = false) {
   const app = Fastify({ logger });
 
@@ -100,29 +114,49 @@ export function buildApp(logger = false) {
   });
 
   app.get("/v1/content", async (request, reply) => {
+    let principal;
     try {
-      const principal = resolvePrincipal(request);
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    try {
       const content = await withTenantTransaction(principal, (client) =>
         listContent(client, principal)
       );
       return { status: "ok", content };
     } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
 
   app.post("/v1/content", async (request, reply) => {
+    let principal;
     try {
-      const principal = resolvePrincipal(request);
-      const input = CreateContentSchema.parse(request.body);
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    const parsed = CreateContentSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
       const created = await withTenantTransaction(principal, (client) =>
-        createContent(client, principal, input)
+        createContent(client, principal, parsed.data)
       );
       return reply.code(201).send({ status: "created", ...created });
     } catch (error) {
-      app.log.warn(error);
-      return reply.code(400).send({ status: "invalid_request" });
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
 
