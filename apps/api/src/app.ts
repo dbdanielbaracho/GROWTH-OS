@@ -4,6 +4,7 @@ import { env } from "./config.js";
 import { resolvePrincipal } from "./auth.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
+import { listInsights, listOpportunities } from "./intelligence.js";
 
 export function buildApp(logger = false) {
   const app = Fastify({ logger });
@@ -36,7 +37,6 @@ export function buildApp(logger = false) {
         );
         return result.rows[0];
       });
-
       return { status: "ok", context };
     } catch (error) {
       app.log.warn(error);
@@ -50,11 +50,7 @@ export function buildApp(logger = false) {
       const workspace = await withTenantTransaction(principal, (client) =>
         getCurrentWorkspace(client, principal)
       );
-
-      if (!workspace) {
-        return reply.code(404).send({ status: "not_found" });
-      }
-
+      if (!workspace) return reply.code(404).send({ status: "not_found" });
       return { status: "ok", workspace };
     } catch (error) {
       app.log.warn(error);
@@ -68,12 +64,34 @@ export function buildApp(logger = false) {
       const membership = await withTenantTransaction(principal, (client) =>
         getCurrentMembership(client, principal)
       );
-
-      if (!membership) {
-        return reply.code(404).send({ status: "not_found" });
-      }
-
+      if (!membership) return reply.code(404).send({ status: "not_found" });
       return { status: "ok", membership };
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+  });
+
+  app.get("/v1/opportunities", async (request, reply) => {
+    try {
+      const principal = resolvePrincipal(request);
+      const opportunities = await withTenantTransaction(principal, (client) =>
+        listOpportunities(client, principal)
+      );
+      return { status: "ok", opportunities };
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+  });
+
+  app.get("/v1/insights", async (request, reply) => {
+    try {
+      const principal = resolvePrincipal(request);
+      const insights = await withTenantTransaction(principal, (client) =>
+        listInsights(client, principal)
+      );
+      return { status: "ok", insights };
     } catch (error) {
       app.log.warn(error);
       return reply.code(401).send({ status: "unauthorized" });
