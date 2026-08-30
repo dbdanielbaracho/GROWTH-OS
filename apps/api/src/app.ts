@@ -4,8 +4,8 @@ import { env } from "./config.js";
 import { resolvePrincipal } from "./auth.js";
 import { withTenantTransaction } from "./tenant-db.js";
 
-export function buildApp() {
-  const app = Fastify({ logger: false });
+export function buildApp(logger = false) {
+  const app = Fastify({ logger });
 
   app.get("/health/live", async () => ({ status: "ok" }));
 
