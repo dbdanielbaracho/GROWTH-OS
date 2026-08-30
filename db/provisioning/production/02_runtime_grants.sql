@@ -19,6 +19,24 @@ GRANT EXECUTE ON FUNCTION growth.tenant_context_valid(uuid) TO app_runtime;
 GRANT SELECT, INSERT ON growth.content_items TO app_runtime;
 GRANT SELECT, INSERT ON growth.content_versions TO app_runtime;
 
+-- CORRECTION discovered by physical execution against PG18 (not by design
+-- review): growth.content_items_workspace_isolation and
+-- growth.content_versions_workspace_isolation both internally reference
+-- growth.deletion_tombstones inside their USING clause (tombstone
+-- exclusion). PostgreSQL RLS policies evaluate with the CALLING role's
+-- privileges, so app_runtime needs SELECT on deletion_tombstones purely as
+-- a transitive dependency of evaluating those two policies — no
+-- application code queries deletion_tombstones directly. Without this
+-- grant, app_runtime cannot read content_items/content_versions AT ALL,
+-- which would have silently broken PR #6's entire content-authoring
+-- feature in production. The original approved matrix marked
+-- deletion_tombstones as NO RUNTIME ACCESS on the (incorrect) assumption
+-- that "no route touches it" was sufficient; it does not account for
+-- transitive RLS policy dependencies. This is the only cell in the
+-- approved matrix changed since design approval, and it is additive
+-- (SELECT only, not write) and minimal (exactly the dependency required).
+GRANT SELECT ON growth.deletion_tombstones TO app_runtime;
+
 GRANT SELECT ON growth.insights TO app_runtime;
 GRANT SELECT ON growth.opportunities TO app_runtime;
 
