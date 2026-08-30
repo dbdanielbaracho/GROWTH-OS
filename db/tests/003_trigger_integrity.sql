@@ -3,6 +3,11 @@ SET search_path = growth, public;
 
 -- This script is intended to run after 001_initial_schema.sql in an isolated test DB.
 -- It uses explicit UUID fixtures and raises on unexpected success.
+--
+-- RC9 correction: the insight_evidence INSERT below now supplies an explicit
+-- id. insight_evidence.id is uuid PRIMARY KEY with no DEFAULT (schema is
+-- immutable and unchanged); the original RC8 fixture omitted id and could
+-- never complete execution. This is a fix to the test fixture only.
 
 DO $$
 DECLARE
@@ -51,8 +56,8 @@ DECLARE
 BEGIN
   INSERT INTO growth.insights(id,workspace_id,state,claim,logic_version,valid_from)
   VALUES(i,w,'account_hypothesis','owned evidence path','vtest',clock_timestamp());
-  INSERT INTO growth.insight_evidence(workspace_id,insight_id,evidence_type,evidence_ref,source_class)
-  VALUES(w,i,'metric','owned:test','owned');
+  INSERT INTO growth.insight_evidence(id,workspace_id,insight_id,evidence_type,evidence_ref,source_class)
+  VALUES('50000000-0000-0000-0000-000000000001',w,i,'metric','owned:test','owned');
   UPDATE growth.insights SET state='confirmed_account' WHERE workspace_id=w AND id=i;
   SET CONSTRAINTS ALL IMMEDIATE;
 END$$;
