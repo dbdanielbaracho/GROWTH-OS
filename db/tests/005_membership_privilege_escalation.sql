@@ -1,0 +1,9 @@
+-- RC4 mandatory adversarial test.
+-- Setup must provide victim workspace with legitimate owner and attacker user.
+-- Assertions to implement/run in PG18.6:
+-- A) attacker with only app.user_id + guessed app.workspace_id MUST NOT self-insert owner/admin.
+-- B) existing active owner/admin MAY add a member.
+-- C) first-member bootstrap MAY create only self as active owner when workspace has zero memberships.
+-- D) bootstrap MUST fail if any membership already exists.
+-- E) attacker MUST NOT grant can_publish through self-insertion.
+-- F) membership management helper must not expose cross-workspace rows and must be executable only as intended.
