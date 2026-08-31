@@ -6,6 +6,15 @@ import { withTenantTransaction } from "./tenant-db.js";
 import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
 import { listInsights, listOpportunities } from "./intelligence.js";
 import { CreateContentSchema, createContent, listContent } from "./content.js";
+import {
+  CreateCreativeRequestSchema, createCreativeRequest,
+  CreateCreativeGenerationSchema, createCreativeGeneration,
+  transitionGeneration, reconcileAmbiguousGeneration,
+  CreateMediaAssetSchema, createMediaAsset,
+  CreateLineageEdgeSchema, createLineageEdge,
+  SourceContextNotFoundError
+} from "./creative.js";
+import { z } from "zod";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
   const pgCode =
@@ -15,6 +24,7 @@ function databaseStatus(error: unknown): { code: number; status: string } {
 
   if (pgCode === "42501") return { code: 403, status: "forbidden" };
   if (pgCode === "23505" || pgCode === "23503") return { code: 409, status: "conflict" };
+  if (pgCode === "P0001") return { code: 409, status: "conflict" }; // business-rule RAISE EXCEPTION (cycle guard, state machine guard)
   if (["08000", "08001", "08003", "08004", "08006", "08007", "08P01", "57P01", "53300"].includes(pgCode)) {
     return { code: 503, status: "service_unavailable" };
   }
@@ -153,6 +163,180 @@ export function buildApp(logger = false) {
         createContent(client, principal, parsed.data)
       );
       return reply.code(201).send({ status: "created", ...created });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/creative/requests", async (request, reply) => {
+    let principal;
+    try {
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    const parsed = CreateCreativeRequestSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
+      const created = await withTenantTransaction(principal, (client) =>
+        createCreativeRequest(client, principal, parsed.data)
+      );
+      return reply.code(201).send({ status: "created", creativeRequest: created });
+    } catch (error) {
+      if (error instanceof SourceContextNotFoundError) {
+        return reply.code(422).send({ status: "invalid_source_context" });
+      }
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/creative/generations", async (request, reply) => {
+    let principal;
+    try {
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    const parsed = CreateCreativeGenerationSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
+      const created = await withTenantTransaction(principal, (client) =>
+        createCreativeGeneration(client, principal, parsed.data)
+      );
+      return reply.code(201).send({ status: "created", creativeGeneration: created });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  const TransitionSchema = z.object({
+    status: z.enum(["requested", "queued", "processing", "succeeded", "failed", "cancelled", "ambiguous"]),
+    externalHandle: z.string().max(500).optional(),
+    errorClass: z.string().max(200).optional()
+  });
+
+  app.patch("/v1/creative/generations/:id", async (request, reply) => {
+    let principal;
+    try {
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    const parsed = TransitionSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
+      const updated = await withTenantTransaction(principal, (client) =>
+        transitionGeneration(client, principal, (request.params as { id: string }).id, parsed.data.status, {
+          externalHandle: parsed.data.externalHandle,
+          errorClass: parsed.data.errorClass
+        })
+      );
+      return { status: "ok", creativeGeneration: updated };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  const ReconcileSchema = z.object({
+    resolvedStatus: z.enum(["succeeded", "failed"])
+  });
+
+  app.post("/v1/creative/generations/:id/reconcile", async (request, reply) => {
+    let principal;
+    try {
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    const parsed = ReconcileSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
+      const resolved = await withTenantTransaction(principal, (client) =>
+        reconcileAmbiguousGeneration(
+          client, principal, (request.params as { id: string }).id, parsed.data.resolvedStatus, principal.userId
+        )
+      );
+      return { status: "ok", creativeGeneration: resolved };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/media-assets", async (request, reply) => {
+    let principal;
+    try {
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    const parsed = CreateMediaAssetSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
+      const created = await withTenantTransaction(principal, (client) =>
+        createMediaAsset(client, principal, parsed.data)
+      );
+      return reply.code(201).send({ status: "created", mediaAsset: created });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/media-assets/lineage", async (request, reply) => {
+    let principal;
+    try {
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    const parsed = CreateLineageEdgeSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
+      const created = await withTenantTransaction(principal, (client) =>
+        createLineageEdge(client, principal, parsed.data)
+      );
+      return reply.code(201).send({ status: "created", lineageEdge: created });
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
