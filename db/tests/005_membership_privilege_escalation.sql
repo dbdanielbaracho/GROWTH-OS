@@ -25,6 +25,7 @@ DECLARE
   rows_before int;
   rows_after int;
   caught_sqlstate text;
+  caught_message text;
 BEGIN
   SELECT has_table_privilege('app_runtime','growth.memberships','INSERT') INTO has_priv;
   IF NOT has_priv THEN
@@ -42,12 +43,15 @@ BEGIN
     VALUES('b0000000-0000-4000-8000-000000000002'::uuid,'a0000000-0000-4000-8000-000000000002'::uuid,'owner',true,'active');
     RAISE EXCEPTION 'TEST FAIL (A): attacker self-insert as owner succeeded';
   EXCEPTION WHEN OTHERS THEN
-    GET STACKED DIAGNOSTICS caught_sqlstate = RETURNED_SQLSTATE;
+    GET STACKED DIAGNOSTICS caught_sqlstate = RETURNED_SQLSTATE, caught_message = MESSAGE_TEXT;
   END;
   RESET ROLE;
 
   IF caught_sqlstate IS DISTINCT FROM 'P0001' THEN
-    RAISE EXCEPTION 'TEST FAIL (A): unexpected SQLSTATE %, expected P0001 (membership_write_guard)', caught_sqlstate;
+    RAISE EXCEPTION 'TEST FAIL (A): unexpected SQLSTATE %, expected P0001 (membership_write_guard fires before RLS and now correctly sees the workspace as non-empty via workspace_has_any_membership, so it rejects with its own authority-check message)', caught_sqlstate;
+  END IF;
+  IF caught_message NOT ILIKE '%owner/admin authority%' THEN
+    RAISE EXCEPTION 'TEST FAIL (A): rejected with P0001 but unexpected message: %', caught_message;
   END IF;
 
   SELECT count(*) INTO rows_after FROM growth.memberships
@@ -56,7 +60,7 @@ BEGIN
     RAISE EXCEPTION 'TEST FAIL (A): owner count changed (% -> %) despite rejection', rows_before, rows_after;
   END IF;
 
-  RAISE NOTICE 'PASS (A): attacker self-escalation rejected, SQLSTATE P0001, state unchanged';
+  RAISE NOTICE 'PASS (A): attacker self-escalation rejected, SQLSTATE P0001 (trigger), state unchanged';
 END $$;
 
 -- ============================================================
@@ -93,6 +97,7 @@ DECLARE
   bootstrap_ws uuid := 'c0000000-0000-4000-8000-000000000001';
   rows_after int;
   caught_sqlstate text;
+  caught_message text;
 BEGIN
   SET ROLE growth_test_harness;
   INSERT INTO growth.workspaces(id,name,default_market,default_language,default_timezone,status)
@@ -123,19 +128,22 @@ BEGIN
     VALUES(bootstrap_ws,'a0000000-0000-4000-8000-000000000002'::uuid,'owner',true,'active');
     RAISE EXCEPTION 'TEST FAIL (D): second bootstrap on non-empty workspace succeeded';
   EXCEPTION WHEN OTHERS THEN
-    GET STACKED DIAGNOSTICS caught_sqlstate = RETURNED_SQLSTATE;
+    GET STACKED DIAGNOSTICS caught_sqlstate = RETURNED_SQLSTATE, caught_message = MESSAGE_TEXT;
   END;
   RESET ROLE;
 
   IF caught_sqlstate IS DISTINCT FROM 'P0001' THEN
-    RAISE EXCEPTION 'TEST FAIL (D): unexpected SQLSTATE %, expected P0001 (membership_write_guard)', caught_sqlstate;
+    RAISE EXCEPTION 'TEST FAIL (D): unexpected SQLSTATE %, expected P0001 (membership_write_guard fires before RLS and correctly sees the workspace as non-empty)', caught_sqlstate;
+  END IF;
+  IF caught_message NOT ILIKE '%owner/admin authority%' THEN
+    RAISE EXCEPTION 'TEST FAIL (D): rejected with P0001 but unexpected message: %', caught_message;
   END IF;
 
   SELECT count(*) INTO rows_after FROM growth.memberships WHERE workspace_id = bootstrap_ws;
   IF rows_after <> 1 THEN
     RAISE EXCEPTION 'TEST FAIL (D): membership count changed after rejected second bootstrap';
   END IF;
-  RAISE NOTICE 'PASS (D): second bootstrap correctly rejected, state unchanged';
+  RAISE NOTICE 'PASS (D): second bootstrap correctly rejected, SQLSTATE P0001 (trigger), state unchanged';
 END $$;
 
 -- ============================================================
