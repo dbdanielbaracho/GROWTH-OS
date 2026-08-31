@@ -180,3 +180,140 @@ CREATE POLICY content_localizations_workspace_isolation ON content_localizations
     AND growth.content_version_visible(workspace_id, source_content_version_id)
     AND growth.content_version_visible(workspace_id, localized_content_version_id)
   );
+
+-- ============================================================
+-- Controlled lifecycle functions. app_runtime gets NO UPDATE privilege
+-- on content_items at all (not table-level, not even column-level) —
+-- discovered physically that a broad table-level UPDATE grant (even
+-- restricted to no columns beyond status by a prior draft of this
+-- migration) still permits a caller to update ANY column PostgreSQL's
+-- column-level grants don't restrict in combination, and more
+-- importantly that neither table- nor column-level grants alone can
+-- enforce that a status transition is backed by a real
+-- content_approvals decision or a real new content_version — RLS
+-- controls which ROW, never which COLUMN VALUES or business-level state
+-- transition. Every lifecycle mutation goes through one of these three
+-- SECURITY DEFINER functions instead, each atomic (single PL/pgSQL
+-- function body, same transaction as the caller), each validating the
+-- current status before allowing the transition, each still fully
+-- tenant-isolated through the same RLS the rest of the schema relies on
+-- (current_workspace_id()/tenant_context_valid() read session-level
+-- GUCs regardless of which role executes the query).
+-- ============================================================
+CREATE OR REPLACE FUNCTION growth.content_approve(
+  p_workspace_id uuid, p_content_version_id uuid, p_notes text DEFAULT NULL
+)
+RETURNS growth.content_approvals
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, growth
+AS $$
+DECLARE
+  v_item_id uuid;
+  v_current_status text;
+  v_row growth.content_approvals;
+BEGIN
+  SELECT cv.content_item_id INTO v_item_id
+  FROM growth.content_versions cv
+  WHERE cv.workspace_id = p_workspace_id AND cv.id = p_content_version_id;
+
+  IF v_item_id IS NULL THEN
+    RAISE EXCEPTION 'content_version not found or not visible in this tenant context';
+  END IF;
+
+  SELECT status INTO v_current_status FROM growth.content_items
+  WHERE workspace_id = p_workspace_id AND id = v_item_id;
+
+  IF v_current_status IS DISTINCT FROM 'ready_for_review' THEN
+    RAISE EXCEPTION 'cannot approve from status %, expected ready_for_review', v_current_status;
+  END IF;
+
+  INSERT INTO growth.content_approvals(id, workspace_id, content_version_id, actor_user_id, decision, notes)
+  VALUES (gen_random_uuid(), p_workspace_id, p_content_version_id, growth.current_app_user_id(), 'approved', p_notes)
+  RETURNING * INTO v_row;
+
+  UPDATE growth.content_items SET status = 'approved'
+   WHERE workspace_id = p_workspace_id AND id = v_item_id;
+
+  RETURN v_row;
+END;
+$$;
+REVOKE ALL ON FUNCTION growth.content_approve(uuid,uuid,text) FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION growth.content_request_changes(
+  p_workspace_id uuid, p_content_version_id uuid, p_notes text DEFAULT NULL
+)
+RETURNS growth.content_approvals
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, growth
+AS $$
+DECLARE
+  v_item_id uuid;
+  v_current_status text;
+  v_row growth.content_approvals;
+BEGIN
+  SELECT cv.content_item_id INTO v_item_id
+  FROM growth.content_versions cv
+  WHERE cv.workspace_id = p_workspace_id AND cv.id = p_content_version_id;
+
+  IF v_item_id IS NULL THEN
+    RAISE EXCEPTION 'content_version not found or not visible in this tenant context';
+  END IF;
+
+  SELECT status INTO v_current_status FROM growth.content_items
+  WHERE workspace_id = p_workspace_id AND id = v_item_id;
+
+  IF v_current_status IS DISTINCT FROM 'ready_for_review' THEN
+    RAISE EXCEPTION 'cannot request changes from status %, expected ready_for_review', v_current_status;
+  END IF;
+
+  INSERT INTO growth.content_approvals(id, workspace_id, content_version_id, actor_user_id, decision, notes)
+  VALUES (gen_random_uuid(), p_workspace_id, p_content_version_id, growth.current_app_user_id(), 'changes_requested', p_notes)
+  RETURNING * INTO v_row;
+
+  UPDATE growth.content_items SET status = 'draft'
+   WHERE workspace_id = p_workspace_id AND id = v_item_id;
+
+  RETURN v_row;
+END;
+$$;
+REVOKE ALL ON FUNCTION growth.content_request_changes(uuid,uuid,text) FROM PUBLIC;
+
+-- Edit/Regenerate share this shape: a new content_version, status back to
+-- ready_for_review. Checksum is supplied by the caller (the application
+-- already computes SHA-256 client-side for the existing createContent
+-- path; pgcrypto is not installed and this migration does not add it).
+CREATE OR REPLACE FUNCTION growth.content_new_version(
+  p_workspace_id uuid, p_content_item_id uuid, p_body text, p_checksum text,
+  p_structure jsonb DEFAULT '{}'::jsonb, p_ai_provenance jsonb DEFAULT NULL
+)
+RETURNS growth.content_versions
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, growth
+AS $$
+DECLARE
+  v_next_version_no integer;
+  v_row growth.content_versions;
+  v_item_exists boolean;
+BEGIN
+  SELECT EXISTS(SELECT 1 FROM growth.content_items WHERE workspace_id = p_workspace_id AND id = p_content_item_id) INTO v_item_exists;
+  IF NOT v_item_exists THEN
+    RAISE EXCEPTION 'content_item not found or not visible in this tenant context';
+  END IF;
+
+  SELECT COALESCE(MAX(version_no), 0) + 1 INTO v_next_version_no
+  FROM growth.content_versions WHERE workspace_id = p_workspace_id AND content_item_id = p_content_item_id;
+
+  INSERT INTO growth.content_versions(id, workspace_id, content_item_id, version_no, body, structure_json, ai_provenance, checksum)
+  VALUES (gen_random_uuid(), p_workspace_id, p_content_item_id, v_next_version_no, p_body, p_structure, p_ai_provenance, p_checksum)
+  RETURNING * INTO v_row;
+
+  UPDATE growth.content_items SET status = 'ready_for_review'
+   WHERE workspace_id = p_workspace_id AND id = p_content_item_id;
+
+  RETURN v_row;
+END;
+$$;
+REVOKE ALL ON FUNCTION growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb) FROM PUBLIC;
