@@ -7,11 +7,18 @@
 
 \set ON_ERROR_STOP on
 
--- content_items lifecycle: app_runtime already had SELECT, INSERT
--- (RC9). Adding UPDATE, discovered physically necessary while proving
--- the status-transition design: without it, the Approve/Changes
--- Requested/Edit lifecycle cannot update content_items.status at all.
-GRANT UPDATE ON growth.content_items TO app_runtime;
+-- content_items lifecycle: app_runtime does NOT get UPDATE on
+-- content_items at all -- not table-level, not even column-level.
+-- Physically proven that a table-level (or naive column-level) UPDATE
+-- grant lets a caller rewrite fields that should stay historically
+-- stable (market, language, objective, source_type, ...), and that
+-- neither approach alone enforces that a status transition is backed by
+-- a real content_approvals decision. Status transitions happen only
+-- through the three SECURITY DEFINER functions below, which own the
+-- transition rules and the corresponding audit row atomically.
+GRANT EXECUTE ON FUNCTION growth.content_approve(uuid,uuid,text) TO app_runtime;
+GRANT EXECUTE ON FUNCTION growth.content_request_changes(uuid,uuid,text) TO app_runtime;
+GRANT EXECUTE ON FUNCTION growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb) TO app_runtime;
 
 -- content_variants and media_assets already existed structurally in RC9
 -- (both satisfy most of Especificação Técnica v0.4.1 Section 10) but had
