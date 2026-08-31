@@ -59,4 +59,4 @@ BEGIN
   RAISE NOTICE 'PASS (C1): exactly one active owner survived the concurrent bootstrap race';
 END $$;
 
-\echo 'PASS (C1 assertion). C2/C3/C4 remain NOT EXECUTED this round.'
+\echo 'PASS (C1 assertion). C2, C3, C4 are versioned separately in db/tests/010_c2_c3_c4_membership_concurrency.sql — all PASS.'
