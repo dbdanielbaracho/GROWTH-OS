@@ -48,3 +48,10 @@ GRANT SELECT ON growth.opportunities TO app_runtime;
 -- Every remaining growth.* table has RLS from the generic tenant-isolation
 -- loop but zero grant, by the fail-closed default: NO RUNTIME ACCESS
 -- until a route exercises it and a reviewer adds an explicit line here.
+
+-- RC9 security fix (RC9-FINDING-001/003) EXECUTE grants for
+-- membership_row_visible/workspace_row_visible are issued inside
+-- db/migrations/002_rc9_security_policy_fix.sql itself, not here:
+-- growth_migrator does not own those functions and has no GRANT OPTION on
+-- them (proven by physical execution), so only the administrative
+-- identity that applies that migration can issue those grants.
