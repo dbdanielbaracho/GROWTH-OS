@@ -18,6 +18,18 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_runtime') THEN
     CREATE ROLE app_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
   END IF;
+
+  -- RC9 security fix (RC9-FINDING-001/003): a narrowly-scoped, NOLOGIN role
+  -- whose sole purpose is to own the two RLS-recursion-breaking helper
+  -- functions in 002_rc9_security_policy_fix.sql. It is never granted to
+  -- any application role, has zero memberships by construction (nothing
+  -- below ever runs GRANT growth_rls_helper TO ...), and must never gain
+  -- BYPASSRLS-adjacent power over more than its two functions. Its
+  -- BYPASSRLS attribute is what breaks the RLS self-recursion in
+  -- growth.memberships; this was proven necessary, not a convenience.
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_rls_helper') THEN
+    CREATE ROLE growth_rls_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+  END IF;
 END $$;
 
 -- The canonical DDL itself issues CREATE SCHEMA IF NOT EXISTS for growth and
