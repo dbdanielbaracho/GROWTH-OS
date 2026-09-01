@@ -3,11 +3,32 @@
 -- physically proven at least once during the design/hardening rounds
 -- before being encoded as a permanent, versioned test.
 --
--- Must run as an administrative identity able to \c as app_runtime and
--- growth_migrator (a local superuser in test environments; the provider's
--- master-user in production disposable validation environments).
+-- Must start as an administrative identity. The three connection URLs are
+-- read from the environment so the same test runs locally and on hosted
+-- PostgreSQL without assuming a database name, host, port, or shared password:
+--   APP_RUNTIME_DATABASE_URL, MIGRATOR_DATABASE_URL, ADMIN_DATABASE_URL.
 
 \set ON_ERROR_STOP on
+\getenv app_runtime_url APP_RUNTIME_DATABASE_URL
+\getenv migrator_url MIGRATOR_DATABASE_URL
+\getenv admin_url ADMIN_DATABASE_URL
+
+\if :{?app_runtime_url}
+\else
+  \echo 'TEST FAIL: APP_RUNTIME_DATABASE_URL is required'
+  SELECT 1 / 0;
+\endif
+\if :{?migrator_url}
+\else
+  \echo 'TEST FAIL: MIGRATOR_DATABASE_URL is required'
+  SELECT 1 / 0;
+\endif
+\if :{?admin_url}
+\else
+  \echo 'TEST FAIL: ADMIN_DATABASE_URL is required'
+  SELECT 1 / 0;
+\endif
+
 SET search_path = growth, public;
 
 -- ============================================================
@@ -49,33 +70,33 @@ END $$;
 -- :variables inside $$-quoted DO block bodies, so the check must live
 -- outside any DO block).
 -- ============================================================
-\c growth_rc9 app_runtime
+\c :app_runtime_url
 \set ON_ERROR_STOP off
 SET ROLE growth_rls_helper;
 \set ON_ERROR_STOP on
 SELECT (current_user = 'app_runtime') AS still_app_runtime \gset
 RESET ROLE;
 
-\c growth_rc9 growth_migrator
+\c :migrator_url
 \set ON_ERROR_STOP off
 SET ROLE growth_rls_helper;
 \set ON_ERROR_STOP on
 SELECT (current_user = 'growth_migrator') AS still_migrator \gset
 RESET ROLE;
 
-\c growth_rc9 postgres
+\c :admin_url
 \if :still_app_runtime
   \echo 'PASS: app_runtime cannot SET ROLE growth_rls_helper (remained app_runtime)'
 \else
   \echo 'TEST FAIL: app_runtime successfully became growth_rls_helper'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 \if :still_migrator
   \echo 'PASS: growth_migrator cannot SET ROLE growth_rls_helper (remained growth_migrator)'
 \else
   \echo 'TEST FAIL: growth_migrator successfully became growth_rls_helper'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- ============================================================
@@ -124,29 +145,29 @@ END $$;
 -- Function modification denial — physically attempted, verified by
 -- re-reading the function body afterward.
 -- ============================================================
-\c growth_rc9 app_runtime
+\c :app_runtime_url
 \set ON_ERROR_STOP off
 CREATE OR REPLACE FUNCTION growth.membership_row_visible(p_workspace_id uuid) RETURNS boolean LANGUAGE sql AS $f$ SELECT true; $f$;
 \set ON_ERROR_STOP on
 
-\c growth_rc9 growth_migrator
+\c :migrator_url
 \set ON_ERROR_STOP off
 CREATE OR REPLACE FUNCTION growth.membership_row_visible(p_workspace_id uuid) RETURNS boolean LANGUAGE sql AS $f$ SELECT true; $f$;
 \set ON_ERROR_STOP on
 
-\c growth_rc9 postgres
+\c :admin_url
 SELECT (prosrc = ' SELECT true; ') AS was_replaced, (prosrc ILIKE '%current_app_user_id%') AS looks_original
 FROM pg_proc WHERE proname = 'membership_row_visible' \gset
 
 \if :was_replaced
   \echo 'TEST FAIL: membership_row_visible body was replaced by app_runtime or growth_migrator'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 \if :looks_original
   \echo 'PASS: neither app_runtime nor growth_migrator could replace membership_row_visible (body unchanged, confirmed by re-reading pg_proc)'
 \else
   \echo 'TEST FAIL: membership_row_visible body looks unexpectedly different'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- ============================================================

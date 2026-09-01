@@ -16,4 +16,8 @@ Target: PostgreSQL 18.6 for this review, then the exact PostgreSQL 18.x patch/bu
 
 No test may be marked PASS from deduction alone.
 
+Hosted runs of `012_rc9_security_helper_hardening.sql` must provide
+`APP_RUNTIME_DATABASE_URL`, `MIGRATOR_DATABASE_URL`, and `ADMIN_DATABASE_URL`.
+The test never assumes a local host, fixed port, database name, or shared password.
+
 RC8: execute `011_rc8_six_fail_regressions.md` before structural-freeze consideration.

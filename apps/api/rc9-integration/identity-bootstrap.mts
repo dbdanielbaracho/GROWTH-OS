@@ -1,6 +1,8 @@
 // Growth OS RC9 — 006_identity_bootstrap_contract.md, executed via the real
 // pg driver/pool (db.ts), not raw psql. Requires DATABASE_URL pointing to
 // an RC9-provisioned PostgreSQL 18.x database, connecting as app_runtime.
+// Administrative steps additionally require MIGRATOR_DATABASE_URL and
+// TEST_HARNESS_DATABASE_URL for their respective, least-privilege roles.
 //
 // FINDING (RC9-FINDING-002, discovered before execution by reading auth.ts):
 // AuthPrincipal requires BOTH userId and workspaceId via its Zod schema.
@@ -26,6 +28,12 @@
 // re-check, and is corrected here.
 
 import { db } from "../src/db.js";
+
+function requiredDatabaseUrl(name: "MIGRATOR_DATABASE_URL" | "TEST_HARNESS_DATABASE_URL") {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required for the administrative integration-test steps`);
+  return value;
+}
 
 let failures = 0;
 function check(name: string, ok: boolean, detail?: unknown) {
@@ -179,7 +187,7 @@ const workspaceB = "b0000000-0000-4000-8000-000000000002";
 // privileges app_runtime doesn't have, one more layer beyond RLS alone).
 {
   const { Pool } = await import("pg");
-  const adminPool = new Pool({ connectionString: "postgresql://growth_migrator@127.0.0.1:5433/growth_rc9" });
+  const adminPool = new Pool({ connectionString: requiredDatabaseUrl("MIGRATOR_DATABASE_URL") });
   const adminClient = await adminPool.connect();
   const attackerClient = await db.connect();
   try {
@@ -322,7 +330,7 @@ const workspaceB = "b0000000-0000-4000-8000-000000000002";
       // table owner) is subject to RLS here — growth_test_harness
       // (BYPASSRLS, test-only) is the correct role for fixture seeding,
       // matching db/provisioning/test/03_test_fixtures.sql's own pattern.
-      const adminPool = new Pool({ connectionString: "postgresql://growth_test_harness@127.0.0.1:5433/growth_rc9" });
+      const adminPool = new Pool({ connectionString: requiredDatabaseUrl("TEST_HARNESS_DATABASE_URL") });
       const adminClient = await adminPool.connect();
       try {
         await adminClient.query(

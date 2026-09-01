@@ -29,9 +29,9 @@ INSERT INTO growth.workspaces(id,name,default_market,default_language,default_ti
 VALUES (:'ws','RC7 membership auth','US','en','UTC','active')
 ON CONFLICT (id) DO NOTHING;
 
-DELETE FROM growth.memberships WHERE workspace_id=:'ws';
 SELECT set_config('app.workspace_id', :'ws', false);
 SELECT set_config('app.user_id', :'owner1', false);
+DELETE FROM growth.memberships WHERE workspace_id=:'ws';
 INSERT INTO growth.memberships(workspace_id,user_id,role,can_publish,status) VALUES
   (:'ws',:'owner1','owner',true,'active');
 INSERT INTO growth.memberships(workspace_id,user_id,role,can_publish,status) VALUES

@@ -5,12 +5,11 @@
 
 \set ON_ERROR_STOP on
 
-SELECT count(*) AS test_role_leaked
-FROM pg_roles WHERE rolname = 'growth_test_harness' \gset
-
-\if :test_role_leaked
-  \echo 'FAIL: growth_test_harness exists in a database provisioned only from production/ scripts'
-  \quit 1
-\endif
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_test_harness') THEN
+    RAISE EXCEPTION 'TEST FAIL: growth_test_harness exists in a database provisioned only from production/ scripts';
+  END IF;
+END $$;
 
 \echo 'PASS: production provisioning contains no test-only role'

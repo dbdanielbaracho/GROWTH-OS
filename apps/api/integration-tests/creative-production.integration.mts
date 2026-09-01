@@ -2,6 +2,15 @@ import { randomUUID } from "node:crypto";
 import { buildApp } from "../src/app.js";
 import { db } from "../src/db.js";
 
+// DATABASE_URL is the app_runtime connection used by the application.
+// MIGRATOR_DATABASE_URL is required only for the administrative tombstone
+// fixture and must point to the same database with growth_migrator credentials.
+function requiredDatabaseUrl(name: "MIGRATOR_DATABASE_URL") {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required for the administrative integration-test steps`);
+  return value;
+}
+
 const legit = { "x-user-id": "a0000000-0000-4000-8000-000000000001", "x-workspace-id": "b0000000-0000-4000-8000-000000000001" };
 const attacker = { "x-user-id": "a0000000-0000-4000-8000-000000000002", "x-workspace-id": "b0000000-0000-4000-8000-000000000002" };
 
@@ -205,7 +214,7 @@ if (generationId) {
       // role does directly). No HTTP deletion route exists yet — that is
       // Publishing/Content's own future surface.
       const { Pool } = await import("pg");
-      const adminPool = new Pool({ connectionString: "postgresql://growth_migrator@127.0.0.1:5433/growth_rc9" });
+      const adminPool = new Pool({ connectionString: requiredDatabaseUrl("MIGRATOR_DATABASE_URL") });
       const adminClient = await adminPool.connect();
       const deletionRequestId = randomUUID();
       try {
