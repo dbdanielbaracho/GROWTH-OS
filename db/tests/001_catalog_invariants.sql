@@ -45,7 +45,7 @@ SELECT CASE WHEN count(*)>0 THEN 'true' ELSE 'false' END AS bad_fk FROM violatio
 \if :bad_fk
   \echo 'FAIL: a tenant-parent FK omits workspace_id'
   SELECT conname,child_table,parent_table,child_cols,parent_cols FROM violations;
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- B) Every table carrying workspace_id must have ENABLE+FORCE RLS, except explicit internal-only jobs.
@@ -67,7 +67,7 @@ SELECT CASE WHEN count(*)>0 THEN 'true' ELSE 'false' END AS bad_rls FROM bad;
 \if :bad_rls
   \echo 'FAIL: workspace-scoped table lacks ENABLE/FORCE RLS'
   SELECT * FROM bad;
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- C) Explicit identity bootstrap RLS must exist.
@@ -86,7 +86,7 @@ SELECT CASE WHEN count(*)>0 THEN 'true' ELSE 'false' END AS missing_bootstrap_po
 \if :missing_bootstrap_policy
   \echo 'FAIL: identity/workspace bootstrap RLS policy missing'
   SELECT * FROM missing;
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- D) No legacy fixed pgvector column or pgcrypto dependency.
@@ -95,14 +95,14 @@ FROM information_schema.columns WHERE table_schema='growth' AND udt_name='vector
 \gset
 \if :bad_vector
   \echo 'FAIL: fixed vector column exists before embedding layout freeze'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 SELECT CASE WHEN count(*)>0 THEN 'true' ELSE 'false' END AS bad_pgcrypto
 FROM pg_extension WHERE extname='pgcrypto';
 \gset
 \if :bad_pgcrypto
   \echo 'FAIL: pgcrypto unexpectedly required by canonical schema'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- E) Critical indexes/constraints introduced by RC3 must exist.
@@ -120,7 +120,7 @@ SELECT CASE WHEN count(*)>0 THEN 'true' ELSE 'false' END AS missing_idx FROM mis
 \if :missing_idx
   \echo 'FAIL: required unique/partial index missing'
   SELECT * FROM missing;
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 \echo 'PASS: dynamic catalog invariants'

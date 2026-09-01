@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Growth OS — Test Integrity Gate.
 //
-// Statically scans every .mts/.ts test file in the repository (excluding
-// node_modules and dist) for classes of false-green assertions: patterns
-// that make a test report PASS without actually proving the condition its
-// name claims. Exits non-zero — failing CI — if any REAL DEFECT pattern is
-// found in live code (not inside a comment).
+// Statically scans every .mts/.ts test file and SQL file in the repository
+// (excluding node_modules and dist) for classes of false-green assertions:
+// patterns that make a test report PASS without actually proving the
+// condition its name claims. Exits non-zero — failing CI — if any REAL
+// DEFECT pattern is found in live code (not inside a comment).
 //
 // Origin: this gate exists because two vacuous assertions
 // (`.every((r) => true)`, a bare `check(..., true)`) were physically found
@@ -30,8 +30,8 @@
 //   physical execution instead, documented in
 //   db/TEST_INTEGRITY_METHOD_HARDENING.md. This script covers exactly the
 //   classes that ARE reliably, mechanically detectable: literal-true
-//   assertions, vacuous predicates, disabled/skipped tests, and
-//   self-comparison tautologies.
+//   assertions, vacuous predicates, disabled/skipped tests,
+//   self-comparison tautologies, and ignored psql quit status arguments.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -39,6 +39,7 @@ import { join, extname } from "node:path";
 const ROOT = process.cwd();
 const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "coverage"]);
 const TEST_EXTENSIONS = new Set([".mts", ".ts"]);
+const SQL_EXTENSION = ".sql";
 
 /** @type {{file: string, line: number, pattern: string, text: string}[]} */
 const findings = [];
@@ -89,6 +90,25 @@ function walk(dir) {
       walk(full);
     } else if (TEST_EXTENSIONS.has(extname(entry))) {
       scanFile(full);
+    } else if (extname(entry) === SQL_EXTENSION) {
+      scanSqlFile(full);
+    }
+  }
+}
+
+function scanSqlFile(path) {
+  const text = readFileSync(path, "utf8");
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith("--")) continue;
+    if (/^\\(?:q|quit)\s+\d+\s*$/.test(trimmed)) {
+      findings.push({
+        file: path.replace(ROOT + "/", ""),
+        line: i + 1,
+        pattern: "psql-quit-status-is-ignored",
+        text: trimmed,
+      });
     }
   }
 }

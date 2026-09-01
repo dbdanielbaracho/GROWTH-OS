@@ -16,6 +16,7 @@ Target: PostgreSQL 18.x.
 - Tenant context and RLS invariants are mandatory application contracts.
 - Database migrations are explicit operations and are never run automatically on API process startup.
 - Backup/DR technical proof is deliberately deferred; this does not relax runtime data-integrity requirements.
+- The application database and validation database are distinct Railway targets. Stateful test fixtures must never accumulate in the application database.
 
 ## Layout
 

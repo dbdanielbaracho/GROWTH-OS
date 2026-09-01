@@ -4,34 +4,33 @@
 -- that can seed fixtures, then SET ROLE app_runtime for adversarial operations.
 \set ON_ERROR_STOP on
 
--- Fixed fixture IDs for reproducibility.
-\set ws '00000000-0000-4000-8000-000000000501'
-\set owner1 '00000000-0000-4000-8000-000000000511'
-\set owner2 '00000000-0000-4000-8000-000000000512'
-\set admin1 '00000000-0000-4000-8000-000000000513'
-\set editor1 '00000000-0000-4000-8000-000000000514'
-\set viewer1 '00000000-0000-4000-8000-000000000515'
-\set outsider '00000000-0000-4000-8000-000000000516'
+-- Per-run fixture IDs make this matrix safe to execute again even when a
+-- previous run's rows remain in a long-lived validation database.
+SELECT gen_random_uuid() AS ws,
+       gen_random_uuid() AS owner1,
+       gen_random_uuid() AS owner2,
+       gen_random_uuid() AS admin1,
+       gen_random_uuid() AS editor1,
+       gen_random_uuid() AS viewer1,
+       gen_random_uuid() AS outsider
+\gset
 
 SET search_path = growth, public;
 
 -- Seed as privileged harness.
 INSERT INTO growth.users(id,email,status) VALUES
-  (:'owner1','rc7-owner1@example.test','active'),
-  (:'owner2','rc7-owner2@example.test','active'),
-  (:'admin1','rc7-admin1@example.test','active'),
-  (:'editor1','rc7-editor1@example.test','active'),
-  (:'viewer1','rc7-viewer1@example.test','active'),
-  (:'outsider','rc7-outsider@example.test','active')
-ON CONFLICT (id) DO NOTHING;
+  (:'owner1','rc7-owner1-' || :'owner1' || '@example.test','active'),
+  (:'owner2','rc7-owner2-' || :'owner2' || '@example.test','active'),
+  (:'admin1','rc7-admin1-' || :'admin1' || '@example.test','active'),
+  (:'editor1','rc7-editor1-' || :'editor1' || '@example.test','active'),
+  (:'viewer1','rc7-viewer1-' || :'viewer1' || '@example.test','active'),
+  (:'outsider','rc7-outsider-' || :'outsider' || '@example.test','active');
 
 INSERT INTO growth.workspaces(id,name,default_market,default_language,default_timezone,status)
-VALUES (:'ws','RC7 membership auth','US','en','UTC','active')
-ON CONFLICT (id) DO NOTHING;
+VALUES (:'ws','RC7 membership auth','US','en','UTC','active');
 
 SELECT set_config('app.workspace_id', :'ws', false);
 SELECT set_config('app.user_id', :'owner1', false);
-DELETE FROM growth.memberships WHERE workspace_id=:'ws';
 INSERT INTO growth.memberships(workspace_id,user_id,role,can_publish,status) VALUES
   (:'ws',:'owner1','owner',true,'active');
 INSERT INTO growth.memberships(workspace_id,user_id,role,can_publish,status) VALUES
@@ -49,7 +48,7 @@ RESET ROLE;
 SELECT count(*) AS bad FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND user_id=:'viewer1'::uuid AND role='owner' \gset
 \if :bad
   \echo 'FAIL viewer self-promotion succeeded'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- Viewer must not delete owner.
@@ -62,7 +61,7 @@ SELECT count(*) AS ok FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND
 \if :ok
 \else
   \echo 'FAIL viewer deleted owner'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- Viewer may leave self.
@@ -74,7 +73,7 @@ RESET ROLE;
 SELECT count(*) AS bad FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND user_id=:'viewer1'::uuid \gset
 \if :bad
   \echo 'FAIL viewer self-leave was blocked'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- Owner can promote editor to admin.
@@ -87,7 +86,7 @@ SELECT count(*) AS ok FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND
 \if :ok
 \else
   \echo 'FAIL owner could not promote editor to admin'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- Restore editor for admin boundary test.
@@ -105,12 +104,12 @@ RESET ROLE;
 \if :{?admin_promote_sqlstate}
 \else
   \echo 'FAIL: no SQLSTATE captured for forbidden admin promotion'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 SELECT count(*) AS bad FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND user_id=:'editor1'::uuid AND role='admin' \gset
 \if :bad
   \echo 'FAIL admin promoted editor to admin'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- Admin cannot delete owner.
@@ -125,7 +124,7 @@ SELECT count(*) AS ok FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND
 \if :ok
 \else
   \echo 'FAIL admin deleted owner'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- Membership identity keys are immutable.
@@ -139,7 +138,7 @@ RESET ROLE;
 SELECT count(*) AS bad FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND user_id=:'outsider'::uuid \gset
 \if :bad
   \echo 'FAIL membership user_id mutation succeeded'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- Last-owner guard: with only owner1 as owner, demotion/delete must fail.
@@ -155,7 +154,7 @@ SELECT count(*) AS ok FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND
 \if :ok
 \else
   \echo 'FAIL last active owner was demoted/deleted'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- With a second owner, owner1 may leave.
@@ -169,13 +168,13 @@ RESET ROLE;
 SELECT count(*) AS bad FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND user_id=:'owner1'::uuid \gset
 \if :bad
   \echo 'FAIL owner could not self-leave with another active owner'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 SELECT count(*) AS ok FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND user_id=:'owner2'::uuid AND role='owner' AND status='active' \gset
 \if :ok
 \else
   \echo 'FAIL workspace lost all active owners'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- RC7 regression: unaffiliated outsider must not self-bootstrap into non-empty workspace.
@@ -190,7 +189,7 @@ RESET ROLE;
 SELECT count(*) AS bad FROM growth.memberships WHERE workspace_id=:'ws'::uuid AND user_id=:'outsider'::uuid AND role='owner' \gset
 \if :bad
   \echo 'FAIL outsider self-created owner membership in non-empty workspace'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 \echo 'PASS: RC7 membership authorization matrix'

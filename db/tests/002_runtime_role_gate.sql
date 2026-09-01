@@ -6,11 +6,11 @@ FROM pg_roles WHERE rolname=:'runtime_role';
 \gset
 \if :runtime_super
   \echo 'FAIL: runtime role is superuser'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 \if :runtime_bypass
   \echo 'FAIL: runtime role has BYPASSRLS'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 SELECT CASE WHEN count(*) > 0 THEN 'true' ELSE 'false' END AS owns_tenant_tables
@@ -21,7 +21,7 @@ WHERE n.nspname='growth' AND c.relkind='r' AND r.rolname=:'runtime_role';
 \gset
 \if :owns_tenant_tables
   \echo 'FAIL: runtime role owns growth tables'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 -- Internal cross-tenant worker queue must never be directly accessible by normal API runtime role.
@@ -34,7 +34,7 @@ THEN 'true' ELSE 'false' END AS jobs_access;
 \gset
 \if :jobs_access
   \echo 'FAIL: normal API runtime role has direct access to internal growth.jobs'
-  \quit 1
+  SELECT 1 / 0;
 \endif
 
 \echo 'PASS: runtime role gate'
