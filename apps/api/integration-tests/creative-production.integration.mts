@@ -74,7 +74,20 @@ if (victimOpportunityId) {
   });
   check("(3) cross-workspace source_id is rejected with 422", crCrossRes.statusCode === 422, crCrossRes.body);
 } else {
-  console.log("SKIP: (3) no fixture opportunity in the victim workspace to test cross-workspace rejection");
+  // HARDENED (Test Integrity & Method Hardening Gate): this used to be a
+  // silent SKIP, which meant test (3) — a SECURITY-relevant cross-tenant
+  // check — could go completely unexercised in a run without the overall
+  // suite reporting any failure. A missing fixture for a security test is
+  // itself a test-infrastructure defect, not a reason to quietly move on.
+  // db/provisioning/test/04_creative_production_test_fixtures.sql now
+  // seeds this fixture as standard provisioning, so reaching this branch
+  // at all means that provisioning step did not run or was altered —
+  // treated as a hard FAIL, not a SKIP.
+  check(
+    "(3) cross-workspace source_id is rejected with 422 [fixture missing — provisioning gap, not a legitimate skip]",
+    false,
+    "expected an opportunity fixture in the victim workspace (seeded by 04_creative_production_test_fixtures.sql); none found"
+  );
 }
 
 // 4. Creative Generation lifecycle: create -> processing -> succeeded.
