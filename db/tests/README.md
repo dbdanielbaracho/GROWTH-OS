@@ -5,16 +5,31 @@ Target: PostgreSQL 18.6 for this review, then the exact PostgreSQL 18.x patch/bu
 ## Environment isolation
 
 - Never run the full stateful SQL/Node suite against the project's permanent application database.
-- Maintain a dedicated Railway validation database (`growth_os_test`). It is a long-lived environment, but its data is restored to an empty baseline before every complete suite run.
-- A complete run means: clean database, migrations 001-005, production provisioning required by those migrations, Identity helper-role provisioning (`05_identity_roles.sql`), migration 006, **test provisioning only after all schema migrations are present**, `000_validation_database_is_empty.sql`, fixtures, SQL tests in order, concurrency scenarios, then Node integrations.
-- Test provisioning must run after the latest schema migration. `01_test_roles.sql` grants the test harness access to `ALL TABLES IN SCHEMA growth` as they exist at grant time; running it before a later migration creates new tables leaves those tables outside the harness grant and produces false test-environment failures such as SQLSTATE `42501`.
+- Maintain a dedicated Railway validation PostgreSQL **service/cluster** for `growth_os_test`. A separate database inside the production PostgreSQL server is **not** sufficient because PostgreSQL roles and memberships are cluster-global.
+- The validation cluster must use credentials generated specifically for validation. Production database credentials must never be copied into the validation cluster.
+- `growth_test_harness` and every other test-only role/provisioning object may exist only on the validation PostgreSQL cluster. They must never exist on the production PostgreSQL cluster.
+- `node-integration-tests`, migration/test runners and any other stateful validation tooling must target the validation PostgreSQL cluster explicitly. They must not fall back to the production database when validation configuration is absent.
+- `growth_os_test` is a long-lived validation environment, but its data is restored to an empty baseline before every complete suite run.
+- A complete run means: clean validation database, migrations 001-005, production provisioning required by those migrations, Identity helper-role provisioning (`05_identity_roles.sql`), migration 006, **test provisioning only after all schema migrations are present**, `000_validation_database_is_empty.sql`, fixtures, SQL tests in order, concurrency scenarios, then Node integrations.
+- Test provisioning must run after the latest schema migration. `01_test_roles.sql` grants the test harness access to `ALL TABLES IN SCHEMA growth` as they exist at grant time; running it before a later migration creates new tables outside the harness grant and produces false test-environment failures such as SQLSTATE `42501`.
 - Do not fix a test-harness privilege gap by widening `app_runtime` production privileges. Test-only access belongs to `growth_test_harness` and must never be introduced into `db/provisioning/production/`.
 - Do not rerun an arbitrary stateful subset after the database has accumulated fixtures and classify fixture collisions as product regressions.
-- Test `000_production_provisioning_excludes_test_roles.sql` requires a separate PostgreSQL cluster because roles are cluster-global. Run it after production-only provisioning and before any test-role provisioning on that isolated cluster.
+- Test `000_production_provisioning_excludes_test_roles.sql` must run on a PostgreSQL cluster that has received production-only provisioning and no test-role provisioning. Roles are cluster-global, so this proof is invalid if production and validation share a PostgreSQL server.
 - `009_membership_authorization_matrix.sql` uses unique per-run identities and may be rerun independently; this is intentional because it is the focused authorization matrix.
 
+## Production-cluster exclusion gate
+
+Before a production database change is frozen or released, prove on the production PostgreSQL cluster that:
+
+1. no test-only role such as `growth_test_harness` exists;
+2. no test provisioning has been applied;
+3. application/migrator/helper role boundaries match the reviewed production provisioning;
+4. no validation runner or test credential points to the production database.
+
+If a legacy test role is discovered on a production cluster, do not repair it ad hoc. Contain it first, move validation to a separate cluster, then use the reviewed scripts under `db/remediation/` to remove database-level dependencies and finally drop the cluster-global role. Any unexpected ownership, membership or dependency is a stop condition.
+
 ## Mandatory sequence
-1. Restore the dedicated Railway validation database `growth_os_test` to an empty baseline.
+1. Restore the dedicated Railway validation database `growth_os_test` on its separate validation PostgreSQL service/cluster to an empty baseline.
 2. Apply ordered schema migrations `001` through `005` with `ON_ERROR_STOP=1`.
 3. Apply the matching production provisioning, including `db/provisioning/production/05_identity_roles.sql` before Identity v1 migration 006.
 4. Apply `db/migrations/006_identity_v1.sql` and confirm `COMMIT`.
