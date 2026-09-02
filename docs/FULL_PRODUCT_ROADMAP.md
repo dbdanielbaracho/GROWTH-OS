@@ -45,10 +45,12 @@ Exit gate: every planned module has dependencies, acceptance criteria and eviden
 
 ### Phase 1 — Identity, tenancy and access
 
-**Status: In progress.** Technical design for Bloco 1a (`db/IDENTITY_V1_DESIGN.md`) produced on
-branch `feat/identity-v1-design`, covering the full identity/session/invitation/authorization
-model ahead of migration `006`. No migration has been written and no database has been altered.
-Design is pending review before implementation begins.
+**Status: In progress.** Technical design for Block 1a (`db/IDENTITY_V1_DESIGN.md`) was
+adversarially reviewed and approved on 2026-09-02 at commit
+`2e04e011596cc938a267dc61c792abad44ab63ba`, then merged through PR #10 as
+`f678c3886010514277ef64e96927b9307466911f`. No migration has been written and no database has
+been altered. Migration `006` must be implemented in a separate PR with SQL, integration,
+concurrency and security evidence before any Railway or database application.
 
 - sign-up, sign-in, sign-out and session lifecycle;
 - users, organizations, workspaces and invitations;
