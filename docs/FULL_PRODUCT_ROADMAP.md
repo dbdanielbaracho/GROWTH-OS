@@ -45,6 +45,11 @@ Exit gate: every planned module has dependencies, acceptance criteria and eviden
 
 ### Phase 1 — Identity, tenancy and access
 
+**Status: In progress.** Technical design for Bloco 1a (`db/IDENTITY_V1_DESIGN.md`) produced on
+branch `feat/identity-v1-design`, covering the full identity/session/invitation/authorization
+model ahead of migration `006`. No migration has been written and no database has been altered.
+Design is pending review before implementation begins.
+
 - sign-up, sign-in, sign-out and session lifecycle;
 - users, organizations, workspaces and invitations;
 - roles and permissions;
