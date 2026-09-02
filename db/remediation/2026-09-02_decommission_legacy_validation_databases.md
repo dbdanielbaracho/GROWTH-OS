@@ -28,9 +28,15 @@ These facts must be rechecked immediately before execution. Phase A evidence is 
 Before execution, Claude must review:
 1. the exact merged SHA containing this runbook and `2026-09-02_decommission_legacy_validation_databases.sql`;
 2. Issue #18 Phase A evidence;
-3. the fact that the SQL uses an explicit two-database allowlist and `DROP DATABASE` without `FORCE`.
+3. the fact that the SQL uses an explicit two-database allowlist and `DROP DATABASE` without `FORCE`;
+4. the server-side `RAISE EXCEPTION` stop gates used with `ON_ERROR_STOP`.
 
 Required verdict: `APPROVE` before any destructive statement.
+
+## Exit-code safety
+Every stop condition in the SQL is implemented as a server-side `RAISE EXCEPTION` while `ON_ERROR_STOP` is enabled. This is intentional.
+
+Do **not** replace these gates with `\quit N`. In the PostgreSQL 18 Alpine `psql` used by this project, `\quit N` treats the numeric argument as extra input, stops processing, but can return process exit code `0`. That is insufficient for destructive automation because an external wrapper could misclassify a stopped run as successful.
 
 ## Execution sequence
 1. Confirm Railway project/service identity for the legacy production PostgreSQL cluster.
@@ -44,7 +50,7 @@ Required verdict: `APPROVE` before any destructive statement.
 4. Connect to the legacy cluster's `postgres` control database and run `db/remediation/2026-09-02_decommission_legacy_validation_databases.sql` with `ON_ERROR_STOP`.
 5. Do not terminate sessions manually and do not use `DROP DATABASE ... WITH (FORCE)`. If a session appears, stop.
 6. The SQL drops `growth_prod_only_000` first, verifies its absence, rechecks sessions on `growth_os_test`, then drops the legacy `growth_os_test` and verifies final database inventory.
-7. After the SQL completes, independently query `pg_database` again; do not rely only on script notices.
+7. After the SQL completes, independently query `pg_database` again; do not rely only on script notices or on process exit code.
 8. Re-prove on `growth_os_797f0a3`:
    - Identity v1: 9/9 tables present;
    - 8/8 applicable Identity tables have RLS + FORCE RLS;
@@ -52,6 +58,19 @@ Required verdict: `APPROVE` before any destructive statement.
    - `app_runtime`, `growth_migrator`, `growth_rls_helper`, `growth_identity_helper` attributes/memberships unchanged.
 9. Reconfirm the separate `Postgres-Validation` service is healthy and remains the sole validation target.
 10. Record exact timestamps, target identifiers, merged SHA, commands, outputs and PASS/FAIL evidence in Issue #18.
+
+## Partial-state rule
+`DROP DATABASE` cannot be wrapped with the surrounding checks in one transaction. Therefore a partial destructive state is possible by design: `growth_prod_only_000` may be removed successfully and a subsequent gate may stop before `growth_os_test` is removed, for example if a new connection appears.
+
+If that happens:
+- do **not** rerun this same SQL blindly;
+- do **not** recreate `growth_prod_only_000` merely to satisfy the original preflight;
+- do **not** bypass or edit the inventory gate directly in production;
+- stop and record the exact database inventory, active sessions, error output and timestamps;
+- prepare a new narrowly scoped continuation remediation in GitHub for the remaining reviewed target only;
+- require adversarial review again before executing that continuation.
+
+This fail-closed behavior is intentional. A partially completed decommission is safer than automatically adapting a destructive script to an unreviewed state.
 
 ## Stop conditions
 Stop without improvisation if any of these occur:
