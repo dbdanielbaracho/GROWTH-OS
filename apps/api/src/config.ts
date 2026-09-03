@@ -31,6 +31,24 @@ const RawEnvSchema = z.object({
   if (value.NODE_ENV === "production") {
     if (!value.APP_ORIGIN) {
       ctx.addIssue({ code: "custom", path: ["APP_ORIGIN"], message: "APP_ORIGIN is required in production" });
+    } else {
+      const origin = new URL(value.APP_ORIGIN);
+      if (origin.protocol !== "https:") {
+        ctx.addIssue({ code: "custom", path: ["APP_ORIGIN"], message: "APP_ORIGIN must use HTTPS in production" });
+      }
+      if (
+        origin.pathname !== "/"
+        || origin.search !== ""
+        || origin.hash !== ""
+        || origin.username !== ""
+        || origin.password !== ""
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["APP_ORIGIN"],
+          message: "APP_ORIGIN must be an origin only (scheme + host + optional port), with no path, query, fragment, or credentials"
+        });
+      }
     }
     if (!value.CSRF_SECRET) {
       ctx.addIssue({ code: "custom", path: ["CSRF_SECRET"], message: "CSRF_SECRET is required in production" });
