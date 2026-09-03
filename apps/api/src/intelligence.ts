@@ -131,7 +131,8 @@ export async function getOpportunityDetail(
        from growth.opportunity_evidence
       where workspace_id = $1
         and opportunity_id = $2
-      order by observed_at desc nulls last, id`,
+      order by observed_at desc nulls last, id
+      limit 100`,
     [principal.workspaceId, opportunityId]
   );
 
@@ -171,11 +172,20 @@ export async function getOpportunityDetail(
 
   if (insightIds.length > 0) {
     const insightEvidenceResult = await client.query<InsightEvidence & { insight_id: string }>(
-      `select insight_id, id, evidence_type, evidence_ref, source_class, weight, created_at
-         from growth.insight_evidence
-        where workspace_id = $1
-          and insight_id = any($2::uuid[])
-        order by insight_id, weight desc nulls last, created_at desc`,
+      `with ranked as (
+         select insight_id, id, evidence_type, evidence_ref, source_class, weight, created_at,
+                row_number() over (
+                  partition by insight_id
+                  order by weight desc nulls last, created_at desc, id
+                ) as evidence_rank
+           from growth.insight_evidence
+          where workspace_id = $1
+            and insight_id = any($2::uuid[])
+       )
+       select insight_id, id, evidence_type, evidence_ref, source_class, weight, created_at
+         from ranked
+        where evidence_rank <= 5
+        order by insight_id, evidence_rank`,
       [principal.workspaceId, insightIds]
     );
     insightEvidenceRows = insightEvidenceResult.rows;
