@@ -4,7 +4,7 @@ import { env } from "./config.js";
 import { resolvePrincipal } from "./auth.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
-import { listInsights, listOpportunities } from "./intelligence.js";
+import { getOpportunityDetail, listInsights, listOpportunities } from "./intelligence.js";
 import { CreateContentSchema, createContent, listContent } from "./content.js";
 import {
   CreateCreativeRequestSchema, createCreativeRequest,
@@ -30,6 +30,10 @@ function databaseStatus(error: unknown): { code: number; status: string } {
   }
   return { code: 500, status: "internal_error" };
 }
+
+const OpportunityParamsSchema = z.object({
+  id: z.string().uuid()
+});
 
 export function buildApp(logger = false) {
   const app = Fastify({ logger });
@@ -98,28 +102,71 @@ export function buildApp(logger = false) {
   });
 
   app.get("/v1/opportunities", async (request, reply) => {
+    let principal;
     try {
-      const principal = resolvePrincipal(request);
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    try {
       const opportunities = await withTenantTransaction(principal, (client) =>
         listOpportunities(client, principal)
       );
       return { status: "ok", opportunities };
     } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/opportunities/:id", async (request, reply) => {
+    let principal;
+    try {
+      principal = resolvePrincipal(request);
+    } catch (error) {
       app.log.warn(error);
       return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    const parsed = OpportunityParamsSchema.safeParse(request.params);
+    if (!parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
+      const detail = await withTenantTransaction(principal, (client) =>
+        getOpportunityDetail(client, principal, parsed.data.id)
+      );
+      if (!detail) return reply.code(404).send({ status: "not_found" });
+      return { status: "ok", ...detail };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
 
   app.get("/v1/insights", async (request, reply) => {
+    let principal;
     try {
-      const principal = resolvePrincipal(request);
+      principal = resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      return reply.code(401).send({ status: "unauthorized" });
+    }
+
+    try {
       const insights = await withTenantTransaction(principal, (client) =>
         listInsights(client, principal)
       );
       return { status: "ok", insights };
     } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
 
