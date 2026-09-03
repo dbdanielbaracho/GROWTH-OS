@@ -90,7 +90,12 @@ export class RadarApiError extends Error {
   }
 }
 
-const apiBase = String(import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+// Production is deliberately same-origin: the Fastify production process
+// serves both the built web app and /v1/* API. A production VITE_API_BASE_URL
+// value cannot move authentication requests to a second origin.
+const apiBase = import.meta.env.PROD
+  ? ""
+  : String(import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 let csrfToken: string | null = null;
 
 export function hasDevelopmentIdentity(): boolean {
