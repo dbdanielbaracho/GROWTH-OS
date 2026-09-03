@@ -51,6 +51,31 @@ export type OpportunityDetail = {
   related_insights: RelatedInsight[];
 };
 
+export type WorkspaceSummary = {
+  id: string;
+  name: string;
+  default_market: string;
+  default_language: string;
+  default_timezone: string;
+  status: "active" | "suspended" | "deleting";
+  role: "owner" | "admin" | "editor" | "viewer";
+  can_publish: boolean;
+  membership_status: "active" | "invited" | "revoked";
+};
+
+export type AuthSessionResponse = {
+  status: "ok";
+  session: {
+    user_id: string;
+    amr: string[];
+    absolute_expires_at: string;
+    idle_expires_at: string;
+  };
+  workspaces: WorkspaceSummary[];
+  selected_workspace: WorkspaceSummary | null;
+  csrf_token: string;
+};
+
 type OpportunityListResponse = {
   status: "ok";
   opportunities: OpportunitySummary[];
@@ -61,46 +86,118 @@ export class RadarApiError extends Error {
     public readonly httpStatus: number,
     public readonly apiStatus: string
   ) {
-    super(`Opportunity Radar request failed: ${httpStatus} ${apiStatus}`);
+    super(`Growth OS request failed: ${httpStatus} ${apiStatus}`);
   }
 }
 
 const apiBase = String(import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+let csrfToken: string | null = null;
+
+export function hasDevelopmentIdentity(): boolean {
+  if (!import.meta.env.DEV) return false;
+  return Boolean(import.meta.env.VITE_DEV_USER_ID && import.meta.env.VITE_DEV_WORKSPACE_ID);
+}
 
 function developmentIdentityHeaders(): Record<string, string> {
-  if (!import.meta.env.DEV) return {};
-
-  const userId = String(import.meta.env.VITE_DEV_USER_ID ?? "");
-  const workspaceId = String(import.meta.env.VITE_DEV_WORKSPACE_ID ?? "");
-  if (!userId || !workspaceId) return {};
+  if (!hasDevelopmentIdentity()) return {};
 
   return {
-    "x-user-id": userId,
-    "x-workspace-id": workspaceId
+    "x-user-id": String(import.meta.env.VITE_DEV_USER_ID),
+    "x-workspace-id": String(import.meta.env.VITE_DEV_WORKSPACE_ID)
   };
 }
 
-async function requestJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, {
-    headers: {
-      accept: "application/json",
-      ...developmentIdentityHeaders()
-    },
-    credentials: "include"
-  });
+function unsafeMethod(method: string): boolean {
+  return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
+}
 
-  if (!response.ok) {
-    let apiStatus = "request_failed";
-    try {
-      const body = await response.json() as { status?: string };
-      if (body.status) apiStatus = body.status;
-    } catch {
-      // Keep the generic status if the upstream body is not JSON.
-    }
-    throw new RadarApiError(response.status, apiStatus);
+async function responseError(response: Response): Promise<never> {
+  let apiStatus = "request_failed";
+  try {
+    const body = await response.json() as { status?: string };
+    if (body.status) apiStatus = body.status;
+  } catch {
+    // Keep the generic status if the upstream body is not JSON.
   }
 
+  if (response.status === 401) csrfToken = null;
+  throw new RadarApiError(response.status, apiStatus);
+}
+
+async function requestJson<T>(
+  path: string,
+  options: { method?: string; body?: unknown; useDevelopmentIdentity?: boolean } = {}
+): Promise<T> {
+  const method = (options.method ?? "GET").toUpperCase();
+  const headers: Record<string, string> = {
+    accept: "application/json",
+    ...(options.useDevelopmentIdentity === false ? {} : developmentIdentityHeaders())
+  };
+
+  if (options.body !== undefined) headers["content-type"] = "application/json";
+  if (unsafeMethod(method) && csrfToken) headers["x-csrf-token"] = csrfToken;
+
+  const response = await fetch(`${apiBase}${path}`, {
+    method,
+    headers,
+    credentials: "include",
+    ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {})
+  });
+
+  if (!response.ok) return responseError(response);
   return response.json() as Promise<T>;
+}
+
+async function requestNoContent(
+  path: string,
+  options: { method: string; body?: unknown }
+): Promise<void> {
+  const method = options.method.toUpperCase();
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (options.body !== undefined) headers["content-type"] = "application/json";
+  if (unsafeMethod(method) && csrfToken) headers["x-csrf-token"] = csrfToken;
+
+  const response = await fetch(`${apiBase}${path}`, {
+    method,
+    headers,
+    credentials: "include",
+    ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {})
+  });
+
+  if (!response.ok) return responseError(response);
+}
+
+function captureSession(response: AuthSessionResponse): AuthSessionResponse {
+  csrfToken = response.csrf_token;
+  return response;
+}
+
+export async function fetchAuthSession(): Promise<AuthSessionResponse> {
+  return captureSession(await requestJson<AuthSessionResponse>("/v1/auth/session", {
+    useDevelopmentIdentity: false
+  }));
+}
+
+export async function signIn(email: string, password: string): Promise<AuthSessionResponse> {
+  csrfToken = null;
+  return captureSession(await requestJson<AuthSessionResponse>("/v1/auth/signin", {
+    method: "POST",
+    body: { email, password },
+    useDevelopmentIdentity: false
+  }));
+}
+
+export async function selectWorkspace(workspaceId: string): Promise<AuthSessionResponse> {
+  return captureSession(await requestJson<AuthSessionResponse>("/v1/auth/workspace", {
+    method: "POST",
+    body: { workspaceId },
+    useDevelopmentIdentity: false
+  }));
+}
+
+export async function signOut(): Promise<void> {
+  await requestNoContent("/v1/auth/signout", { method: "POST" });
+  csrfToken = null;
 }
 
 export async function fetchOpportunities(): Promise<OpportunitySummary[]> {
