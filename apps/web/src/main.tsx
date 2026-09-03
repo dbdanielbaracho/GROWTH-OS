@@ -140,7 +140,7 @@ function DetailPanel({ detail, loading }: { detail: OpportunityDetail | null; lo
         <div className="section-heading">
           <div>
             <p className="section-kicker">Evidence</p>
-            <h3>Why this matters / why now</h3>
+            <h3>Evidence recorded for this opportunity</h3>
           </div>
           <span>{evidence.length}</span>
         </div>
@@ -282,7 +282,7 @@ function App() {
           </p>
         </div>
         <div className="hero-proof" aria-label="Current Radar data">
-          <div><strong>{opportunities.length}</strong><span>active opportunities</span></div>
+          <div><strong>{opportunities.length}</strong><span>available opportunities</span></div>
           <div><strong>{evidenceTotal}</strong><span>evidence items</span></div>
         </div>
       </section>
