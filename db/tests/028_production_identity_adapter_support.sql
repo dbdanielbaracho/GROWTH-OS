@@ -8,7 +8,8 @@ DECLARE
 BEGIN
   FOREACH fn IN ARRAY ARRAY[
     'growth.identity_touch_session(uuid,timestamp with time zone)'::regprocedure,
-    'growth.identity_login_throttle_status(text,inet,interval,integer,integer)'::regprocedure,
+    'growth.identity_begin_login_attempt(text,inet,text,interval,integer,integer)'::regprocedure,
+    'growth.identity_complete_login_attempt(uuid)'::regprocedure,
     'growth.identity_upgrade_password_hash(uuid,text,smallint)'::regprocedure
   ] LOOP
     IF NOT EXISTS (
