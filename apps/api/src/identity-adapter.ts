@@ -60,7 +60,8 @@ type SessionRow = {
   idle_expires_at: string;
 };
 
-type ThrottleStatus = {
+type LoginAttemptReservation = {
+  attempt_id: string | null;
   email_failures: number;
   ip_failures: number;
   blocked: boolean;
@@ -152,39 +153,43 @@ function dummyPasswordHash(): Promise<string> {
   return dummyHashPromise;
 }
 
-async function throttleStatus(email: string, ip: string | null): Promise<ThrottleStatus> {
-  const result = await db.query<ThrottleStatus>(
+async function beginLoginAttempt(
+  email: string,
+  ip: string | null,
+  userAgent: string | null
+): Promise<LoginAttemptReservation> {
+  const result = await db.query<LoginAttemptReservation>(
     `select *
-       from growth.identity_login_throttle_status(
+       from growth.identity_begin_login_attempt(
          $1,
          $2::inet,
-         ($3::text || ' seconds')::interval,
-         $4,
-         $5
+         $3,
+         ($4::text || ' seconds')::interval,
+         $5,
+         $6
        )`,
     [
       email,
       ip,
+      userAgent,
       env.LOGIN_RATE_WINDOW_SECONDS,
       env.LOGIN_MAX_EMAIL_FAILURES,
       env.LOGIN_MAX_IP_FAILURES
     ]
   );
-  const status = result.rows[0];
-  if (!status) throw new Error("identity_login_throttle_status returned no row");
-  return status;
+  const reservation = result.rows[0];
+  if (!reservation) throw new Error("identity_begin_login_attempt returned no row");
+  return reservation;
 }
 
-async function recordLoginAttempt(
-  email: string,
-  succeeded: boolean,
-  ip: string | null,
-  userAgent: string | null
-): Promise<void> {
-  await db.query(
-    "select growth.identity_record_login_attempt($1,$2,$3::inet,$4)",
-    [email, succeeded, ip, userAgent]
+async function completeLoginAttempt(attemptId: string): Promise<void> {
+  const result = await db.query<{ completed: boolean }>(
+    "select growth.identity_complete_login_attempt($1) as completed",
+    [attemptId]
   );
+  if (result.rows[0]?.completed !== true) {
+    throw new Error("identity_complete_login_attempt did not complete the reserved attempt");
+  }
 }
 
 async function lookupPassword(email: string): Promise<PasswordLookup | null> {
@@ -206,8 +211,13 @@ export async function signInWithPassword(
   const ip = requestClientIp(request);
   const userAgent = headerValue(request.headers["user-agent"]);
 
-  const throttle = await throttleStatus(email, ip);
-  if (throttle.blocked) throw new IdentityRateLimitedError("signin_rate_limited");
+  // Reserve the throttle slot before Argon2. The database serializes
+  // concurrent reservations for the same email/IP, so a burst cannot race
+  // through a separate check-then-record window.
+  const reservation = await beginLoginAttempt(email, ip, userAgent);
+  if (reservation.blocked || !reservation.attempt_id) {
+    throw new IdentityRateLimitedError("signin_rate_limited");
+  }
 
   const passwordRow = await lookupPassword(email);
   const hashForVerification = passwordRow?.password_hash ?? await dummyPasswordHash();
@@ -225,11 +235,17 @@ export async function signInWithPassword(
     && passwordRow.user_status === "active"
   );
 
-  await recordLoginAttempt(email, accepted, ip, userAgent);
-
   if (!accepted || !passwordRow) {
+    // The reservation was inserted as succeeded=false and intentionally
+    // remains a failure. No second write is required.
     throw new IdentityAuthenticationError("invalid_credentials");
   }
+
+  // Convert only this exact reserved attempt to success. This clears the
+  // email failure streak through the migration's "after last success" rule
+  // and prevents successful logins from polluting the IP failure budget.
+  await completeLoginAttempt(reservation.attempt_id);
+
   if (passwordRow.must_change) {
     throw new IdentityAuthenticationError("password_change_required");
   }
