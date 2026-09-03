@@ -57,7 +57,7 @@ async function createVerifiedUser(email: string, password: string) {
   });
 
   const signup = await db.query<{ user_id: string }>(
-    "select growth.identity_signup($1,$2,19) as user_id",
+    "select growth.identity_signup($1,$2,19::smallint) as user_id",
     [email, passwordHash]
   );
   const userId = signup.rows[0]?.user_id;
