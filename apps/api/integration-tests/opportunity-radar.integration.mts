@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import pg from "pg";
+import pg, { type PoolClient } from "pg";
 import { buildApp } from "../src/app.js";
 import { db } from "../src/db.js";
 
@@ -29,7 +29,7 @@ const activeOpportunityId = randomUUID();
 const expiredOpportunityId = randomUUID();
 const evidenceId = randomUUID();
 
-async function withMigratorContext<T>(workspaceId: string, fn: (client: pg.PoolClient) => Promise<T>) {
+async function withMigratorContext<T>(workspaceId: string, fn: (client: PoolClient) => Promise<T>) {
   const client = await migrator.connect();
   try {
     await client.query("BEGIN");
