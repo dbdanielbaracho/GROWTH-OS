@@ -44,11 +44,12 @@ If a legacy test role is discovered on a production cluster, do not repair it ad
 13. Execute the Identity invitation-accept race with two real PostgreSQL sessions, then run `025_identity_v1_invitation_concurrency.sql` as the final-state assertion.
 14. Run `026_public_execute_least_privilege.sql` and require the exact Issue #17 grant matrix: zero PUBLIC EXECUTE on all 16 reviewed functions, explicit runtime/helper access only where documented.
 15. Run `027_opportunity_radar_evidence_read.sql` and require SELECT-only runtime access to `opportunity_evidence` and `insight_evidence`, continued RLS+FORCE, and no new runtime access to `feed_cards`.
-16. Run `028_production_identity_adapter_support.sql` and require that the three Issue #24 helpers are SECURITY DEFINER, owned by `growth_identity_helper`, non-PUBLIC, executable by `app_runtime`, while direct runtime access to `sessions`, `login_attempts` and `password_credentials` remains absent.
+16. Run `028_production_identity_adapter_support.sql` and require that all four Issue #24 helpers are SECURITY DEFINER, owned by `growth_identity_helper`, non-PUBLIC, executable by `app_runtime`, while direct runtime access to `sessions`, `login_attempts` and `password_credentials` remains absent.
 17. Execute identity/application integration and pool-reset tests with the actual application driver/pool.
 18. Run `apps/api/integration-tests/opportunity-radar.integration.mts` with `DATABASE_URL` bound to app_runtime and `MIGRATOR_DATABASE_URL` bound to growth_migrator on the isolated validation cluster.
-19. Run the production identity adapter integration gate added by Issue #24, including session resolution/touch, login throttle, workspace validation, CSRF/Origin negatives, logout/revocation and production rejection of development identity headers.
-20. Record exact PG version/build, schema checksum or migration SHA, command, timestamps and PASS/FAIL/NOT EXECUTED for every gate.
+19. Run `apps/api/integration-tests/production-identity-adapter.integration.mts` under `NODE_ENV=production`, exact HTTPS `APP_ORIGIN` and a high-entropy `CSRF_SECRET`. Require session resolution/touch, atomic sequential + concurrent login throttle, workspace validation, CSRF/Origin negatives, logout/revocation and production rejection of development identity headers.
+20. Run `npm run build`, then run `apps/api/integration-tests/production-web-shell.integration.mts` under `NODE_ENV=production`. Require the built web and `/v1/*` API to coexist on one Fastify origin and require CSP/HSTS/nosniff/framing/cache headers on the HTML document.
+21. Record exact PG version/build, schema checksum or migration SHA, command, timestamps and PASS/FAIL/NOT EXECUTED for every gate.
 
 No test may be marked PASS from deduction alone.
 
