@@ -94,6 +94,7 @@ const primaryWorkspace = await createWorkspace(primary.userId, `Primary ${runTag
 const victim = await createVerifiedUser(`prod-auth-victim-${runTag}@example.com`, `Victim!${runTag}Bb9`);
 const victimWorkspace = await createWorkspace(victim.userId, `Victim ${runTag}`);
 const noWorkspace = await createVerifiedUser(`prod-auth-noworkspace-${runTag}@example.com`, `NoWorkspace!${runTag}Cc9`);
+const burstUser = await createVerifiedUser(`prod-auth-burst-${runTag}@example.com`, `Burst!${runTag}Dd9`);
 
 const app = buildApp(false);
 
@@ -324,6 +325,28 @@ try {
   });
   check("(33) email throttle blocks after configured consecutive failures", blocked.statusCode === 429, blocked.body);
 
+  // The atomic reservation helper must also hold under a concurrent burst.
+  // Exactly maxEmailFailures requests are allowed to spend Argon2 work and
+  // fail generically; the rest are rejected by the serialized reservation.
+  const burstResponses = await Promise.all(
+    Array.from({ length: maxEmailFailures * 2 }, (_, index) => app.inject({
+      method: "POST",
+      url: "/v1/auth/signin",
+      headers: { origin: APP_ORIGIN, "x-real-ip": "198.51.100.88" },
+      payload: { email: burstUser.email, password: `burst-wrong-${index}` }
+    }))
+  );
+  const burstUnauthorized = burstResponses.filter((response) => response.statusCode === 401).length;
+  const burstRateLimited = burstResponses.filter((response) => response.statusCode === 429).length;
+  check("(34) concurrent throttle processes only the configured number of Argon2 attempts",
+    burstUnauthorized === maxEmailFailures,
+    burstResponses.map((response) => ({ statusCode: response.statusCode, body: response.body }))
+  );
+  check("(35) concurrent throttle rejects the rest of the burst before verification",
+    burstRateLimited === maxEmailFailures,
+    burstResponses.map((response) => response.statusCode)
+  );
+
   // Transaction-local tenant context must not survive commit on a reused pool connection.
   const poolClient = await db.connect();
   try {
@@ -335,7 +358,7 @@ try {
       `select nullif(current_setting('app.user_id',true),'') as user_id,
               nullif(current_setting('app.workspace_id',true),'') as workspace_id`
     );
-    check("(34) committed transaction does not leak app.user_id/app.workspace_id into pool reuse",
+    check("(36) committed transaction does not leak app.user_id/app.workspace_id into pool reuse",
       state.rows[0]?.user_id === null && state.rows[0]?.workspace_id === null,
       state.rows[0]
     );
