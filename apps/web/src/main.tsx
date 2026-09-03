@@ -62,6 +62,7 @@ function errorMessage(error: unknown): string {
   if (error instanceof RadarApiError) {
     if (error.httpStatus === 401) return "Your authenticated workspace context is not available in this environment.";
     if (error.httpStatus === 403) return "This workspace is not allowed to read the requested opportunity data.";
+    if (error.httpStatus === 404) return "This opportunity is no longer available in the current workspace.";
     if (error.httpStatus === 503) return "Growth OS cannot reach the intelligence database right now.";
   }
   return "Opportunity Radar could not load. No synthetic opportunities were substituted.";
@@ -96,13 +97,31 @@ function OpportunityCard({
   );
 }
 
-function DetailPanel({ detail, loading }: { detail: OpportunityDetail | null; loading: boolean }) {
+function DetailPanel({
+  detail,
+  loading,
+  error
+}: {
+  detail: OpportunityDetail | null;
+  loading: boolean;
+  error: string | null;
+}) {
   if (loading) {
     return (
       <section className="detail-panel loading-panel" aria-live="polite">
         <div className="skeleton wide" />
         <div className="skeleton" />
         <div className="skeleton tall" />
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="detail-panel empty-detail" aria-live="polite">
+        <p className="eyebrow">Opportunity detail unavailable</p>
+        <h2>We could not open this opportunity.</h2>
+        <p>{error}</p>
       </section>
     );
   }
@@ -142,7 +161,7 @@ function DetailPanel({ detail, loading }: { detail: OpportunityDetail | null; lo
             <p className="section-kicker">Evidence</p>
             <h3>Evidence recorded for this opportunity</h3>
           </div>
-          <span>{evidence.length}</span>
+          <span>{evidence.length}{opportunity.evidence_count > evidence.length ? ` / ${opportunity.evidence_count}` : ""}</span>
         </div>
 
         {evidence.length === 0 ? (
@@ -192,6 +211,19 @@ function DetailPanel({ detail, loading }: { detail: OpportunityDetail | null; lo
                   <span>{insight.evidence_count} evidence item{insight.evidence_count === 1 ? "" : "s"}</span>
                   {insight.sample_size !== null && <span>Sample {insight.sample_size}</span>}
                 </div>
+                {insight.evidence.length > 0 && (
+                  <div className="insight-evidence" aria-label={`Stored evidence for ${insightLabel(insight)} insight`}>
+                    {insight.evidence.map((item) => (
+                      <div className="insight-evidence-row" key={item.id}>
+                        <span>{titleCase(item.source_class)}</span>
+                        <p>{item.evidence_ref}</p>
+                      </div>
+                    ))}
+                    {insight.evidence_count > insight.evidence.length && (
+                      <p className="evidence-truncation">Showing {insight.evidence.length} of {insight.evidence_count} stored evidence items.</p>
+                    )}
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -216,7 +248,8 @@ function App() {
   const [detail, setDetail] = useState<OpportunityDetail | null>(null);
   const [listState, setListState] = useState<"loading" | "ready" | "error">("loading");
   const [detailLoading, setDetailLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [listMessage, setListMessage] = useState<string | null>(null);
+  const [detailMessage, setDetailMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -229,7 +262,7 @@ function App() {
       })
       .catch((error) => {
         if (!active) return;
-        setMessage(errorMessage(error));
+        setListMessage(errorMessage(error));
         setListState("error");
       });
     return () => { active = false; };
@@ -238,11 +271,13 @@ function App() {
   useEffect(() => {
     if (!selectedId) {
       setDetail(null);
+      setDetailMessage(null);
       return;
     }
 
     let active = true;
     setDetailLoading(true);
+    setDetailMessage(null);
     fetchOpportunityDetail(selectedId)
       .then((result) => {
         if (!active) return;
@@ -252,7 +287,7 @@ function App() {
       .catch((error) => {
         if (!active) return;
         setDetail(null);
-        setMessage(errorMessage(error));
+        setDetailMessage(errorMessage(error));
         setDetailLoading(false);
       });
     return () => { active = false; };
@@ -287,11 +322,11 @@ function App() {
         </div>
       </section>
 
-      {message && listState === "error" && (
+      {listMessage && listState === "error" && (
         <section className="truthful-empty error-state">
           <p className="eyebrow">Radar unavailable</p>
           <h2>We could not load your workspace opportunities.</h2>
-          <p>{message}</p>
+          <p>{listMessage}</p>
           <button type="button" onClick={() => window.location.reload()}>Try again</button>
         </section>
       )}
@@ -331,16 +366,13 @@ function App() {
                   key={opportunity.id}
                   opportunity={opportunity}
                   active={selectedId === opportunity.id}
-                  onSelect={() => {
-                    setMessage(null);
-                    setSelectedId(opportunity.id);
-                  }}
+                  onSelect={() => setSelectedId(opportunity.id)}
                 />
               ))}
             </div>
           </aside>
 
-          <DetailPanel detail={detail} loading={detailLoading} />
+          <DetailPanel detail={detail} loading={detailLoading} error={detailMessage} />
         </section>
       )}
 
