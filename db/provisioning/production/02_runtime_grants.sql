@@ -40,10 +40,18 @@ GRANT SELECT ON growth.deletion_tombstones TO app_runtime;
 GRANT SELECT ON growth.insights TO app_runtime;
 GRANT SELECT ON growth.opportunities TO app_runtime;
 
+-- Issue #21 Opportunity Radar reads evidence already protected by the same
+-- workspace RLS+FORCE boundary as its parent entities. These grants are
+-- intentionally SELECT-only. The forward migration for an already-provisioned
+-- environment is db/migrations/008_opportunity_radar_evidence_read.sql.
+GRANT SELECT ON growth.insight_evidence TO app_runtime;
+GRANT SELECT ON growth.opportunity_evidence TO app_runtime;
+
 -- Everything else: NO RUNTIME ACCESS by design. This includes growth.jobs
 -- (explicit RC8 contract — internal, cross-tenant claimable, no runtime
 -- privilege), the four global/structural tables with no workspace_id
--- (capabilities, ai_provider_policies, ai_data_routing_allowlist), and
+-- (capabilities, ai_provider_policies, ai_data_routing_allowlist),
+-- growth.feed_cards/feed_events (not opened by Issue #21), and
 -- aggregate_intelligence.cohort_statistics (deliberately tenant-free).
 -- Every remaining growth.* table has RLS from the generic tenant-isolation
 -- loop but zero grant, by the fail-closed default: NO RUNTIME ACCESS
