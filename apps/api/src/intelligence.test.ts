@@ -8,7 +8,9 @@ const principal = {
   workspaceId: "b0000000-0000-4000-8000-000000000001"
 };
 
-function fakeClient(rowsByCall: unknown[][], calls: Array<{ text: string; values: unknown[] }>): PoolClient {
+type RecordedCall = { text: string; values: unknown[] };
+
+function fakeClient(rowsByCall: unknown[][], calls: RecordedCall[]): PoolClient {
   let index = 0;
   return {
     query: async (text: string, values: unknown[]) => {
@@ -19,20 +21,27 @@ function fakeClient(rowsByCall: unknown[][], calls: Array<{ text: string; values
   } as unknown as PoolClient;
 }
 
+function requireCall(calls: RecordedCall[], index: number): RecordedCall {
+  const call = calls[index];
+  assert.ok(call, `expected query call ${index}`);
+  return call;
+}
+
 test("listOpportunities is workspace-scoped and clamps the limit", async () => {
-  const calls: Array<{ text: string; values: unknown[] }> = [];
+  const calls: RecordedCall[] = [];
   const client = fakeClient([[]], calls);
 
   await listOpportunities(client, principal, 500);
 
   assert.equal(calls.length, 1);
-  assert.match(calls[0].text, /o\.workspace_id = \$1/);
-  assert.match(calls[0].text, /opportunity_evidence/);
-  assert.deepEqual(calls[0].values, [principal.workspaceId, 100]);
+  const call = requireCall(calls, 0);
+  assert.match(call.text, /o\.workspace_id = \$1/);
+  assert.match(call.text, /opportunity_evidence/);
+  assert.deepEqual(call.values, [principal.workspaceId, 100]);
 });
 
 test("getOpportunityDetail returns null for missing, expired, or cross-tenant rows", async () => {
-  const calls: Array<{ text: string; values: unknown[] }> = [];
+  const calls: RecordedCall[] = [];
   const client = fakeClient([[]], calls);
   const id = "c0000000-0000-4000-8000-000000000001";
 
@@ -40,14 +49,15 @@ test("getOpportunityDetail returns null for missing, expired, or cross-tenant ro
 
   assert.equal(detail, null);
   assert.equal(calls.length, 1);
-  assert.match(calls[0].text, /o\.workspace_id = \$1/);
-  assert.match(calls[0].text, /o\.id = \$2/);
-  assert.match(calls[0].text, /expires_at is null or o\.expires_at > now\(\)/);
-  assert.deepEqual(calls[0].values, [principal.workspaceId, id]);
+  const call = requireCall(calls, 0);
+  assert.match(call.text, /o\.workspace_id = \$1/);
+  assert.match(call.text, /o\.id = \$2/);
+  assert.match(call.text, /expires_at is null or o\.expires_at > now\(\)/);
+  assert.deepEqual(call.values, [principal.workspaceId, id]);
 });
 
 test("getOpportunityDetail returns stored evidence and does not invent related insights without an account", async () => {
-  const calls: Array<{ text: string; values: unknown[] }> = [];
+  const calls: RecordedCall[] = [];
   const opportunity = {
     id: "c0000000-0000-4000-8000-000000000001",
     social_account_id: null,
@@ -77,6 +87,7 @@ test("getOpportunityDetail returns stored evidence and does not invent related i
     related_insights: []
   });
   assert.equal(calls.length, 2);
-  assert.match(calls[1].text, /growth\.opportunity_evidence/);
-  assert.deepEqual(calls[1].values, [principal.workspaceId, opportunity.id]);
+  const evidenceCall = requireCall(calls, 1);
+  assert.match(evidenceCall.text, /growth\.opportunity_evidence/);
+  assert.deepEqual(evidenceCall.values, [principal.workspaceId, opportunity.id]);
 });
