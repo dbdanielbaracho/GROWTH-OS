@@ -33,5 +33,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Production same-origin web shell gate
+        run: npx tsx apps/api/integration-tests/production-web-shell.integration.mts
+        env:
+          NODE_ENV: production
+          APP_ORIGIN: https://ci.growth-os.invalid
+          CSRF_SECRET: ci-only-csrf-secret-with-more-than-32-characters
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+
       - name: Test
         run: npm test
