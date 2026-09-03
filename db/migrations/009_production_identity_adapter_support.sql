@@ -73,25 +73,33 @@ REVOKE ALL ON FUNCTION growth.identity_touch_session(uuid,timestamptz) FROM PUBL
 GRANT EXECUTE ON FUNCTION growth.identity_touch_session(uuid,timestamptz) TO app_runtime;
 
 -- ------------------------------------------------------------------
--- Distributed login throttle status.
--- Email failures are counted only after the most recent successful login
--- in the window; IP failures remain a spray-protection sliding window.
--- Unknown emails are still represented in login_attempts by design.
+-- Atomic distributed login-throttle reservation.
+--
+-- Every credential attempt reserves a row BEFORE the expensive Argon2
+-- verification. Transaction-scoped advisory locks serialize reservations
+-- for the same normalized email and IP, preventing a concurrent burst from
+-- racing through a separate check-then-record sequence.
+--
+-- The reservation is pessimistically stored as succeeded=false. A genuinely
+-- successful credential verification upgrades exactly that reservation via
+-- identity_complete_login_attempt(). Failed attempts require no second write.
 -- ------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION growth.identity_login_throttle_status(
+CREATE OR REPLACE FUNCTION growth.identity_begin_login_attempt(
   p_email text,
   p_ip inet,
+  p_user_agent text,
   p_window interval,
   p_max_email_failures integer,
   p_max_ip_failures integer
 )
 RETURNS TABLE(
+  attempt_id uuid,
   email_failures integer,
   ip_failures integer,
   blocked boolean
 )
 LANGUAGE plpgsql
-STABLE
+VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, growth
 AS $$
@@ -99,12 +107,24 @@ DECLARE
   normalized_email text := lower(btrim(p_email));
   window_start timestamptz;
   last_success timestamptz;
+  matched_user_id uuid;
 BEGIN
-  IF normalized_email = '' OR p_window IS NULL OR p_window <= interval '0 seconds'
+  IF normalized_email = '' OR length(normalized_email) > 320
+     OR p_window IS NULL OR p_window <= interval '0 seconds'
      OR p_window > interval '24 hours'
      OR p_max_email_failures < 1 OR p_max_email_failures > 1000
      OR p_max_ip_failures < 1 OR p_max_ip_failures > 10000 THEN
     RAISE EXCEPTION 'invalid login throttle policy';
+  END IF;
+
+  -- Deterministic lock order prevents email/IP lock-order deadlocks.
+  PERFORM pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('growth-login-email:' || normalized_email, 0)
+  );
+  IF p_ip IS NOT NULL THEN
+    PERFORM pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended('growth-login-ip:' || p_ip::text, 0)
+    );
   END IF;
 
   window_start := now() - p_window;
@@ -137,15 +157,71 @@ BEGIN
   blocked := email_failures >= p_max_email_failures
              OR ip_failures >= p_max_ip_failures;
 
+  IF blocked THEN
+    attempt_id := NULL;
+    RETURN NEXT;
+    RETURN;
+  END IF;
+
+  SELECT u.id
+    INTO matched_user_id
+    FROM growth.users u
+   WHERE lower(u.email) = normalized_email
+   LIMIT 1;
+
+  attempt_id := gen_random_uuid();
+  INSERT INTO growth.login_attempts(
+    id, email, user_id, succeeded, ip, user_agent
+  ) VALUES (
+    attempt_id,
+    normalized_email,
+    matched_user_id,
+    false,
+    p_ip,
+    left(p_user_agent, 1024)
+  );
+
+  email_failures := email_failures + 1;
+  IF p_ip IS NOT NULL THEN
+    ip_failures := ip_failures + 1;
+  END IF;
+  blocked := false;
   RETURN NEXT;
 END;
 $$;
-ALTER FUNCTION growth.identity_login_throttle_status(text,inet,interval,integer,integer)
+ALTER FUNCTION growth.identity_begin_login_attempt(text,inet,text,interval,integer,integer)
   OWNER TO growth_identity_helper;
-REVOKE ALL ON FUNCTION growth.identity_login_throttle_status(text,inet,interval,integer,integer)
+REVOKE ALL ON FUNCTION growth.identity_begin_login_attempt(text,inet,text,interval,integer,integer)
   FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION growth.identity_login_throttle_status(text,inet,interval,integer,integer)
+GRANT EXECUTE ON FUNCTION growth.identity_begin_login_attempt(text,inet,text,interval,integer,integer)
   TO app_runtime;
+
+CREATE OR REPLACE FUNCTION growth.identity_complete_login_attempt(p_attempt_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, growth
+AS $$
+DECLARE
+  affected integer;
+BEGIN
+  IF p_attempt_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  UPDATE growth.login_attempts
+     SET succeeded = true
+   WHERE id = p_attempt_id
+     AND succeeded = false;
+
+  GET DIAGNOSTICS affected = ROW_COUNT;
+  RETURN affected = 1;
+END;
+$$;
+ALTER FUNCTION growth.identity_complete_login_attempt(uuid) OWNER TO growth_identity_helper;
+REVOKE ALL ON FUNCTION growth.identity_complete_login_attempt(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION growth.identity_complete_login_attempt(uuid) TO app_runtime;
 
 -- ------------------------------------------------------------------
 -- Transparent Argon2 work-factor upgrade after a successful login.
