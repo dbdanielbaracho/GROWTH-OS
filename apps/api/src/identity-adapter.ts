@@ -137,7 +137,7 @@ export function assertSessionCsrf(request: FastifyRequest, sessionId: string): v
 
 function currentArgon2Options() {
   return {
-    type: argon2.argon2id,
+    type: argon2.argon2id as 2,
     version: 0x13,
     memoryCost: env.ARGON2_MEMORY_COST_KIB,
     timeCost: env.ARGON2_TIME_COST,
@@ -325,11 +325,22 @@ function workspaceFromRequest(request: FastifyRequest): string | null {
   return z.string().uuid().safeParse(raw).success ? raw : null;
 }
 
+function refreshedIdleExpiry(session: ResolvedIdentitySession, requestedIdle: string): string {
+  const oldIdleMs = new Date(session.idleExpiresAt).getTime();
+  const requestedMs = new Date(requestedIdle).getTime();
+  const absoluteMs = new Date(session.absoluteExpiresAt).getTime();
+  return new Date(Math.max(oldIdleMs, Math.min(requestedMs, absoluteMs))).toISOString();
+}
+
 async function touchSession(
   session: ResolvedIdentitySession,
   candidateWorkspaceId: string | null,
   requireWorkspace: boolean
-): Promise<{ workspaces: WorkspaceSummary[]; selectedWorkspace: WorkspaceSummary | null }> {
+): Promise<{
+  workspaces: WorkspaceSummary[];
+  selectedWorkspace: WorkspaceSummary | null;
+  idleExpiresAt: string;
+}> {
   return withUserTransaction(session.userId, async (client) => {
     let selectedWorkspace: WorkspaceSummary | null = null;
 
@@ -352,7 +363,11 @@ async function touchSession(
     }
 
     const workspaces = await listActiveWorkspacesForUser(client, session.userId);
-    return { workspaces, selectedWorkspace };
+    return {
+      workspaces,
+      selectedWorkspace,
+      idleExpiresAt: refreshedIdleExpiry(session, requestedIdle)
+    };
   });
 }
 
@@ -367,7 +382,7 @@ export async function resolveCookieSession(
   const context = await touchSession(session, workspaceId, options.requireWorkspace);
 
   return {
-    session,
+    session: { ...session, idleExpiresAt: context.idleExpiresAt },
     workspaces: context.workspaces,
     selectedWorkspace: context.selectedWorkspace,
     csrfToken: csrfForSession(session.sessionId)
@@ -395,11 +410,15 @@ export async function selectSessionWorkspace(
     }
 
     const workspaces = await listActiveWorkspacesForUser(client, session.userId);
-    return { selectedWorkspace, workspaces };
+    return {
+      selectedWorkspace,
+      workspaces,
+      idleExpiresAt: refreshedIdleExpiry(session, requestedIdle)
+    };
   });
 
   return {
-    session,
+    session: { ...session, idleExpiresAt: context.idleExpiresAt },
     workspaces: context.workspaces,
     selectedWorkspace: context.selectedWorkspace,
     csrfToken: csrfForSession(session.sessionId)
