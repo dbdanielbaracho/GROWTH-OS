@@ -1,5 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { resolvePrincipal } from "./auth.js";
+import {
+  IdentityAuthenticationError,
+  IdentityCsrfError,
+  IdentityWorkspaceRequiredError
+} from "./identity-adapter.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import {
   YoutubeAuthorizeSchema,
@@ -21,7 +26,19 @@ function pgCode(error: unknown): string {
 async function principalOrReply(request: FastifyRequest, reply: FastifyReply) {
   try {
     return await resolvePrincipal(request);
-  } catch {
+  } catch (error) {
+    if (error instanceof IdentityCsrfError) {
+      await reply.code(403).send({ status: "forbidden" });
+      return null;
+    }
+    if (error instanceof IdentityWorkspaceRequiredError) {
+      await reply.code(409).send({ status: "workspace_required" });
+      return null;
+    }
+    if (error instanceof IdentityAuthenticationError) {
+      await reply.code(401).send({ status: "unauthorized" });
+      return null;
+    }
     await reply.code(401).send({ status: "unauthorized" });
     return null;
   }
@@ -42,11 +59,15 @@ async function integrationError(app: FastifyInstance, reply: FastifyReply, error
 }
 
 export async function registerYoutubeRoutes(app: FastifyInstance): Promise<void> {
-  app.get("/v1/integrations/youtube/status", async () => ({
-    status: "ok",
-    configured: youtubeConnectorConfigured(),
-    derived_analytics_policy_accepted: process.env.YOUTUBE_DERIVED_ANALYTICS_POLICY_ACCEPTED === "true"
-  }));
+  app.get("/v1/integrations/youtube/status", async (request, reply) => {
+    const principal = await principalOrReply(request, reply);
+    if (!principal) return;
+    return {
+      status: "ok",
+      configured: youtubeConnectorConfigured(),
+      derived_analytics_policy_accepted: process.env.YOUTUBE_DERIVED_ANALYTICS_POLICY_ACCEPTED === "true"
+    };
+  });
 
   app.post("/v1/integrations/youtube/authorize", async (request, reply) => {
     const principal = await principalOrReply(request, reply);
@@ -95,8 +116,11 @@ export async function registerYoutubeRoutes(app: FastifyInstance): Promise<void>
     if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
-      const result = await withTenantTransaction(principal, (client) =>
-        syncYoutubeAnalytics(client, principal, parsed.data.connectionId, parsed.data.lookbackDays)
+      const result = await syncYoutubeAnalytics(
+        principal,
+        parsed.data.connectionId,
+        parsed.data.requestNonce,
+        parsed.data.lookbackDays
       );
       return { status: "ok", ...result };
     } catch (error) {
