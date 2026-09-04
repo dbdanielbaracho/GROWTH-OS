@@ -68,6 +68,18 @@ test("YouTube provider day uses real Pacific midnight in PDT and PST", () => {
   });
 });
 
+test("YouTube provider day preserves the 23-hour DST spring-forward day", () => {
+  const range = connector.youtubePacificDayRangeForTest("2026-03-08");
+  assert.deepEqual(range, {
+    startUtc: "2026-03-08T08:00:00.000Z",
+    endExclusiveUtc: "2026-03-09T07:00:00.000Z"
+  });
+  assert.equal(
+    (new Date(range.endExclusiveUtc).getTime() - new Date(range.startUtc).getTime()) / 3_600_000,
+    23
+  );
+});
+
 test("YouTube provider day preserves the 25-hour DST fall-back day", () => {
   const range = connector.youtubePacificDayRangeForTest("2026-11-01");
   assert.deepEqual(range, {
