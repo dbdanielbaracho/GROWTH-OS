@@ -26,6 +26,7 @@ ALTER TABLE growth.metric_observations
   ADD COLUMN semantic_effective_to timestamptz,
   ADD COLUMN source_range_start timestamptz,
   ADD COLUMN source_range_end timestamptz,
+  ADD COLUMN collected_at timestamptz,
   ADD COLUMN authorization_class text,
   ADD COLUMN retention_deadline timestamptz,
   ADD COLUMN refresh_required_by timestamptz,
@@ -46,19 +47,11 @@ ALTER TABLE growth.metric_observations
   ADD CONSTRAINT metric_observations_freshness_ck
     CHECK (freshness_status IS NULL OR freshness_status IN ('fresh','stale','unknown')),
   ADD CONSTRAINT metric_observations_retention_ck
-    CHECK (retention_deadline IS NULL OR retention_deadline >= collected_at_placeholder()),
+    CHECK (retention_deadline IS NULL OR collected_at IS NULL OR retention_deadline >= collected_at),
+  ADD CONSTRAINT metric_observations_refresh_ck
+    CHECK (refresh_required_by IS NULL OR collected_at IS NULL OR refresh_required_by >= collected_at),
   ADD CONSTRAINT metric_observations_idempotency_nonblank_ck
     CHECK (idempotency_key IS NULL OR btrim(idempotency_key) <> '');
-
--- The retention check above cannot reference a function that does not exist;
--- replace it immediately with a row-local, deterministic constraint.
-ALTER TABLE growth.metric_observations
-  DROP CONSTRAINT metric_observations_retention_ck;
-ALTER TABLE growth.metric_observations
-  ADD CONSTRAINT metric_observations_retention_ck
-    CHECK (retention_deadline IS NULL OR retention_deadline >= created_at),
-  ADD CONSTRAINT metric_observations_refresh_ck
-    CHECK (refresh_required_by IS NULL OR refresh_required_by >= created_at);
 
 CREATE UNIQUE INDEX metric_observations_idempotency_uq
   ON growth.metric_observations(workspace_id,idempotency_key)
@@ -351,6 +344,10 @@ BEGIN
       updated_at=now()
   WHERE workspace_id=ws AND platform_connection_id=p_connection_id;
 
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
   UPDATE growth.platform_connections
   SET granted_scopes=p_scopes,
       token_expires_at=p_token_expires_at,
@@ -383,6 +380,7 @@ CREATE FUNCTION growth.youtube_record_metric_observation(
   p_semantic_effective_to timestamptz,
   p_source_range_start timestamptz,
   p_source_range_end timestamptz,
+  p_collected_at timestamptz,
   p_authorization_class text,
   p_retention_deadline timestamptz,
   p_refresh_required_by timestamptz,
@@ -422,6 +420,7 @@ BEGIN
   END IF;
   IF btrim(coalesce(p_metric_name,''))='' OR btrim(coalesce(p_idempotency_key,''))=''
      OR btrim(coalesce(p_metric_semantic_version,''))=''
+     OR p_collected_at IS NULL
      OR btrim(coalesce(p_authorization_class,''))=''
      OR btrim(coalesce(p_completeness_status,''))=''
      OR btrim(coalesce(p_freshness_status,''))='' THEN
@@ -452,22 +451,22 @@ BEGIN
     provider_api_version,source_schema_version,collection_method,raw_payload_ref,
     adapter_version,provider_product,provider_object_type,metric_semantic_version,
     semantic_effective_from,semantic_effective_to,source_range_start,source_range_end,
-    authorization_class,retention_deadline,refresh_required_by,completeness_status,
-    freshness_status,collection_run_id,idempotency_key,created_at
+    collected_at,authorization_class,retention_deadline,refresh_required_by,
+    completeness_status,freshness_status,collection_run_id,idempotency_key,created_at
   ) VALUES (
     observation_id,ws,p_social_account_id,NULL,p_provider_content_id,p_metric_name,
     p_raw_value,p_unit,p_observed_at,p_provider_effective_at,'America/Los_Angeles',
     p_provider_api_version,p_source_schema_version,p_collection_method,p_raw_payload_ref,
     p_adapter_version,p_provider_product,p_provider_object_type,p_metric_semantic_version,
     p_semantic_effective_from,p_semantic_effective_to,p_source_range_start,p_source_range_end,
-    p_authorization_class,p_retention_deadline,p_refresh_required_by,p_completeness_status,
-    p_freshness_status,p_collection_run_id,p_idempotency_key,now()
+    p_collected_at,p_authorization_class,p_retention_deadline,p_refresh_required_by,
+    p_completeness_status,p_freshness_status,p_collection_run_id,p_idempotency_key,now()
   );
   RETURN observation_id;
 END;
 $$;
-ALTER FUNCTION growth.youtube_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text) OWNER TO growth_migrator;
-REVOKE ALL ON FUNCTION growth.youtube_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION growth.youtube_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text) TO app_runtime;
+ALTER FUNCTION growth.youtube_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text) OWNER TO growth_migrator;
+REVOKE ALL ON FUNCTION growth.youtube_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION growth.youtube_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text) TO app_runtime;
 
 COMMIT;
