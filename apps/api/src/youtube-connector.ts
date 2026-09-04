@@ -10,11 +10,12 @@ const YOUTUBE_SCOPES = [
   "https://www.googleapis.com/auth/yt-analytics.readonly"
 ] as const;
 const YOUTUBE_CALLBACK_PATH = "/v1/integrations/youtube/callback";
+const YOUTUBE_SOURCE_TIMEZONE = "America/Los_Angeles";
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const VIEW_SEMANTIC_BREAK = "2026-08-24";
-const ADAPTER_VERSION = "youtube-v0.1";
+const ADAPTER_VERSION = "youtube-v0.2";
 const PROVIDER_API_VERSION = "youtube-data-v3+analytics-v2@2026-09";
-const SOURCE_SCHEMA_VERSION = "youtube.analytics.daily.v1";
+const SOURCE_SCHEMA_VERSION = "youtube.analytics.daily.v2";
 
 export const YoutubeAuthorizeSchema = z.object({
   managedAccountId: z.string().uuid()
@@ -90,6 +91,15 @@ type YoutubeChannel = {
 type AnalyticsResponse = {
   columnHeaders?: Array<{ name?: string; columnType?: string; dataType?: string }>;
   rows?: unknown[][];
+};
+
+type ZonedDateTimeParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
 };
 
 export class YoutubeConnectorError extends Error {
@@ -379,7 +389,7 @@ export async function completeYoutubeAuthorizationFromCallback(
         channel.snippet?.customUrl ?? channel.snippet?.title ?? null,
         "channel",
         null,
-        "America/Los_Angeles",
+        YOUTUBE_SOURCE_TIMEZONE,
         ciphertext,
         "aes-256-gcm.v1",
         config.keyVersion,
@@ -459,30 +469,144 @@ function isoDateUtc(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function boundedAnalyticsRange(lookbackDays: number): { startDate: string; endDate: string } {
-  const end = new Date();
-  end.setUTCDate(end.getUTCDate() - 1);
-  const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - Math.max(lookbackDays - 1, 0));
-  const semanticFloor = new Date(`${VIEW_SEMANTIC_BREAK}T00:00:00Z`);
-  if (start < semanticFloor) start.setTime(semanticFloor.getTime());
-  if (end < semanticFloor) {
+function parseIsoDay(day: string): { year: number; month: number; dayOfMonth: number } {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    throw new YoutubeConnectorError("youtube_analytics_day_invalid", 502);
+  }
+  const parsed = new Date(`${day}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || isoDateUtc(parsed) !== day) {
+    throw new YoutubeConnectorError("youtube_analytics_day_invalid", 502);
+  }
+  return {
+    year: parsed.getUTCFullYear(),
+    month: parsed.getUTCMonth() + 1,
+    dayOfMonth: parsed.getUTCDate()
+  };
+}
+
+function addIsoDays(day: string, delta: number): string {
+  const parsed = parseIsoDay(day);
+  const date = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.dayOfMonth));
+  date.setUTCDate(date.getUTCDate() + delta);
+  return isoDateUtc(date);
+}
+
+function zonedDateTimeParts(instant: Date, timeZone: string): ZonedDateTimeParts {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+  const parts = formatter.formatToParts(instant);
+  const read = (type: Intl.DateTimeFormatPartTypes): number => {
+    const value = parts.find((part) => part.type === type)?.value;
+    if (!value) throw new YoutubeConnectorError("youtube_timezone_conversion_failed", 500);
+    return Number(value);
+  };
+  return {
+    year: read("year"),
+    month: read("month"),
+    day: read("day"),
+    hour: read("hour"),
+    minute: read("minute"),
+    second: read("second")
+  };
+}
+
+function timezoneOffsetMs(instant: Date, timeZone: string): number {
+  const parts = zonedDateTimeParts(instant, timeZone);
+  const wallClockAsUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second
+  );
+  const wholeSecondInstant = Math.trunc(instant.getTime() / 1000) * 1000;
+  return wallClockAsUtc - wholeSecondInstant;
+}
+
+function zonedMidnightUtc(day: string, timeZone: string): Date {
+  const parsed = parseIsoDay(day);
+  const targetWallClockAsUtc = Date.UTC(parsed.year, parsed.month - 1, parsed.dayOfMonth, 0, 0, 0);
+  let candidate = new Date(targetWallClockAsUtc);
+
+  // Resolve the IANA-zone offset iteratively. Pacific DST transitions occur away from
+  // midnight, but iterating also avoids assuming a fixed UTC-7/UTC-8 offset.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const offset = timezoneOffsetMs(candidate, timeZone);
+    const next = new Date(targetWallClockAsUtc - offset);
+    if (next.getTime() === candidate.getTime()) break;
+    candidate = next;
+  }
+
+  const local = zonedDateTimeParts(candidate, timeZone);
+  if (
+    local.year !== parsed.year
+    || local.month !== parsed.month
+    || local.day !== parsed.dayOfMonth
+    || local.hour !== 0
+    || local.minute !== 0
+    || local.second !== 0
+  ) {
+    throw new YoutubeConnectorError("youtube_timezone_conversion_failed", 500);
+  }
+  return candidate;
+}
+
+function isoDayInTimeZone(instant: Date, timeZone: string): string {
+  const local = zonedDateTimeParts(instant, timeZone);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${local.year}-${pad(local.month)}-${pad(local.day)}`;
+}
+
+function youtubeProviderDayRange(day: string): { startUtc: string; endExclusiveUtc: string } {
+  const start = zonedMidnightUtc(day, YOUTUBE_SOURCE_TIMEZONE);
+  const nextDay = addIsoDays(day, 1);
+  const endExclusive = zonedMidnightUtc(nextDay, YOUTUBE_SOURCE_TIMEZONE);
+  return { startUtc: start.toISOString(), endExclusiveUtc: endExclusive.toISOString() };
+}
+
+export function youtubePacificDayRangeForTest(day: string) {
+  return youtubeProviderDayRange(day);
+}
+
+function boundedAnalyticsRange(lookbackDays: number, now = new Date()): { startDate: string; endDate: string } {
+  const providerToday = isoDayInTimeZone(now, YOUTUBE_SOURCE_TIMEZONE);
+  const endDate = addIsoDays(providerToday, -1);
+  if (endDate < VIEW_SEMANTIC_BREAK) {
     throw new YoutubeConnectorError("youtube_metric_semantic_window_unavailable", 409);
   }
-  return { startDate: isoDateUtc(start), endDate: isoDateUtc(end) };
+  const candidateStart = addIsoDays(endDate, -Math.max(lookbackDays - 1, 0));
+  const startDate = candidateStart < VIEW_SEMANTIC_BREAK ? VIEW_SEMANTIC_BREAK : candidateStart;
+  return { startDate, endDate };
+}
+
+export function youtubeBoundedAnalyticsRangeForTest(lookbackDays: number, nowIso: string) {
+  return boundedAnalyticsRange(lookbackDays, new Date(nowIso));
 }
 
 function metricSemanticVersion(metricName: string): { version: string; effectiveFrom: string | null } {
   if (metricName === "views") {
     return {
-      version: "youtube.analytics.views.docs-2026-08-24.v1",
-      effectiveFrom: `${VIEW_SEMANTIC_BREAK}T00:00:00Z`
+      version: "youtube.analytics.views.provider-day-2026-08-24.v2",
+      // The source series is segmented at the first YouTube Analytics provider-day boundary
+      // covered by the documented 2026-08-24 view-counting change.
+      effectiveFrom: youtubeProviderDayRange(VIEW_SEMANTIC_BREAK).startUtc
     };
   }
   if (metricName === "engagedViews") {
     return {
-      version: "youtube.analytics.engagedViews.core-2026-08.v1",
-      effectiveFrom: `${VIEW_SEMANTIC_BREAK}T00:00:00Z`
+      // The 2026-08-27 YouTube Analytics revision history explicitly marks Engaged View
+      // as unchanged by the 2026-08-24 public-view alignment.
+      version: "youtube.analytics.engagedViews.stable.v2",
+      effectiveFrom: null
     };
   }
   return { version: `youtube.analytics.${metricName}.core-2026-09.v1`, effectiveFrom: null };
@@ -536,9 +660,7 @@ export async function syncYoutubeAnalytics(
   await withTenantTransaction(principal, async (client) => {
     for (const reportRow of rows) {
       const day = String(reportRow[dayIndex] ?? "");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
-        throw new YoutubeConnectorError("youtube_analytics_day_invalid", 502);
-      }
+      const sourcePeriod = youtubeProviderDayRange(day);
       returnedThroughDate = !returnedThroughDate || day > returnedThroughDate ? day : returnedThroughDate;
 
       for (const metricName of metricNames) {
@@ -549,7 +671,6 @@ export async function syncYoutubeAnalytics(
           throw new YoutubeConnectorError("youtube_analytics_metric_invalid", 502);
         }
         const semantic = metricSemanticVersion(metricName);
-        const sourceInstant = `${day}T12:00:00Z`;
         const idempotencyKey = createHash("sha256").update([
           "youtube",
           requestNonce,
@@ -571,8 +692,8 @@ export async function syncYoutubeAnalytics(
             metricName,
             numeric,
             metricUnit(metricName),
-            sourceInstant,
-            sourceInstant,
+            sourcePeriod.startUtc,
+            sourcePeriod.startUtc,
             PROVIDER_API_VERSION,
             SOURCE_SCHEMA_VERSION,
             "youtube_analytics",
@@ -580,8 +701,8 @@ export async function syncYoutubeAnalytics(
             semantic.version,
             semantic.effectiveFrom,
             null,
-            sourceInstant,
-            sourceInstant,
+            sourcePeriod.startUtc,
+            sourcePeriod.endExclusiveUtc,
             collectedAt.toISOString(),
             "authorized_account",
             retentionDeadline.toISOString(),
