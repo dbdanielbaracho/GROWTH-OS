@@ -1,4 +1,4 @@
--- Issue #26 regression gate: YouTube connector foundation.
+-- Issue #26 regression gate: YouTube connector foundation + active-context hardening.
 -- Catalog-only: no provider/user/product data is created.
 \set ON_ERROR_STOP on
 
@@ -84,6 +84,34 @@ BEGIN
     END IF;
   END LOOP;
 
+  fn := 'growth.provider_credential_active_context_guard()'::regprocedure;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid=fn
+      AND pg_get_userbyid(p.proowner)='growth_migrator'
+      AND p.prosecdef
+  ) THEN
+    RAISE EXCEPTION '029 failed: provider credential context guard must be SECURITY DEFINER owned by growth_migrator';
+  END IF;
+  IF has_function_privilege('public',fn::text,'EXECUTE')
+     OR has_function_privilege('app_runtime',fn::text,'EXECUTE') THEN
+    RAISE EXCEPTION '029 failed: provider credential context guard must not be directly executable by PUBLIC/app_runtime';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger t
+    JOIN pg_class c ON c.oid=t.tgrelid
+    JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='growth'
+      AND c.relname='provider_credentials'
+      AND t.tgname='provider_credentials_active_context'
+      AND NOT t.tgisinternal
+      AND pg_get_triggerdef(t.oid) ILIKE '%BEFORE INSERT OR UPDATE%'
+  ) THEN
+    RAISE EXCEPTION '029 failed: provider credential active-context trigger missing';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM growth.capabilities
     WHERE platform='youtube' AND market='GLOBAL' AND account_type='channel'
@@ -102,4 +130,4 @@ BEGIN
   END IF;
 END $$;
 
-SELECT 'PASS: Issue #26 YouTube DB foundation is narrow, provenance-aware and derived analytics is fail-closed' AS result;
+SELECT 'PASS: Issue #26 YouTube DB foundation is narrow, provenance-aware, context-hardened and derived analytics is fail-closed' AS result;
