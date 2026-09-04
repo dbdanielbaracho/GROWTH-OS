@@ -1,7 +1,8 @@
 import Fastify from "fastify";
+import cookie from "@fastify/cookie";
 import { checkDatabase } from "./db.js";
 import { env } from "./config.js";
-import { resolvePrincipal } from "./auth.js";
+import { resolvePrincipal, type AuthPrincipal } from "./auth.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
 import { getOpportunityDetail, listInsights, listOpportunities } from "./intelligence.js";
@@ -14,6 +15,23 @@ import {
   CreateLineageEdgeSchema, createLineageEdge,
   SourceContextNotFoundError
 } from "./creative.js";
+import {
+  SignInSchema,
+  WorkspaceSelectionSchema,
+  IdentityAuthenticationError,
+  IdentityCsrfError,
+  IdentityRateLimitedError,
+  IdentityWorkspaceRequiredError,
+  signInWithPassword,
+  resolveCookieSession,
+  selectSessionWorkspace,
+  revokeCurrentSession,
+  revokeAllSessions,
+  setSessionCookies,
+  setWorkspaceCookie,
+  clearIdentityCookies,
+  type IdentitySessionView
+} from "./identity-adapter.js";
 import { z } from "zod";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
@@ -24,11 +42,33 @@ function databaseStatus(error: unknown): { code: number; status: string } {
 
   if (pgCode === "42501") return { code: 403, status: "forbidden" };
   if (pgCode === "23505" || pgCode === "23503") return { code: 409, status: "conflict" };
-  if (pgCode === "P0001") return { code: 409, status: "conflict" }; // business-rule RAISE EXCEPTION (cycle guard, state machine guard)
+  if (pgCode === "P0001") return { code: 409, status: "conflict" };
   if (["08000", "08001", "08003", "08004", "08006", "08007", "08P01", "57P01", "53300"].includes(pgCode)) {
     return { code: 503, status: "service_unavailable" };
   }
   return { code: 500, status: "internal_error" };
+}
+
+function identityStatus(error: unknown): { code: number; status: string } | null {
+  if (error instanceof IdentityRateLimitedError) return { code: 429, status: "rate_limited" };
+  if (error instanceof IdentityCsrfError) return { code: 403, status: "forbidden" };
+  if (error instanceof IdentityWorkspaceRequiredError) return { code: 409, status: "workspace_required" };
+  if (error instanceof IdentityAuthenticationError) {
+    if (error.message === "password_change_required") {
+      return { code: 403, status: "password_change_required" };
+    }
+    return { code: 401, status: "unauthorized" };
+  }
+  return null;
+}
+
+function publicSession(view: IdentitySessionView) {
+  return {
+    user_id: view.session.userId,
+    amr: view.session.amr,
+    absolute_expires_at: view.session.absoluteExpiresAt,
+    idle_expires_at: view.session.idleExpiresAt
+  };
 }
 
 const OpportunityParamsSchema = z.object({
@@ -36,7 +76,34 @@ const OpportunityParamsSchema = z.object({
 });
 
 export function buildApp(logger = false) {
-  const app = Fastify({ logger });
+  const app = Fastify({
+    logger: logger ? {
+      redact: {
+        paths: [
+          "req.headers.cookie",
+          "req.headers.authorization",
+          "req.headers.x-csrf-token",
+          "req.body.password",
+          "req.body.token",
+          "res.headers.set-cookie"
+        ],
+        censor: "[Redacted]"
+      }
+    } : false
+  });
+
+  app.register(cookie);
+
+  async function requestPrincipal(request: Parameters<typeof resolvePrincipal>[0], reply: any): Promise<AuthPrincipal | null> {
+    try {
+      return await resolvePrincipal(request);
+    } catch (error) {
+      app.log.warn(error);
+      const mapped = identityStatus(error) ?? { code: 401, status: "unauthorized" };
+      await reply.code(mapped.code).send({ status: mapped.status });
+      return null;
+    }
+  }
 
   app.get("/health/live", async () => ({ status: "ok" }));
 
@@ -56,9 +123,99 @@ export function buildApp(logger = false) {
     environment: env.NODE_ENV
   }));
 
-  app.get("/v1/context", async (request, reply) => {
+  app.post("/v1/auth/signin", async (request, reply) => {
+    const parsed = SignInSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
     try {
-      const principal = resolvePrincipal(request);
+      const signedIn = await signInWithPassword(parsed.data.email, parsed.data.password, request);
+      setSessionCookies(
+        reply,
+        signedIn.rawSessionToken,
+        signedIn.session.absoluteExpiresAt,
+        signedIn.selectedWorkspace?.id ?? null
+      );
+      return {
+        status: "ok",
+        session: publicSession(signedIn),
+        workspaces: signedIn.workspaces,
+        selected_workspace: signedIn.selectedWorkspace,
+        csrf_token: signedIn.csrfToken
+      };
+    } catch (error) {
+      const mapped = identityStatus(error);
+      if (mapped) return reply.code(mapped.code).send({ status: mapped.status });
+      app.log.error(error);
+      return reply.code(500).send({ status: "internal_error" });
+    }
+  });
+
+  app.get("/v1/auth/session", async (request, reply) => {
+    try {
+      const view = await resolveCookieSession(request, { requireWorkspace: false, enforceCsrf: false });
+      return {
+        status: "ok",
+        session: publicSession(view),
+        workspaces: view.workspaces,
+        selected_workspace: view.selectedWorkspace,
+        csrf_token: view.csrfToken
+      };
+    } catch (error) {
+      const mapped = identityStatus(error) ?? { code: 401, status: "unauthorized" };
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/auth/workspace", async (request, reply) => {
+    const parsed = WorkspaceSelectionSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const view = await selectSessionWorkspace(request, parsed.data.workspaceId);
+      if (!view.selectedWorkspace) throw new IdentityAuthenticationError("workspace_not_authorized");
+      setWorkspaceCookie(reply, view.selectedWorkspace.id, view.session.absoluteExpiresAt);
+      return {
+        status: "ok",
+        session: publicSession(view),
+        workspaces: view.workspaces,
+        selected_workspace: view.selectedWorkspace,
+        csrf_token: view.csrfToken
+      };
+    } catch (error) {
+      const mapped = identityStatus(error) ?? { code: 401, status: "unauthorized" };
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/auth/signout", async (request, reply) => {
+    try {
+      await revokeCurrentSession(request);
+      clearIdentityCookies(reply);
+      return reply.code(204).send();
+    } catch (error) {
+      clearIdentityCookies(reply);
+      const mapped = identityStatus(error) ?? { code: 401, status: "unauthorized" };
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/auth/signout-all", async (request, reply) => {
+    try {
+      const revoked = await revokeAllSessions(request);
+      clearIdentityCookies(reply);
+      return { status: "ok", revoked_sessions: revoked };
+    } catch (error) {
+      clearIdentityCookies(reply);
+      const mapped = identityStatus(error) ?? { code: 401, status: "unauthorized" };
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/context", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
       const context = await withTenantTransaction(principal, async (client) => {
         const result = await client.query<{ workspace_id: string; user_id: string }>(
           `select current_setting('app.workspace_id', true) as workspace_id,
@@ -68,47 +225,49 @@ export function buildApp(logger = false) {
       });
       return { status: "ok", context };
     } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
 
   app.get("/v1/workspace", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
     try {
-      const principal = resolvePrincipal(request);
       const workspace = await withTenantTransaction(principal, (client) =>
         getCurrentWorkspace(client, principal)
       );
       if (!workspace) return reply.code(404).send({ status: "not_found" });
       return { status: "ok", workspace };
     } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
 
   app.get("/v1/membership", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
     try {
-      const principal = resolvePrincipal(request);
       const membership = await withTenantTransaction(principal, (client) =>
         getCurrentMembership(client, principal)
       );
       if (!membership) return reply.code(404).send({ status: "not_found" });
       return { status: "ok", membership };
     } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
 
   app.get("/v1/opportunities", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     try {
       const opportunities = await withTenantTransaction(principal, (client) =>
@@ -123,18 +282,11 @@ export function buildApp(logger = false) {
   });
 
   app.get("/v1/opportunities/:id", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     const parsed = OpportunityParamsSchema.safeParse(request.params);
-    if (!parsed.success) {
-      return reply.code(400).send({ status: "invalid_request" });
-    }
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
       const detail = await withTenantTransaction(principal, (client) =>
@@ -150,13 +302,8 @@ export function buildApp(logger = false) {
   });
 
   app.get("/v1/insights", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     try {
       const insights = await withTenantTransaction(principal, (client) =>
@@ -171,13 +318,8 @@ export function buildApp(logger = false) {
   });
 
   app.get("/v1/content", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     try {
       const content = await withTenantTransaction(principal, (client) =>
@@ -192,18 +334,11 @@ export function buildApp(logger = false) {
   });
 
   app.post("/v1/content", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     const parsed = CreateContentSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ status: "invalid_request" });
-    }
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
       const created = await withTenantTransaction(principal, (client) =>
@@ -218,18 +353,11 @@ export function buildApp(logger = false) {
   });
 
   app.post("/v1/creative/requests", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     const parsed = CreateCreativeRequestSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ status: "invalid_request" });
-    }
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
       const created = await withTenantTransaction(principal, (client) =>
@@ -247,18 +375,11 @@ export function buildApp(logger = false) {
   });
 
   app.post("/v1/creative/generations", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     const parsed = CreateCreativeGenerationSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ status: "invalid_request" });
-    }
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
       const created = await withTenantTransaction(principal, (client) =>
@@ -279,18 +400,11 @@ export function buildApp(logger = false) {
   });
 
   app.patch("/v1/creative/generations/:id", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     const parsed = TransitionSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ status: "invalid_request" });
-    }
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
       const updated = await withTenantTransaction(principal, (client) =>
@@ -312,18 +426,11 @@ export function buildApp(logger = false) {
   });
 
   app.post("/v1/creative/generations/:id/reconcile", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     const parsed = ReconcileSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ status: "invalid_request" });
-    }
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
       const resolved = await withTenantTransaction(principal, (client) =>
@@ -340,18 +447,11 @@ export function buildApp(logger = false) {
   });
 
   app.post("/v1/media-assets", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     const parsed = CreateMediaAssetSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ status: "invalid_request" });
-    }
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
       const created = await withTenantTransaction(principal, (client) =>
@@ -366,18 +466,11 @@ export function buildApp(logger = false) {
   });
 
   app.post("/v1/media-assets/lineage", async (request, reply) => {
-    let principal;
-    try {
-      principal = resolvePrincipal(request);
-    } catch (error) {
-      app.log.warn(error);
-      return reply.code(401).send({ status: "unauthorized" });
-    }
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
 
     const parsed = CreateLineageEdgeSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ status: "invalid_request" });
-    }
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
 
     try {
       const created = await withTenantTransaction(principal, (client) =>

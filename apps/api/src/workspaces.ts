@@ -13,6 +13,62 @@ export type WorkspaceSummary = {
   membership_status: "active" | "invited" | "revoked";
 };
 
+export async function listActiveWorkspacesForUser(
+  client: PoolClient,
+  userId: string
+): Promise<WorkspaceSummary[]> {
+  const result = await client.query<WorkspaceSummary>(
+    `select
+       w.id,
+       w.name,
+       w.default_market,
+       w.default_language,
+       w.default_timezone,
+       w.status,
+       m.role,
+       m.can_publish,
+       m.status as membership_status
+     from growth.memberships m
+     join growth.workspaces w on w.id = m.workspace_id
+     where m.user_id = $1
+       and m.status = 'active'
+       and w.status = 'active'
+     order by w.name, w.id`,
+    [userId]
+  );
+
+  return result.rows;
+}
+
+export async function getActiveWorkspaceForUser(
+  client: PoolClient,
+  userId: string,
+  workspaceId: string
+): Promise<WorkspaceSummary | null> {
+  const result = await client.query<WorkspaceSummary>(
+    `select
+       w.id,
+       w.name,
+       w.default_market,
+       w.default_language,
+       w.default_timezone,
+       w.status,
+       m.role,
+       m.can_publish,
+       m.status as membership_status
+     from growth.memberships m
+     join growth.workspaces w on w.id = m.workspace_id
+     where m.user_id = $1
+       and m.workspace_id = $2
+       and m.status = 'active'
+       and w.status = 'active'
+     limit 1`,
+    [userId, workspaceId]
+  );
+
+  return result.rows[0] ?? null;
+}
+
 export async function getCurrentWorkspace(
   client: PoolClient,
   principal: AuthPrincipal

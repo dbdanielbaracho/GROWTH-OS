@@ -1,14 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  fetchAuthSession,
   fetchOpportunities,
   fetchOpportunityDetail,
+  hasDevelopmentIdentity,
+  selectWorkspace,
+  signIn,
+  signOut,
   RadarApiError,
+  type AuthSessionResponse,
   type OpportunityDetail,
   type OpportunitySummary,
   type RelatedInsight
 } from "./api.js";
 import "./styles.css";
+import "./auth.css";
 
 function titleCase(value: string) {
   return value
@@ -60,7 +67,7 @@ function insightLabel(insight: RelatedInsight) {
 
 function errorMessage(error: unknown): string {
   if (error instanceof RadarApiError) {
-    if (error.httpStatus === 401) return "Your authenticated workspace context is not available in this environment.";
+    if (error.httpStatus === 401) return "Your session is no longer available. Please sign in again.";
     if (error.httpStatus === 403) return "This workspace is not allowed to read the requested opportunity data.";
     if (error.httpStatus === 404) return "This opportunity is no longer available in the current workspace.";
     if (error.httpStatus === 503) return "Growth OS cannot reach the intelligence database right now.";
@@ -242,7 +249,15 @@ function DetailPanel({
   );
 }
 
-function App() {
+function RadarApp({
+  auth,
+  onSignOut,
+  onUnauthorized
+}: {
+  auth: AuthSessionResponse | null;
+  onSignOut: (() => Promise<void>) | null;
+  onUnauthorized: () => void;
+}) {
   const [opportunities, setOpportunities] = useState<OpportunitySummary[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<OpportunityDetail | null>(null);
@@ -262,11 +277,15 @@ function App() {
       })
       .catch((error) => {
         if (!active) return;
+        if (error instanceof RadarApiError && error.httpStatus === 401) {
+          onUnauthorized();
+          return;
+        }
         setListMessage(errorMessage(error));
         setListState("error");
       });
     return () => { active = false; };
-  }, []);
+  }, [onUnauthorized]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -286,12 +305,16 @@ function App() {
       })
       .catch((error) => {
         if (!active) return;
+        if (error instanceof RadarApiError && error.httpStatus === 401) {
+          onUnauthorized();
+          return;
+        }
         setDetail(null);
         setDetailMessage(errorMessage(error));
         setDetailLoading(false);
       });
     return () => { active = false; };
-  }, [selectedId]);
+  }, [selectedId, onUnauthorized]);
 
   const evidenceTotal = useMemo(
     () => opportunities.reduce((sum, opportunity) => sum + opportunity.evidence_count, 0),
@@ -305,7 +328,15 @@ function App() {
           <span className="brand-mark">G</span>
           <span>Growth OS</span>
         </a>
-        <div className="product-label"><span className="live-dot" /> Opportunity Radar</div>
+        <div className="topbar-actions">
+          {auth?.selected_workspace && (
+            <span className="workspace-chip">{auth.selected_workspace.name}</span>
+          )}
+          <div className="product-label"><span className="live-dot" /> Opportunity Radar</div>
+          {onSignOut && (
+            <button className="signout-button" type="button" onClick={() => void onSignOut()}>Sign out</button>
+          )}
+        </div>
       </header>
 
       <section className="hero">
@@ -384,8 +415,179 @@ function App() {
   );
 }
 
+function AuthLoading() {
+  return (
+    <main className="auth-shell">
+      <div className="auth-card auth-loading" aria-live="polite">
+        <span className="brand-mark">G</span>
+        <div className="skeleton wide" />
+        <div className="skeleton" />
+      </div>
+    </main>
+  );
+}
+
+function SignInScreen({ onSignedIn }: { onSignedIn: (session: AuthSessionResponse) => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      onSignedIn(await signIn(email, password));
+    } catch (error) {
+      if (error instanceof RadarApiError) {
+        if (error.apiStatus === "rate_limited") setMessage("Too many sign-in attempts. Try again later.");
+        else if (error.apiStatus === "password_change_required") setMessage("This account requires a password change before continuing.");
+        else if (error.httpStatus === 401) setMessage("Email or password is incorrect.");
+        else if (error.httpStatus === 403) setMessage("This sign-in request was rejected by the security policy.");
+        else setMessage("Growth OS could not sign you in right now.");
+      } else {
+        setMessage("Growth OS could not sign you in right now.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-brand"><span className="brand-mark">G</span><strong>Growth OS</strong></div>
+        <p className="eyebrow">Organic growth intelligence</p>
+        <h1 className="auth-title">Sign in to see your next opportunity.</h1>
+        <p className="auth-copy">Your session stays server-side. Growth OS does not store authentication tokens in browser storage.</p>
+
+        <form className="auth-form" onSubmit={submit}>
+          <label>
+            <span>Email</span>
+            <input autoComplete="email" inputMode="email" name="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input autoComplete="current-password" name="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+          </label>
+          {message && <p className="auth-error" role="alert">{message}</p>}
+          <button className="auth-primary" type="submit" disabled={submitting}>
+            {submitting ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function WorkspaceScreen({
+  session,
+  onSelected,
+  onSignOut
+}: {
+  session: AuthSessionResponse;
+  onSelected: (session: AuthSessionResponse) => void;
+  onSignOut: () => Promise<void>;
+}) {
+  const [selecting, setSelecting] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function choose(id: string) {
+    setSelecting(id);
+    setMessage(null);
+    try {
+      onSelected(await selectWorkspace(id));
+    } catch {
+      setMessage("This workspace is no longer available to your account.");
+    } finally {
+      setSelecting(null);
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-card workspace-picker">
+        <div className="auth-brand"><span className="brand-mark">G</span><strong>Growth OS</strong></div>
+        <p className="eyebrow">Workspace</p>
+        <h1 className="auth-title">Where do you want to grow?</h1>
+        <p className="auth-copy">Every selection is checked against your current active membership before access is granted.</p>
+
+        {session.workspaces.length === 0 ? (
+          <div className="auth-empty">
+            <strong>No active workspace is available.</strong>
+            <p>Your account is signed in, but it does not currently have an active workspace membership.</p>
+          </div>
+        ) : (
+          <div className="workspace-options">
+            {session.workspaces.map((workspace) => (
+              <button key={workspace.id} type="button" className="workspace-option" onClick={() => void choose(workspace.id)} disabled={selecting !== null}>
+                <span><strong>{workspace.name}</strong><small>{titleCase(workspace.role)} · {workspace.default_market}</small></span>
+                <span>{selecting === workspace.id ? "Selecting…" : "→"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {message && <p className="auth-error" role="alert">{message}</p>}
+        <button className="auth-secondary" type="button" onClick={() => void onSignOut()}>Sign out</button>
+      </section>
+    </main>
+  );
+}
+
+function RootApp() {
+  const [state, setState] = useState<"loading" | "signed_out" | "workspace" | "ready" | "dev">("loading");
+  const [session, setSession] = useState<AuthSessionResponse | null>(null);
+
+  useEffect(() => {
+    if (hasDevelopmentIdentity()) {
+      setState("dev");
+      return;
+    }
+
+    let active = true;
+    fetchAuthSession()
+      .then((result) => {
+        if (!active) return;
+        setSession(result);
+        setState(result.selected_workspace ? "ready" : "workspace");
+      })
+      .catch(() => {
+        if (!active) return;
+        setSession(null);
+        setState("signed_out");
+      });
+    return () => { active = false; };
+  }, []);
+
+  async function doSignOut() {
+    try { await signOut(); } catch { /* local state still clears */ }
+    setSession(null);
+    setState("signed_out");
+  }
+
+  function acceptSession(result: AuthSessionResponse) {
+    setSession(result);
+    setState(result.selected_workspace ? "ready" : "workspace");
+  }
+
+  if (state === "loading") return <AuthLoading />;
+  if (state === "signed_out") return <SignInScreen onSignedIn={acceptSession} />;
+  if (state === "workspace" && session) {
+    return <WorkspaceScreen session={session} onSelected={acceptSession} onSignOut={doSignOut} />;
+  }
+  if (state === "dev") {
+    return <RadarApp auth={null} onSignOut={null} onUnauthorized={() => setState("signed_out")} />;
+  }
+  if (state === "ready" && session) {
+    return <RadarApp auth={session} onSignOut={doSignOut} onUnauthorized={() => void doSignOut()} />;
+  }
+
+  return <AuthLoading />;
+}
+
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <RootApp />
   </React.StrictMode>
 );
