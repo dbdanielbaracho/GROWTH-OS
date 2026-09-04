@@ -102,6 +102,8 @@ type ZonedDateTimeParts = {
   second: number;
 };
 
+type RequiredDateTimePart = "year" | "month" | "day" | "hour" | "minute" | "second";
+
 export class YoutubeConnectorError extends Error {
   constructor(public readonly code: string, public readonly httpStatus: number) {
     super(code);
@@ -503,8 +505,8 @@ function zonedDateTimeParts(instant: Date, timeZone: string): ZonedDateTimeParts
     second: "2-digit"
   });
   const parts = formatter.formatToParts(instant);
-  const read = (type: Intl.DateTimeFormatPartTypes): number => {
-    const value = parts.find((part) => part.type === type)?.value;
+  const read = (partType: RequiredDateTimePart): number => {
+    const value = parts.find((part) => part.type === partType)?.value;
     if (!value) throw new YoutubeConnectorError("youtube_timezone_conversion_failed", 500);
     return Number(value);
   };
