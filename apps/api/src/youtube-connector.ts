@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
 import { z } from "zod";
 import { env } from "./config.js";
@@ -22,6 +22,7 @@ export const YoutubeAuthorizeSchema = z.object({
 
 export const YoutubeSyncSchema = z.object({
   connectionId: z.string().uuid(),
+  requestNonce: z.string().uuid(),
   lookbackDays: z.coerce.number().int().min(1).max(30).default(7)
 });
 
@@ -40,7 +41,7 @@ type YoutubeConfig = {
   derivedAnalyticsPolicyAccepted: boolean;
 };
 
-type YoutubeState = {
+export type YoutubeState = {
   v: 1;
   userId: string;
   workspaceId: string;
@@ -365,11 +366,8 @@ export async function completeYoutubeAuthorizationFromCallback(
     expiresAt
   };
   const ciphertext = sealCredential(credential, state.workspaceId, state.connectionId, config);
+  const principal: AuthPrincipal = { userId: state.userId, workspaceId: state.workspaceId };
 
-  const principal: AuthPrincipal = {
-    userId: state.userId,
-    workspaceId: state.workspaceId
-  };
   const socialAccountId = await withTenantTransaction(principal, async (client) => {
     const result = await client.query<{ social_account_id: string }>(
       `select growth.youtube_complete_authorization(
@@ -414,23 +412,12 @@ async function loadCredential(client: PoolClient, connectionId: string): Promise
   return row;
 }
 
-async function persistCredential(
-  client: PoolClient,
-  connectionId: string,
-  credential: StoredCredential,
-  config: YoutubeConfig
-): Promise<void> {
-  const ciphertext = sealCredential(credential, String((client as unknown as { __workspaceId?: string }).__workspaceId ?? ""), connectionId, config);
-  void ciphertext;
-}
-
 async function usableCredential(
-  client: PoolClient,
   principal: AuthPrincipal,
   connectionId: string
 ): Promise<{ row: CredentialRow; credential: StoredCredential }> {
   const config = requireConnectorConfig();
-  const row = await loadCredential(client, connectionId);
+  const row = await withTenantTransaction(principal, (client) => loadCredential(client, connectionId));
   let credential = openCredential(row.credential_ciphertext, principal.workspaceId, connectionId, config);
   const expiresSoon = new Date(credential.expiresAt).getTime() <= Date.now() + 60_000;
   if (!expiresSoon) return { row, credential };
@@ -446,23 +433,25 @@ async function usableCredential(
     expiresAt: new Date(Date.now() + refreshed.expires_in * 1000).toISOString()
   };
   const ciphertext = sealCredential(credential, principal.workspaceId, connectionId, config);
-  const updated = await client.query<{ updated: boolean }>(
-    `select growth.youtube_update_connection_credential(
-      $1,$2,$3,$4,$5,$6,$7::text[]
-    ) as updated`,
-    [
-      connectionId,
-      ciphertext,
-      "aes-256-gcm.v1",
-      config.keyVersion,
-      credential.expiresAt,
-      Boolean(credential.refreshToken),
-      credential.scopes
-    ]
-  );
-  if (updated.rows[0]?.updated !== true) {
-    throw new YoutubeConnectorError("youtube_credential_refresh_not_persisted", 500);
-  }
+  await withTenantTransaction(principal, async (client) => {
+    const updated = await client.query<{ updated: boolean }>(
+      `select growth.youtube_update_connection_credential(
+        $1,$2,$3,$4,$5,$6,$7::text[]
+      ) as updated`,
+      [
+        connectionId,
+        ciphertext,
+        "aes-256-gcm.v1",
+        config.keyVersion,
+        credential.expiresAt,
+        Boolean(credential.refreshToken),
+        credential.scopes
+      ]
+    );
+    if (updated.rows[0]?.updated !== true) {
+      throw new YoutubeConnectorError("youtube_credential_refresh_not_persisted", 500);
+    }
+  });
   return { row, credential };
 }
 
@@ -510,22 +499,23 @@ function metricUnit(metricName: string): string {
 }
 
 export async function syncYoutubeAnalytics(
-  client: PoolClient,
   principal: AuthPrincipal,
   connectionId: string,
+  requestNonce: string,
   lookbackDays: number
 ): Promise<{
   connectionId: string;
+  requestNonce: string;
   socialAccountId: string;
   requestedStartDate: string;
   requestedEndDate: string;
   returnedThroughDate: string | null;
-  observationsWritten: number;
+  observationsProcessed: number;
   rowsReceived: number;
-  derivedAnalyticsEnabled: boolean;
+  derivedAnalyticsPolicyAccepted: boolean;
 }> {
   const config = requireConnectorConfig();
-  const { row, credential } = await usableCredential(client, principal, connectionId);
+  const { row, credential } = await usableCredential(principal, connectionId);
   const range = boundedAnalyticsRange(lookbackDays);
   const report = await fetchDailyAnalytics(credential.accessToken, range.startDate, range.endDate);
   const headers = report.columnHeaders ?? [];
@@ -539,83 +529,86 @@ export async function syncYoutubeAnalytics(
   const collectedAt = new Date();
   const retentionDeadline = new Date(collectedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
   const refreshRequiredBy = new Date(collectedAt.getTime() + 29 * 24 * 60 * 60 * 1000);
-  const runId = randomUUID();
   const payloadDigest = createHash("sha256").update(JSON.stringify(report), "utf8").digest("hex");
-  let observationsWritten = 0;
+  let observationsProcessed = 0;
   let returnedThroughDate: string | null = null;
 
-  for (const reportRow of rows) {
-    const day = String(reportRow[dayIndex] ?? "");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
-      throw new YoutubeConnectorError("youtube_analytics_day_invalid", 502);
-    }
-    returnedThroughDate = !returnedThroughDate || day > returnedThroughDate ? day : returnedThroughDate;
-
-    for (const metricName of metricNames) {
-      const index = names.indexOf(metricName);
-      const raw = reportRow[index];
-      const numeric = typeof raw === "number" ? raw : Number(raw);
-      if (!Number.isFinite(numeric)) {
-        throw new YoutubeConnectorError("youtube_analytics_metric_invalid", 502);
+  await withTenantTransaction(principal, async (client) => {
+    for (const reportRow of rows) {
+      const day = String(reportRow[dayIndex] ?? "");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+        throw new YoutubeConnectorError("youtube_analytics_day_invalid", 502);
       }
-      const semantic = metricSemanticVersion(metricName);
-      const sourceInstant = `${day}T12:00:00Z`;
-      const idempotencyKey = createHash("sha256").update([
-        "youtube",
-        row.provider_account_id,
-        day,
-        metricName,
-        semantic.version,
-        SOURCE_SCHEMA_VERSION
-      ].join("|"), "utf8").digest("hex");
+      returnedThroughDate = !returnedThroughDate || day > returnedThroughDate ? day : returnedThroughDate;
 
-      await client.query(
-        `select growth.youtube_record_metric_observation(
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-          $19,$20,$21,$22,$23,$24,$25,$26,$27
-        )`,
-        [
-          row.social_account_id,
+      for (const metricName of metricNames) {
+        const index = names.indexOf(metricName);
+        const raw = reportRow[index];
+        const numeric = typeof raw === "number" ? raw : Number(raw);
+        if (!Number.isFinite(numeric)) {
+          throw new YoutubeConnectorError("youtube_analytics_metric_invalid", 502);
+        }
+        const semantic = metricSemanticVersion(metricName);
+        const sourceInstant = `${day}T12:00:00Z`;
+        const idempotencyKey = createHash("sha256").update([
+          "youtube",
+          requestNonce,
           row.provider_account_id,
+          day,
           metricName,
-          numeric,
-          metricUnit(metricName),
-          sourceInstant,
-          sourceInstant,
-          PROVIDER_API_VERSION,
-          SOURCE_SCHEMA_VERSION,
-          "youtube_analytics",
-          "channel_daily_report",
           semantic.version,
-          semantic.effectiveFrom,
-          null,
-          sourceInstant,
-          sourceInstant,
-          collectedAt.toISOString(),
-          "authorized_account",
-          retentionDeadline.toISOString(),
-          refreshRequiredBy.toISOString(),
-          "complete",
-          "fresh",
-          runId,
-          idempotencyKey,
-          `sha256:${payloadDigest}`,
-          ADAPTER_VERSION,
-          "polling"
-        ]
-      );
-      observationsWritten++;
+          SOURCE_SCHEMA_VERSION
+        ].join("|"), "utf8").digest("hex");
+
+        await client.query(
+          `select growth.youtube_record_metric_observation(
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+            $19,$20,$21,$22,$23,$24,$25,$26,$27
+          )`,
+          [
+            row.social_account_id,
+            row.provider_account_id,
+            metricName,
+            numeric,
+            metricUnit(metricName),
+            sourceInstant,
+            sourceInstant,
+            PROVIDER_API_VERSION,
+            SOURCE_SCHEMA_VERSION,
+            "youtube_analytics",
+            "channel_daily_report",
+            semantic.version,
+            semantic.effectiveFrom,
+            null,
+            sourceInstant,
+            sourceInstant,
+            collectedAt.toISOString(),
+            "authorized_account",
+            retentionDeadline.toISOString(),
+            refreshRequiredBy.toISOString(),
+            "complete",
+            "fresh",
+            requestNonce,
+            idempotencyKey,
+            `sha256:${payloadDigest}`,
+            ADAPTER_VERSION,
+            "polling"
+          ]
+        );
+        observationsProcessed++;
+      }
     }
-  }
+  });
 
   return {
     connectionId,
+    requestNonce,
     socialAccountId: row.social_account_id,
     requestedStartDate: range.startDate,
     requestedEndDate: range.endDate,
     returnedThroughDate,
-    observationsWritten,
+    observationsProcessed,
     rowsReceived: rows.length,
-    derivedAnalyticsEnabled: config.derivedAnalyticsPolicyAccepted
+    derivedAnalyticsPolicyAccepted: config.derivedAnalyticsPolicyAccepted
   };
 }
