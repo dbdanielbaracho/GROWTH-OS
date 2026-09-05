@@ -18,7 +18,23 @@ if (!process.env.DATABASE_URL) {
 }
 
 const absolutePath = path.resolve(migrationPath);
-const sql = await fs.readFile(absolutePath, 'utf8');
+const rawSql = await fs.readFile(absolutePath, 'utf8');
+
+function normalizeSqlForPgDriver(sql) {
+  return sql
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (/^\\set\\s+ON_ERROR_STOP\\s+(?:on|off)\\s*$/i.test(trimmed)) return "";
+      if (/^\\/.test(trimmed)) {
+        throw new Error(`Unsupported psql meta-command in ${absolutePath}: ${trimmed}`);
+      }
+      return line;
+    })
+    .join("\n");
+}
+
+const sql = normalizeSqlForPgDriver(rawSql);
 
 const client = new Client({ connectionString: process.env.DATABASE_URL });
 
