@@ -969,3 +969,18 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 9. O próximo gate é provar signup/signin/sessão/workspace no banco canônico e, depois, autorização e sync real do YouTube.
 
 **Resultado:** superfície pública canônica saudável; Production Truth Gate completo ainda pendente.
+
+
+## 31. Production Truth Gate parcial: proteção dos endpoints autenticados
+
+**Data:** 05 de setembro de 2026
+
+1. Sem sessão autenticada, `GET /v1/auth/session` retornou HTTP 401 `{"status":"unauthorized"}`.
+2. Sem sessão autenticada, `GET /v1/opportunities` retornou HTTP 401 `{"status":"unauthorized"}`.
+3. Sem sessão autenticada, `GET /v1/integrations/youtube/status` retornou HTTP 401 `{"status":"unauthorized"}`.
+4. Isso confirma que os endpoints de sessão protegida, Opportunity Radar e status do YouTube não expõem dados sem autenticação.
+5. Esses checks são apenas negativos/unauthenticated; não comprovam que um usuário válido consiga entrar, selecionar workspace ou acessar dados autorizados.
+6. Não houve tentativa de signup, criação de usuário, migration, alteração de banco, alteração de variável ou deploy.
+7. O próximo passo operacional depende de provisionamento/autorização segura de uma conta de teste no banco canônico; nenhuma conta ou credencial foi inventada.
+
+**Resultado:** proteção sem sessão confirmada; autenticação positiva e jornada completa ainda pendentes.
