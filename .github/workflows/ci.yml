@@ -92,7 +92,7 @@ jobs:
           for migration in db/migrations/*.sql; do
             database_url="$CI_MIGRATOR_URL"
             case "$migration" in
-              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql)
+              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql|*009_production_identity_adapter_support.sql)
                 database_url="$CI_ADMIN_URL"
                 ;;
             esac
