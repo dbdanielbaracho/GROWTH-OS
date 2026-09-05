@@ -882,3 +882,27 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. PR #39 permanece OPEN e DRAFT; não houve merge, deploy ou alteração de produção.
 
 **Resultado:** correção preventiva aplicada e registrada; próximo gate continua sendo CI/inspeção visual/revisão adversarial no SHA exato.
+
+
+## 27. Coerência visual do painel de integração YouTube
+
+**Data:** 05 de setembro de 2026
+
+1. A revisão da superfície visual identificou que `apps/web/src/youtube-integration.css` ainda usava o tema claro legado, enquanto o shell do Radar já usava o baseline editorial grafite/preto.
+2. O arquivo recebeu o bloco `Editorial integration surface v0.1`.
+3. O painel foi alinhado ao shell com:
+   - fundo escuro e bordas grafite;
+   - tipografia e texto compatíveis com o contraste editorial;
+   - estados de sucesso, erro, vazio e sync com cores semânticas preservadas;
+   - botão primário dourado coerente com a ação de oportunidade;
+   - bordas menos arredondadas e superfícies mais editoriais;
+   - comportamento mobile existente preservado.
+4. A lógica de OAuth, sincronização, estados de provedor, autorização, dados, API e segurança não foi alterada.
+5. Commit: `32859fabf0d8814f87c83fc84e9bc9d535bba6d5`.
+6. O head do PR #39 passou a ser `32859fabf0d8814f87c83fc84e9bc9d535bba6d5` antes desta atualização documental.
+7. Não há CI publicado para o SHA exato nesta execução; nenhuma prova anterior foi reutilizada.
+8. PR #39 continua OPEN e DRAFT.
+9. Nenhum merge ou deploy foi executado.
+10. Produção permaneceu intocada.
+
+**Resultado:** integração visual coerente com o shell; ainda pendentes CI do SHA exato, inspeção real, revisão de acessibilidade e revisão adversarial do Claude.
