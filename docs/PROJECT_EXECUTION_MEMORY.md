@@ -1387,3 +1387,22 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. O novo commit invalida a validação do SHA anterior; o novo head deverá ser validado integralmente.
 
 **Resultado:** todas as migrations que exigem criação, transferência de ownership ou concessão administrativa identificadas até agora estão agrupadas no caminho administrativo do CI.
+
+
+## 45. Correção do fixture de autoridade do teste de Growth Intelligence
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução do Claude confirmou que as roles, as migrations `001–015` e o gate SQL 033 passaram no bootstrap corrigido.
+2. O teste de integração falhou no commit do fixture porque o trigger deferido `check_managed_account_projection_consistency()` exige uma linha aberta em `growth.authority_history` para cada `managed_account`.
+3. O fixture de `apps/api/integration-tests/growth-intelligence.integration.mts` inseria `managed_accounts`, mas não inseria `authority_history`.
+4. O teste foi corrigido para criar uma linha de autoridade aberta para:
+   - o fixture com observações e oportunidade;
+   - o fixture no-op sem observações.
+5. A limpeza foi corrigida para remover as respectivas linhas de `authority_history` antes de remover os `managed_accounts`.
+6. As linhas usam `authority_status='contractually_granted'`, `contribution_eligibility='eligible'`, `effective_to=NULL` e referência explícita `test-fixture`.
+7. Commit da correção: `f4be1acb09fb62c50ffd5cbc938ec038f5763a29`.
+8. A produção permanece intocada; não houve merge, deploy ou migration em produção.
+9. O novo commit invalida validações anteriores; o teste completo precisa ser repetido no novo head.
+
+**Resultado:** o fixture agora respeita a invariável de projeção de autoridade exigida pelo schema real, sem relaxar trigger, RLS ou regra de produção.
