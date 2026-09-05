@@ -16,7 +16,11 @@ const managedAccountId = randomUUID();
 const connectionId = randomUUID();
 const socialAccountId = randomUUID();
 const observationIds = [randomUUID(), randomUUID(), randomUUID()];
+const noSignalManagedAccountId = randomUUID();
+const noSignalConnectionId = randomUUID();
+const noSignalSocialAccountId = randomUUID();
 const providerAccountId = `growth-intelligence-${socialAccountId}`;
+const noSignalProviderAccountId = `growth-intelligence-no-signal-${noSignalSocialAccountId}`;
 
 const migrator = new Pool({ connectionString: requiredDatabaseUrl("MIGRATOR_DATABASE_URL"), max: 1 });
 
@@ -57,6 +61,24 @@ try {
         (id, workspace_id, managed_account_id, platform_connection_id, platform, provider_account_id, handle, account_type, market, timezone)
        values ($1,$2,$3,$4,'youtube',$5,'@growth-intelligence','channel','US','America/Los_Angeles')`,
       [socialAccountId, workspaceId, managedAccountId, connectionId, providerAccountId]
+    );
+    await client.query(
+      `insert into growth.managed_accounts
+        (id, workspace_id, owner_type, authority_status, contribution_eligibility)
+       values ($1,$2,'direct','contractually_granted','eligible')`,
+      [noSignalManagedAccountId, workspaceId]
+    );
+    await client.query(
+      `insert into growth.platform_connections
+        (id, workspace_id, managed_account_id, platform, state)
+       values ($1,$2,$3,'youtube','connected')`,
+      [noSignalConnectionId, workspaceId, noSignalManagedAccountId]
+    );
+    await client.query(
+      `insert into growth.social_accounts
+        (id, workspace_id, managed_account_id, platform_connection_id, platform, provider_account_id, handle, account_type, market, timezone)
+       values ($1,$2,$3,$4,'youtube',$5,'@growth-intelligence-empty','channel','US','America/Los_Angeles')`,
+      [noSignalSocialAccountId, workspaceId, noSignalManagedAccountId, noSignalConnectionId, noSignalProviderAccountId]
     );
 
     const values = [
@@ -129,6 +151,21 @@ try {
   assert.equal(second.rows[0]?.opportunity_id, first.rows[0]?.opportunity_id);
   assert.equal(second.rows[0]?.result_status, "opportunity_created");
 
+  const noSignal = await appClient.query<{
+    signal_id: string | null;
+    insight_id: string | null;
+    opportunity_id: string | null;
+    result_status: string;
+    observations_used: number;
+    delta_ratio: string | null;
+  }>("select * from growth.recompute_youtube_growth_intelligence($1)", [noSignalSocialAccountId]);
+  assert.equal(noSignal.rows[0]?.result_status, "insufficient_signal");
+  assert.equal(noSignal.rows[0]?.signal_id, null);
+  assert.equal(noSignal.rows[0]?.insight_id, null);
+  assert.equal(noSignal.rows[0]?.opportunity_id, null);
+  assert.equal(noSignal.rows[0]?.observations_used, 0);
+  assert.equal(noSignal.rows[0]?.delta_ratio, null);
+
   await appClient.query("COMMIT");
 
   const counts = await withMigrator((client) =>
@@ -166,6 +203,9 @@ try {
     await client.query("delete from growth.insights where workspace_id=$1 and social_account_id=$2", [workspaceId, socialAccountId]);
     await client.query("delete from growth.factual_signals where workspace_id=$1 and social_account_id=$2", [workspaceId, socialAccountId]);
     await client.query("delete from growth.metric_observations where workspace_id=$1 and social_account_id=$2", [workspaceId, socialAccountId]);
+    await client.query("delete from growth.social_accounts where workspace_id=$1 and id=$2", [workspaceId, noSignalSocialAccountId]);
+    await client.query("delete from growth.platform_connections where workspace_id=$1 and id=$2", [workspaceId, noSignalConnectionId]);
+    await client.query("delete from growth.managed_accounts where workspace_id=$1 and id=$2", [workspaceId, noSignalManagedAccountId]);
     await client.query("delete from growth.social_accounts where workspace_id=$1 and id=$2", [workspaceId, socialAccountId]);
     await client.query("delete from growth.platform_connections where workspace_id=$1 and id=$2", [workspaceId, connectionId]);
     await client.query("delete from growth.managed_accounts where workspace_id=$1 and id=$2", [workspaceId, managedAccountId]);
