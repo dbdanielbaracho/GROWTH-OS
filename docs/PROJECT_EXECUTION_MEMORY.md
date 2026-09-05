@@ -1221,3 +1221,26 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 4. O serviço canônico `growth-os` não foi alterado e permanece no deployment de produção `23629579-551e-456b-85d1-29b29a53a050`.
 5. Nenhum executor temporário foi tratado como fonte de verdade do projeto.
 6. A validação do SHA atual continua PENDING/UNKNOWN; Claude não foi chamado.
+
+
+## 37. Cobertura adicional do no-op factual
+
+**Data:** 05 de setembro de 2026
+
+1. Foi identificada uma lacuna no teste do Growth Intelligence Engine: ele comprovava criação e idempotência, mas ainda não executava explicitamente o caminho `insufficient_signal`.
+2. O teste `apps/api/integration-tests/growth-intelligence.integration.mts` foi ampliado.
+3. O fixture adicional cria uma conta YouTube conectada e autorizada sem observações.
+4. O teste chama o helper pelo caminho `app_runtime` e exige:
+   - `result_status=insufficient_signal`;
+   - `signal_id=null`;
+   - `insight_id=null`;
+   - `opportunity_id=null`;
+   - `observations_used=0`;
+   - `delta_ratio=null`.
+5. A limpeza do fixture adicional também foi incluída.
+6. Commit do teste: `649e183e777fcf0e2de9687d2ab8422b68199652`.
+7. O contrato foi documentado em `docs/GROWTH_INTELLIGENCE_ENGINE_V0.1.md`, commit `7c76ca196425830ff9f0c9636931b51926d75acc`.
+8. Essa mudança ainda invalida qualquer validação anterior específica de SHA; o novo head precisa de CI e validação isolada próprios.
+9. Não houve alteração de produção, migration em produção, merge ou chamada ao Claude.
+
+**Resultado:** o comportamento de no-op verdadeiro agora está coberto por teste executável e documentado; os gates físicos continuam pendentes.
