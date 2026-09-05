@@ -1294,3 +1294,22 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. Não houve merge, deploy ou alteração da produção.
 
 **Resultado:** o bootstrap do banco isolado foi endurecido para permitir que a validação realmente execute as migrations canônicas, sem ampliar permissões fora do ambiente efêmero de CI.
+
+
+## 40. Correção do executor Node para meta-comandos psql
+
+**Data:** 05 de setembro de 2026
+
+1. A revisão adversarial do Claude encontrou uma falha reproduzível no SHA anterior: `db/scripts/apply-migration.mjs` usava o driver Node `pg` para executar migrations que continham o meta-comando `\\set ON_ERROR_STOP on`, exclusivo do cliente `psql`.
+2. A falha foi reproduzida conceitualmente no primeiro arquivo afetado: o driver retornava erro PostgreSQL `42601` ao encontrar a barra invertida.
+3. A inspeção de todas as migrations confirmou o mesmo comando em `002` até `012` e em `014`; as migrations `001`, `013` e `015` não continham esse meta-comando.
+4. O executor `db/scripts/apply-migration.mjs` foi corrigido para:
+   - ler o SQL original;
+   - remover somente linhas reconhecidas como `\\set ON_ERROR_STOP on/off`;
+   - rejeitar qualquer outro meta-comando `psql` não suportado, em vez de ignorá-lo silenciosamente;
+   - executar o SQL normalizado pelo driver `pg`.
+5. Commit da correção: `6bb860b28725c51a8f6bb4dfa9b5f9993fe86902`.
+6. Como houve alteração do executor, o SHA anterior deixa de ser candidato final. CI, validação PostgreSQL e revisão do Claude devem ser repetidos no novo head.
+7. Nenhuma migration foi aplicada em produção. Não houve merge, deploy ou alteração de banco de produção.
+
+**Resultado:** o bloqueio técnico identificado pelo Claude foi corrigido no executor comum usado pelo CI e pelos validators; a correção ainda precisa ser executada e revisada no SHA novo.
