@@ -325,7 +325,7 @@ BEGIN
     'owned',
     CASE WHEN observation_id = v_latest_id THEN 1.0 ELSE 0.5 END
     FROM unnest(v_observation_ids) AS observation_id
-  ON CONFLICT (insight_id,evidence_type,evidence_ref) DO UPDATE SET
+  ON CONFLICT ON CONSTRAINT insight_evidence_insight_id_evidence_type_evidence_ref_key DO UPDATE SET
     weight = EXCLUDED.weight;
 
   INSERT INTO growth.opportunities (
