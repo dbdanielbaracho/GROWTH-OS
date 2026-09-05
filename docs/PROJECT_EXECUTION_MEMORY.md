@@ -1372,3 +1372,18 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. O head candidato precisa ser reconfirmado depois desta atualização; nenhuma validação anterior pode ser reutilizada automaticamente.
 
 **Resultado:** todas as migrations identificadas que transferem ownership para roles auxiliares agora estão no grupo administrativo correto do CI.
+
+
+## 44. Inclusão da migration 012 no grupo administrativo do CI
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução adversarial do Claude confirmou que as migrations `001–011` passaram no bootstrap corrigido.
+2. A migration `012_youtube_rls_helper_execute.sql` falhou quando executada como `growth_migrator`, com `permission denied for function workspace_row_visible` (`42501`).
+3. A causa é estrutural: `workspace_row_visible` pertence a `growth_rls_helper`, e `012` concede `EXECUTE` nessa função; `growth_migrator` não possui a capacidade administrativa necessária para conceder esse privilégio.
+4. O workflow foi corrigido para executar `012` também usando `CI_ADMIN_URL`, junto com `002`, `006` e `009`.
+5. Commit da correção: `c00c60eb531d027e2d52fed2e933dfaf4b11db00`.
+6. A produção permanece intocada. Não houve merge, deploy ou alteração de banco de produção.
+7. O novo commit invalida a validação do SHA anterior; o novo head deverá ser validado integralmente.
+
+**Resultado:** todas as migrations que exigem criação, transferência de ownership ou concessão administrativa identificadas até agora estão agrupadas no caminho administrativo do CI.
