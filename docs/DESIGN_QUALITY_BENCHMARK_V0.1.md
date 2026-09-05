@@ -143,3 +143,20 @@ No design is approved until the evidence package is complete and the required re
 ## 11. Decision
 
 The current design direction is rejected as a final visual direction because it was too simplistic and has not demonstrated competitive quality. The project continues with a design-quality gate, independent arbitration and evidence-based iteration before any visual freeze or production approval.
+
+
+## 12. Reavaliação visual comparativa
+
+**Data:** 05 de setembro de 2026
+
+A proposta de tela mostrada na conversa foi reavaliada contra as referências públicas do Growth OS. O resultado anterior foi superestimado: a tela atual parece um dashboard genérico, com pouca identidade, pouca demonstração visual de inteligência, pouca profundidade de interação e ausência de preview/visualização rica do conteúdo e dos sinais. Ela não deve ser apresentada como visualmente superior aos concorrentes.
+
+A avaliação preliminar, limitada às superfícies públicas e sem substituir auditoria autenticada, é:
+
+- Doxa Viral: forte promessa visual e posicionamento direto de resultado/viralização.
+- Sprout Social: maior maturidade de produto, inteligência em tempo real, navegação ampla e ligação clara entre sinal, insight e ação.
+- Metricool: organização visual mais amigável, calendário, analytics, relatórios e workflow integrado.
+- Hootsuite: maior amplitude de Social OS, com analytics, publicação, inbox e gestão conectados.
+- Growth OS atual: conceito ainda insuficiente; não aprovado visualmente e abaixo do padrão de referência.
+
+Consequência: a proposta anterior fica cancelada como direção visual. A próxima proposta deverá ser construída a partir de teardown tela a tela, três direções visuais alternativas, protótipo navegável, teste de tarefa e arbitragem independente.
