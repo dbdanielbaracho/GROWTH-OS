@@ -1332,3 +1332,28 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 9. Não houve merge, deploy, alteração da produção ou chamada de CI publicada até este registro.
 
 **Resultado:** o segundo defeito encontrado pelo Claude foi corrigido e o reconhecimento do meta-comando foi verificado diretamente no conteúdo do novo head; a execução completa das migrations e a revisão final ainda são obrigatórias.
+
+
+## 42. Correção do provisionamento de roles e identidade de migrations no CI
+
+**Data:** 05 de setembro de 2026
+
+1. A revisão do Claude reproduziu no SHA anterior a falha `role "growth_rls_helper" does not exist` durante a migration `002_rc9_security_policy_fix.sql`.
+2. A inspeção das migrations e do provisionamento canônico confirmou quatro roles relevantes:
+   - `growth_migrator`: LOGIN, sem SUPERUSER, sem CREATEDB, sem CREATEROLE e sem BYPASSRLS;
+   - `app_runtime`: LOGIN, sem SUPERUSER, sem CREATEDB, sem CREATEROLE e sem BYPASSRLS;
+   - `growth_rls_helper`: NOLOGIN, sem SUPERUSER, sem CREATEDB, sem CREATEROLE e com BYPASSRLS;
+   - `growth_identity_helper`: NOLOGIN, sem SUPERUSER, sem CREATEDB, sem CREATEROLE e com BYPASSRLS.
+3. A migration `002` transfere funções para `growth_rls_helper` e precisa de identidade administrativa para executar a transferência.
+4. A migration `006` transfere funções para `growth_identity_helper` e também precisa de identidade administrativa.
+5. O workflow `.github/workflows/ci.yml` foi corrigido para:
+   - criar ou ajustar as quatro roles no PostgreSQL isolado;
+   - manter `growth_migrator` com `CONNECT, CREATE` no banco efêmero;
+   - aplicar `002` e `006` como `postgres` administrativo;
+   - aplicar as demais migrations como `growth_migrator`;
+   - manter o teste de aplicação, gate 033 e integração no banco isolado.
+6. Commit da correção: `54ddb5ac9d2114eb39fa606e176bdd829fae30d4`.
+7. O novo commit invalida qualquer validação específica de SHA anterior.
+8. Produção não foi alterada; não houve merge, deploy ou migration em produção.
+
+**Resultado:** o CI agora reproduz a separação de identidades prevista no provisionamento canônico e cria as roles necessárias antes das migrations privilegiadas.
