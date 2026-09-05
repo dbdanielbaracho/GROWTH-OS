@@ -48,8 +48,8 @@ try {
   await withMigrator(async (client) => {
     await client.query(
       `insert into growth.managed_accounts
-        (id, workspace_id, owner_type, authority_status, contribution_eligibility)
-       values ($1,$2,'direct','contractually_granted','eligible')`,
+        (id, workspace_id, owner_type, authority_status, contribution_eligibility, authority_clause_ref)
+       values ($1,$2,'direct','contractually_granted','eligible','test-fixture')`,
       [managedAccountId, workspaceId]
     );
     await client.query(
@@ -74,8 +74,8 @@ try {
     );
     await client.query(
       `insert into growth.managed_accounts
-        (id, workspace_id, owner_type, authority_status, contribution_eligibility)
-       values ($1,$2,'direct','contractually_granted','eligible')`,
+        (id, workspace_id, owner_type, authority_status, contribution_eligibility, authority_clause_ref)
+       values ($1,$2,'direct','contractually_granted','eligible','test-fixture')`,
       [noSignalManagedAccountId, workspaceId]
     );
     await client.query(
