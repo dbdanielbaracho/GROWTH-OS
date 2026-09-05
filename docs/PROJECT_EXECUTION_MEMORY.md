@@ -799,3 +799,16 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
 7. O SHA inicial do PR #39 é `a923f7981169c3c2bd8baf15a8d52bb74acf91ea`.
 8. A direção visual anterior do assistente não foi reutilizada como baseline; o baseline adotado é o conceito editorial aprovado pelo usuário nesta conversa.
 9. Próximo passo: confirmar CI do SHA exato, inspecionar o build real em desktop/mobile e registrar achados/correções sem alterar produção.
+
+
+## 24. Validação do baseline visual e estado do SHA final
+
+**Data:** 05 de setembro de 2026
+
+1. O CI run #117 terminou SUCCESS para o SHA de código visual `a923f7981169c3c2bd8baf15a8d52bb74acf91ea`.
+2. Depois do run #117, foi adicionada a memória operacional ao branch e um marcador neutro de validação exata no stylesheet, produzindo o SHA atual `c44f3e4395c030c0ce684297f64e59d91c10981b`.
+3. O GitHub não publicou novo workflow para o SHA `c44f3e4395c030c0ce684297f64e59d91c10981b` durante esta execução; portanto, o run #117 não é tratado como prova do SHA atual.
+4. A prova válida registrada é: código visual do baseline passou no run #117; o SHA final do branch ainda requer CI específico antes de qualquer merge.
+5. PR #39 continua aberto e draft. Nenhum merge ou deploy foi executado.
+6. Produção permaneceu intocada.
+7. Próximo gate: obter CI do SHA atual, fazer inspeção visual real em desktop/mobile, registrar achados de acessibilidade/responsividade e enviar o SHA final para revisão adversarial do Claude.
