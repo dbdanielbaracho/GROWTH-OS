@@ -265,6 +265,13 @@ function RadarApp({
   const [detailLoading, setDetailLoading] = useState(false);
   const [listMessage, setListMessage] = useState<string | null>(null);
   const [detailMessage, setDetailMessage] = useState<string | null>(null);
+  const [radarRefreshToken, setRadarRefreshToken] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setRadarRefreshToken((value) => value + 1);
+    window.addEventListener("growth-os:radar-refresh", refresh);
+    return () => window.removeEventListener("growth-os:radar-refresh", refresh);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -285,7 +292,7 @@ function RadarApp({
         setListState("error");
       });
     return () => { active = false; };
-  }, [onUnauthorized]);
+  }, [onUnauthorized, radarRefreshToken]);
 
   useEffect(() => {
     if (!selectedId) {
