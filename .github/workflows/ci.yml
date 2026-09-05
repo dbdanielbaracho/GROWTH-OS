@@ -30,6 +30,7 @@ jobs:
           --health-retries 20
     env:
       CI_DATABASE_NAME: growth_os_ci
+      CI_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5432/growth_os_ci
       CI_MIGRATOR_URL: postgresql://growth_migrator:growth_migrator@127.0.0.1:5432/growth_os_ci
       CI_APP_URL: postgresql://app_runtime:app_runtime@127.0.0.1:5432/growth_os_ci
     steps:
@@ -58,30 +59,44 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 <<'SQL'
-          DO $$
+          DO $
           BEGIN
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_migrator') THEN
-              CREATE ROLE growth_migrator LOGIN PASSWORD 'growth_migrator';
+              CREATE ROLE growth_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'growth_migrator';
             ELSE
-              ALTER ROLE growth_migrator LOGIN PASSWORD 'growth_migrator';
+              ALTER ROLE growth_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'growth_migrator';
             END IF;
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_runtime') THEN
-              CREATE ROLE app_runtime LOGIN PASSWORD 'app_runtime';
+              CREATE ROLE app_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'app_runtime';
             ELSE
-              ALTER ROLE app_runtime LOGIN PASSWORD 'app_runtime';
+              ALTER ROLE app_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'app_runtime';
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_rls_helper') THEN
+              CREATE ROLE growth_rls_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+            ELSE
+              ALTER ROLE growth_rls_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_identity_helper') THEN
+              CREATE ROLE growth_identity_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+            ELSE
+              ALTER ROLE growth_identity_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
             END IF;
           END
-          $$;
+          $;
           GRANT CONNECT, CREATE ON DATABASE "$CI_DATABASE_NAME" TO growth_migrator;
           CREATE EXTENSION IF NOT EXISTS pgcrypto;
           SQL
 
       - name: Apply every canonical migration to isolated CI database
-        env:
-          DATABASE_URL: ${{ env.CI_MIGRATOR_URL }}
         run: |
           for migration in db/migrations/*.sql; do
-            node db/scripts/apply-migration.mjs "$migration"
+            database_url="$CI_MIGRATOR_URL"
+            case "$migration" in
+              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql)
+                database_url="$CI_ADMIN_URL"
+                ;;
+            esac
+            DATABASE_URL="$database_url" node db/scripts/apply-migration.mjs "$migration"
           done
 
       - name: Run SQL gates against isolated CI database
