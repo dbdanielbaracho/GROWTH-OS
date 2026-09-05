@@ -114,3 +114,32 @@ The existing Opportunity Radar UI has a promising foundation: focused hierarchy,
 
 The current implementation remains incomplete because the application shell, design system, onboarding, navigation, connectors, publishing, experiments and full action loop are not finished. The roadmap and competitive gap matrix remain the authority for that maturity status.
 
+## 9. Design authority and arbitration
+
+The assistant may propose flows, wireframes and visual alternatives, but it is not the final design authority and may not approve its own design.
+
+The earlier simplified mockups produced during this conversation are **exploratory and unapproved**. They must not be treated as the product baseline or as evidence of competitive quality.
+
+Final arbitration requires:
+
+- an independent senior product/UI designer or design lead with authority to reject the proposal;
+- a same-task, same-viewport competitor teardown;
+- an actual interactive prototype or implemented build, not only a static sketch;
+- a design system specification covering tokens, typography, color, spacing, components and all states;
+- WCAG 2.2 AA review, keyboard navigation and responsive/cross-browser checks;
+- task-based usability evidence with the intended audience;
+- a written decision log listing wins, ties, losses, defects and accepted trade-offs.
+
+No design is approved until the evidence package is complete and the required reviewers sign off. The assistant can help prepare the package and revise the proposal, but cannot be the sole judge.
+
+## 10. Applicable practices and standards
+
+- Use [W3C WCAG 2.2](https://www.w3.org/WAI/standards-guidelines/wcag/) as the accessibility baseline; compliance is necessary but does not by itself prove visual quality.
+- Use [Material Design 3 foundations](https://m3.material.io/foundations) and its principles for layout, interaction and accessibility as a reference where useful, without forcing Growth OS to copy its visual style.
+- Define reusable [design tokens](https://m3.material.io/foundations/design-tokens) and explicit [component states](https://m3.material.io/foundations/interaction/states).
+- Validate the real build at desktop and mobile widths, including loading, empty, error, denied and recovery states.
+- Treat competitor stars as measured findings, not intuition; record the task, viewport, evidence and reviewer for every score.
+
+## 11. Decision
+
+The current design direction is rejected as a final visual direction because it was too simplistic and has not demonstrated competitive quality. The project continues with a design-quality gate, independent arbitration and evidence-based iteration before any visual freeze or production approval.
