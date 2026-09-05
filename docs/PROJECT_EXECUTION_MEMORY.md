@@ -738,3 +738,19 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
 8. Esta correção substitui qualquer registro anterior que tenha classificado Doxa/DoxaScale como concorrente ou benchmark do Growth OS.
 9. O registro de concorrentes do Growth OS fica pendente de revisão correta; não há substituição automática por outro nome nesta etapa.
 10. Esta alteração é documental e não altera código, banco ou produção.
+
+
+---
+
+## 18. Correção final: concorrente correto identificado como Doxa Viral
+
+**Data:** 05 de setembro de 2026
+
+1. O usuário forneceu o endereço correto da plataforma concorrente:
+   https://www.doxaviral.com/
+2. O concorrente/referência correta é Doxa Viral.
+3. O domínio doxa.com continua descartado por ser uma empresa não relacionada ao projeto.
+4. DoxaScale também não deve ser usado como identificação do concorrente.
+5. A classificação anterior que removeu Doxa por completo foi corrigida: a referência válida é Doxa Viral.
+6. A análise competitiva do Growth OS deve considerar Doxa Viral como referência/concorrente, usando o site correto.
+7. Esta atualização não altera código, banco ou produção; corrige somente a identidade do concorrente no registro operacional.
