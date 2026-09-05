@@ -906,3 +906,19 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 10. Produção permaneceu intocada.
 
 **Resultado:** integração visual coerente com o shell; ainda pendentes CI do SHA exato, inspeção real, revisão de acessibilidade e revisão adversarial do Claude.
+
+
+## 28. Acessibilidade: foco de teclado no baseline editorial
+
+**Data:** 05 de setembro de 2026
+
+1. Foi adicionado um baseline global de `:focus-visible` em `apps/web/src/styles.css`.
+2. Links, botões, inputs, selects e textareas agora recebem contorno visível em dourado editorial com espaçamento suficiente contra a superfície escura.
+3. O CTA textual do hero recebe espaçamento de foco específico para não confundir o sublinhado de navegação com o estado de foco.
+4. A mudança não altera dados, API, autenticação, regras de tenant ou produção.
+5. Commit: `334092e85f6076700c2288a968f1abaa9b830f3e`.
+6. O head do PR #39 passou a ser `334092e85f6076700c2288a968f1abaa9b830f3e` antes desta atualização documental.
+7. CI do SHA exato, inspeção em navegador e revisão adversarial do Claude continuam pendentes.
+8. PR #39 continua OPEN e DRAFT; nenhum merge ou deploy foi executado; produção intocada.
+
+**Resultado:** requisito básico de navegação por teclado registrado e aplicado; gates externos continuam obrigatórios.
