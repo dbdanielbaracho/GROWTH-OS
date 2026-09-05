@@ -769,3 +769,18 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
 5. Kalodata, FastMoss, Cruva e Euka foram registrados como concorrentes principais do Creator Commerce OS, que é um produto independente.
 6. Reacher, Colaba, EchoTik, Shoplus, TikWatch e PiPiADS foram registrados como benchmarks adjacentes/secundários do Creator Commerce OS.
 7. Nenhum código, banco ou produção foi alterado.
+
+
+---
+
+## 20. Matriz competitiva criada
+
+**Data:** 05 de setembro de 2026
+
+1. Foi criada docs/COMPETITIVE_GAP_MATRIX.md.
+2. A matriz compara o Growth OS com Doxa Viral e concorrentes adjacentes por capacidade.
+3. Foi adotada escala de ☆ a ★★★★★, com definição explícita para evitar confundir intenção com produto comprovado.
+4. As notas do Growth OS foram baseadas no estado real do GitHub/Railway.
+5. As notas dos concorrentes foram marcadas como benchmark preliminar, sujeitas a auditoria funcional completa.
+6. A matriz também mantém separada a lista de concorrentes do Creator Commerce OS.
+7. Nenhum código, banco ou produção foi alterado.
