@@ -984,3 +984,110 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. O próximo passo operacional depende de provisionamento/autorização segura de uma conta de teste no banco canônico; nenhuma conta ou credencial foi inventada.
 
 **Resultado:** proteção sem sessão confirmada; autenticação positiva e jornada completa ainda pendentes.
+
+
+## 32. Implementação do Growth Intelligence Engine determinístico
+
+**Data:** 05 de setembro de 2026
+
+### 32.1 Banco e contrato
+
+1. Foi criada a migration forward-only `db/migrations/015_youtube_growth_intelligence.sql`.
+2. Foi criada a tabela `growth.factual_signals`.
+3. A tabela registra:
+   - workspace e conta social;
+   - tipo de sinal;
+   - métrica;
+   - estado;
+   - observações de origem;
+   - valor atual;
+   - baseline;
+   - delta;
+   - tamanho da amostra;
+   - confiança;
+   - versão da lógica;
+   - janela de origem;
+   - expiração.
+4. `growth.insights` recebeu `source_signal_id`.
+5. `growth.opportunities` recebeu `source_signal_id`.
+6. As relações garantem que insight e oportunidade possam ser rastreados até o sinal factual.
+7. A função `growth.recompute_youtube_growth_intelligence(uuid)` foi criada como:
+   - `SECURITY DEFINER`;
+   - proprietária de `growth_migrator`;
+   - sem EXECUTE para `PUBLIC`;
+   - executável por `app_runtime`;
+   - validada por contexto de tenant.
+8. `growth.factual_signals` usa RLS e FORCE RLS.
+9. `app_runtime` não recebe INSERT direto em `factual_signals`, `insights` ou `opportunities`.
+
+### 32.2 Regra determinística
+
+1. O engine considera somente observações YouTube da métrica `views`.
+2. Exige conta YouTube conectada.
+3. Exige `authority_status=contractually_granted`.
+4. Exige `authorization_class=authorized_account`.
+5. Exige `completeness_status=complete`.
+6. Exige `freshness_status=fresh`.
+7. Exige no mínimo três observações.
+8. Calcula a média das observações anteriores e compara com a observação mais recente.
+9. Só cria sinal quando o valor mais recente está pelo menos 25% acima da média anterior.
+10. Se a amostra for insuficiente ou o delta não atingir o limiar, retorna `insufficient_signal` e não cria oportunidade.
+11. A confiança é determinística e inclui o método e `causal_claim=false`.
+12. O score da oportunidade é determinístico, limitado entre 0 e 100, e não é apresentado como causalidade ou previsão garantida.
+
+### 32.3 Evidência e idempotência
+
+1. O sinal guarda os IDs das observações usadas.
+2. O insight recebe evidências `metric_observation:<id>` da classe `owned`.
+3. A oportunidade recebe as mesmas referências de evidência.
+4. A chave natural usa workspace, conta, tipo de sinal, métrica, fim da janela e versão da lógica.
+5. Reprocessar o mesmo período atualiza o mesmo sinal, insight e oportunidade.
+6. Foi criado o teste `apps/api/integration-tests/growth-intelligence.integration.mts`.
+7. O teste cria três observações determinísticas, executa o helper duas vezes pelo caminho de runtime e comprova:
+   - oportunidade criada;
+   - IDs estáveis entre execuções;
+   - uma única linha de sinal;
+   - uma única linha de insight;
+   - uma única linha de oportunidade.
+8. Foi criado o gate SQL `db/tests/033_youtube_growth_intelligence.sql`.
+
+### 32.4 Integração com o sync e interface
+
+1. `apps/api/src/youtube-connector.ts` chama o engine depois de persistir as observações do sync.
+2. O retorno do sync agora informa:
+   - `intelligenceStatus`;
+   - `signalId`;
+   - `insightId`;
+   - `opportunityId`;
+   - quantidade de observações usadas;
+   - delta determinístico.
+3. `apps/web/src/api.ts` tipa o novo contrato.
+4. `apps/web/src/youtube-integration.tsx` informa se o Opportunity Radar foi atualizado ou se ainda não há amostra suficiente.
+5. Após sync concluído, a interface dispara `growth-os:radar-refresh`.
+6. `apps/web/src/main.tsx` escuta o evento e recarrega o Radar sem exigir refresh manual da página.
+7. O fallback de ausência de evidência permanece explícito.
+
+### 32.5 Evidências dos commits
+
+- Migration 015: `de338973bd111f52188a1351fa3e8c0d03fd85a8`.
+- Gate SQL 033: `6f0a7035c25a3b662db3dcbd7ca970093d39e8e8`.
+- Engine no sync: `b19101b3baa93b9019bba47dc0507e416869b555`.
+- Contrato web do sync: `3ab68f5262644d71e1cc60eaf17830187e22daae`.
+- Refresh do Radar e feedback do sync: `16fe22d11e17944f0c78ac4a2a11159ee4390b19`, `62339414651a989b0e19b7f2d7b94c96ca623760`.
+- CSS do resultado do engine: `84c8c950f40cc68bb0f6f89747c7a6b9a47ced8b`.
+- Documento técnico: `ca32cb0d4ff00a44fbfa61ae45bcd94a59a2cc08`.
+- Teste de integração corrigido: `46e7ac651747938d4fe494aaf786b703c9cce9c0`.
+- Head do branch antes desta atualização documental: `46e7ac651747938d4fe494aaf786b703c9cce9c0`.
+
+### 32.6 Estado e limites
+
+1. Nenhuma migration 015 foi aplicada na produção.
+2. Nenhum provider real foi chamado nesta execução.
+3. Nenhuma oportunidade sintética foi criada.
+4. Nenhum deploy foi executado.
+5. Produção permaneceu intocada.
+6. CI e validação Railway do SHA exato ainda são necessários.
+7. O Production Truth Gate real continua dependendo de conta autorizada, OAuth YouTube e sync real.
+8. Claude ainda deve revisar adversarialmente este bloco antes de merge/freeze/deploy.
+
+**Resultado:** a cadeia implementável `observação -> sinal factual -> insight/evidence -> oportunidade -> Radar` foi codificada para YouTube, com no-op e idempotência; a prova física exata ainda está pendente.
