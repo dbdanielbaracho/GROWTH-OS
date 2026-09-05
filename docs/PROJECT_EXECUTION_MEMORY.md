@@ -1091,3 +1091,42 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 8. Claude ainda deve revisar adversarialmente este bloco antes de merge/freeze/deploy.
 
 **Resultado:** a cadeia implementável `observação -> sinal factual -> insight/evidence -> oportunidade -> Radar` foi codificada para YouTube, com no-op e idempotência; a prova física exata ainda está pendente.
+
+
+## 33. Correção do teste de integração e validação isolada interrompida
+
+**Data:** 05 de setembro de 2026
+
+### 33.1 Correção aplicada
+
+1. A primeira versão do teste de integração do Growth Intelligence Engine fazia a leitura final das contagens usando `app_runtime`.
+2. Isso estava incorreto por desenho de segurança: `app_runtime` pode executar a função SECURITY DEFINER, mas não recebe SELECT direto em `growth.factual_signals`.
+3. O teste foi corrigido para:
+   - executar a recomputação duas vezes pelo caminho `app_runtime`;
+   - confirmar a persistência final usando uma conexão `MIGRATOR_DATABASE_URL`;
+   - manter a verificação de idempotência e limpeza dos fixtures.
+4. Commit da correção: `7a3283d94e17fb926944579cafaa89691c71e271`.
+5. O head atual da PR #39 é exatamente `7a3283d94e17fb926944579cafaa89691c71e271`.
+6. O CI retornado pelo GitHub para esse SHA é uma lista vazia; portanto, não há workflow publicado para o head exato e nenhum CI de SHA anterior é reutilizado como prova.
+
+### 33.2 Validação Railway tentada
+
+1. Foi solicitado um validator isolado para o candidato `6a0bc99f31966359b6d1aab6ed0cdb46c0cc3abc`, que era o head imediatamente anterior à correção do teste.
+2. O validator executou em Railway no serviço `pr33-sha-6a0bc99-validator-ephemeral`, deployment `660977eb-cbb6-4d4e-a506-cf0b08b02ed1`.
+3. O próprio resultado declarou `status=fail`, `target_database=growth_os_test`, `migration_015_applied=false`, `gate_033_result=PENDING` e `production_safe=false`.
+4. A falha aconteceu antes da validação SQL: o container não possui o binário `psql` (`/bin/sh: 1: psql: not found`).
+5. Essa execução não prova falha da migration 015 nem da lógica do engine; prova apenas que o validator escolhido não tinha a ferramenta de cliente necessária.
+6. A tentativa anterior com o Railway Agent para um validator do mesmo escopo terminou em timeout HTTP 504. Depois do timeout, não apareceu novo deploy da aplicação canônica nem mudança na produção.
+7. O serviço canônico `growth-os` continua no deployment SUCCESS `23629579-551e-456b-85d1-29b29a53a050`, commit `17ee387477763921c0c4cbab326557142d4b26b3`.
+8. O serviço `pr33-sha-6a0bc99-validator-ephemeral` também permanece sem prova válida do código atual, pois validou SHA anterior e falhou no preflight.
+
+### 33.3 Estado de segurança e próximo gate
+
+1. Nenhuma migration 015 foi aplicada na produção.
+2. Nenhum dado, variável, credencial ou deployment do serviço canônico foi alterado.
+3. A validação correta precisa executar no banco `growth_os_test`, confirmar `current_database()='growth_os_test'`, aplicar o candidato atual `7a3283d94e17fb926944579cafaa89691c71e271`, rodar o gate SQL 033 e o teste de integração, e registrar o resultado completo.
+4. O próximo passo é corrigir o executor do validator para usar um cliente PostgreSQL disponível, ou usar um caminho equivalente que não dependa de `psql`, sem tocar em `growth-os`/produção.
+5. Claude continua obrigatório para revisão adversarial do SHA final; ainda não há aprovação externa registrada.
+6. Não é permitido sair de draft, fazer merge ou fazer deploy antes de CI do SHA atual, validação isolada aprovada, revisão do Claude e Production Truth Gate final.
+
+**Resultado:** a falha foi localizada no ambiente do validator, o teste do produto foi corrigido e a produção continua protegida; a prova física do SHA atual segue pendente.
