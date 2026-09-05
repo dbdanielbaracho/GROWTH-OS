@@ -639,6 +639,12 @@ export async function syncYoutubeAnalytics(
   observationsProcessed: number;
   rowsReceived: number;
   derivedAnalyticsPolicyAccepted: boolean;
+  intelligenceStatus: "opportunity_created" | "insufficient_signal";
+  signalId: string | null;
+  insightId: string | null;
+  opportunityId: string | null;
+  intelligenceObservationsUsed: number;
+  intelligenceDeltaRatio: number | null;
 }> {
   const config = requireConnectorConfig();
   const { row, credential } = await usableCredential(principal, connectionId);
@@ -658,6 +664,12 @@ export async function syncYoutubeAnalytics(
   const payloadDigest = createHash("sha256").update(JSON.stringify(report), "utf8").digest("hex");
   let observationsProcessed = 0;
   let returnedThroughDate: string | null = null;
+  let intelligenceStatus: "opportunity_created" | "insufficient_signal" = "insufficient_signal";
+  let signalId: string | null = null;
+  let insightId: string | null = null;
+  let opportunityId: string | null = null;
+  let intelligenceObservationsUsed = 0;
+  let intelligenceDeltaRatio: number | null = null;
 
   await withTenantTransaction(principal, async (client) => {
     for (const reportRow of rows) {
@@ -721,6 +733,27 @@ export async function syncYoutubeAnalytics(
         observationsProcessed++;
       }
     }
+
+    const intelligenceResult = await client.query<{
+      signal_id: string | null;
+      insight_id: string | null;
+      opportunity_id: string | null;
+      result_status: "opportunity_created" | "insufficient_signal";
+      observations_used: number;
+      delta_ratio: string | number | null;
+    }>(
+      "select * from growth.recompute_youtube_growth_intelligence($1)",
+      [row.social_account_id]
+    );
+    const intelligence = intelligenceResult.rows[0];
+    intelligenceStatus = intelligence?.result_status ?? "insufficient_signal";
+    signalId = intelligence?.signal_id ?? null;
+    insightId = intelligence?.insight_id ?? null;
+    opportunityId = intelligence?.opportunity_id ?? null;
+    intelligenceObservationsUsed = intelligence?.observations_used ?? 0;
+    intelligenceDeltaRatio = intelligence?.delta_ratio === null || intelligence?.delta_ratio === undefined
+      ? null
+      : Number(intelligence.delta_ratio);
   });
 
   return {
@@ -732,6 +765,12 @@ export async function syncYoutubeAnalytics(
     returnedThroughDate,
     observationsProcessed,
     rowsReceived: rows.length,
-    derivedAnalyticsPolicyAccepted: config.derivedAnalyticsPolicyAccepted
+    derivedAnalyticsPolicyAccepted: config.derivedAnalyticsPolicyAccepted,
+    intelligenceStatus,
+    signalId,
+    insightId,
+    opportunityId,
+    intelligenceObservationsUsed,
+    intelligenceDeltaRatio
   };
 }
