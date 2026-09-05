@@ -1279,3 +1279,18 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 11. Não houve merge, deploy ou chamada ao Claude nesta etapa.
 
 **Resultado:** o CI agora contém o caminho automatizado necessário para provar migrations, segurança estrutural, gate 033, idempotência e no-op em PostgreSQL isolado; o resultado físico ainda depende da execução do workflow no novo SHA.
+
+
+## 39. Ajuste de bootstrap do PostgreSQL no CI
+
+**Data:** 05 de setembro de 2026
+
+1. Durante a revisão do workflow corrigido, foi identificado que o role `growth_migrator` poderia não conseguir criar o schema inicial no banco efêmero, porque a permissão de criação no database não era explícita.
+2. O workflow foi corrigido para conceder `CONNECT, CREATE` em `growth_os_ci` ao role `growth_migrator` antes da aplicação das migrations.
+3. Essa permissão existe somente no PostgreSQL descartável do job do GitHub Actions; não altera qualquer banco Railway.
+4. Commit do ajuste: `652ea0610d8f5ee5a0c732f76849b060a404801a`.
+5. O novo commit tornou inválidas as referências de validação específicas do head anterior; o head vivo deve ser consultado novamente antes de aceitar CI ou chamar Claude.
+6. Ainda não há status ou workflow run publicado pelo conector para este novo head.
+7. Não houve merge, deploy ou alteração da produção.
+
+**Resultado:** o bootstrap do banco isolado foi endurecido para permitir que a validação realmente execute as migrations canônicas, sem ampliar permissões fora do ambiente efêmero de CI.
