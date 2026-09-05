@@ -1244,3 +1244,38 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 9. Não houve alteração de produção, migration em produção, merge ou chamada ao Claude.
 
 **Resultado:** o comportamento de no-op verdadeiro agora está coberto por teste executável e documentado; os gates físicos continuam pendentes.
+
+
+
+## 38. Correção do gate de CI e validação PostgreSQL isolada
+
+**Data:** 05 de setembro de 2026
+
+1. Foi confirmado que o SHA anterior da PR #39 não possuía status nem workflow run publicado no GitHub.
+2. A causa operacional não foi tratada como aprovação implícita: o CI existente fazia apenas integrity gate, typecheck, build, web-shell e testes unitários; ele não inicializava PostgreSQL nem executava o teste de integração do Growth Intelligence Engine.
+3. O arquivo `.github/workflows/ci.yml` foi corrigido no branch `feat/growth-os-editorial-ui-v0-1`.
+4. O workflow agora possui:
+   - `workflow_dispatch` para execução manual;
+   - evento `pull_request` para abertura, sincronização, reabertura e saída de draft;
+   - evento `push` para `main` e branches `feat/**`;
+   - serviço PostgreSQL 16 isolado, com healthcheck;
+   - banco de CI separado chamado `growth_os_ci`;
+   - roles efêmeras `growth_migrator` e `app_runtime`, somente no banco de CI;
+   - aplicação sequencial de todas as migrations canônicas `001` a `015`;
+   - execução do gate SQL `db/tests/033_youtube_growth_intelligence.sql`;
+   - execução de `apps/api/integration-tests/growth-intelligence.integration.mts`;
+   - manutenção dos gates de integrity, typecheck, build, web shell e testes unitários.
+5. A integração usa `app_runtime` para chamar a função SECURITY DEFINER e `growth_migrator` para fixtures, contagens e limpeza, preservando o limite de privilégios testado no código.
+6. Nenhuma variável, migration, banco ou deployment de produção foi alterado.
+7. Commit da correção do workflow: `b1238e520a3cfb1079a076541b6a095993cdfb7c`.
+8. A atualização desta memória gera um novo head; portanto, o SHA candidato precisa ser reconfirmado depois deste registro.
+9. Ainda não foi atribuído um resultado de CI ao novo SHA. O resultado só será aceito quando o GitHub publicar a execução e ela terminar com sucesso.
+10. A revisão final do Claude continua reservada para depois de:
+    - confirmar o novo SHA vivo;
+    - CI verde no SHA exato;
+    - validação PostgreSQL isolada verde;
+    - revisão do diff final;
+    - confirmação de que produção continua intocada.
+11. Não houve merge, deploy ou chamada ao Claude nesta etapa.
+
+**Resultado:** o CI agora contém o caminho automatizado necessário para provar migrations, segurança estrutural, gate 033, idempotência e no-op em PostgreSQL isolado; o resultado físico ainda depende da execução do workflow no novo SHA.
