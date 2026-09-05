@@ -799,3 +799,20 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
 5. A avaliação final deverá combinar designer de produto/UI, pesquisa de UX com usuários, auditoria de acessibilidade, revisão cross-browser, análise competitiva e revisão adversarial do Claude; nenhuma opinião isolada será tratada como prova.
 6. A tela atual do Opportunity Radar foi classificada como fundação promissora, não como superioridade comprovada.
 7. Nenhum código, banco ou produção foi alterado nesta execução; foi criada apenas a especificação do benchmark e do gate de aceitação.
+
+
+## 22. Correção de design e arbitragem obrigatória
+
+**Data:** 05 de setembro de 2026
+
+1. O usuário concluiu que os designs anteriores produzidos na conversa são visualmente pobres em comparação com os concorrentes e não podem ser tratados como direção final.
+2. A conclusão foi aceita: os mockups anteriores ficam classificados como exploratórios e não aprovados.
+3. O assistente não será autoridade única para definir, avaliar ou aprovar o design.
+4. O assistente poderá propor alternativas, fluxos, wireframes e revisões, mas a arbitragem final exigirá designer sênior independente, pesquisa de usabilidade, revisão de acessibilidade, revisão responsiva/cross-browser e comparação tela a tela com concorrentes.
+5. A especificação formal foi atualizada em docs/DESIGN_QUALITY_BENCHMARK_V0.1.md, incluindo autoridade, evidências exigidas, critérios de aceitação e práticas/standards aplicáveis.
+6. O baseline visual anterior foi rejeitado; o próximo baseline só poderá ser criado depois de uma crítica estruturada e de uma comparação competitiva verificável.
+7. Foram adotados como referências de processo WCAG 2.2 para acessibilidade, design tokens, componentes e estados, revisão baseada em tarefas e validação do build real. WCAG é requisito mínimo e não prova, sozinha, que o visual é superior.
+8. Esta atualização alterou apenas documentação no PR #38; não alterou código, banco, deploy ou produção.
+9. O próximo passo é construir um pacote de avaliação com protótipo/build real, matriz de comparação, achados de usuários, auditoria de acessibilidade e decisão independente antes de qualquer freeze visual.
+
+**Resultado:** o design anterior não está aprovado; o processo de design agora tem gate formal e arbitragem independente obrigatória.
