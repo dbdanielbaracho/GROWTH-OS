@@ -173,3 +173,16 @@ A comparação confirma que os mockups anteriores do Growth OS estavam em uma ca
 Limite da evidência: essa inspeção cobre a página pública e não a área interna autenticada do Doxa. Portanto, não se deve afirmar superioridade ou inferioridade da aplicação interna sem acesso equivalente. Mesmo assim, a proposta pública do Growth OS precisa atingir um nível equivalente de identidade, composição, tipografia, prova visual e clareza de promessa antes de qualquer nova aprovação.
 
 Decisão: não criar outra variação de dashboard genérico. A próxima direção deve começar por uma estratégia visual de marca e produto, com referências reais, protótipo navegável e avaliação independente.
+
+
+## 14. Rejeição integral das propostas visuais do assistente
+
+**Data:** 05 de setembro de 2026
+
+1. O usuário rejeitou integralmente as propostas visuais produzidas pelo assistente.
+2. O usuário avaliou que o Doxa Viral é visualmente muito superior às telas apresentadas para o Growth OS.
+3. As propostas do assistente ficam classificadas como inadequadas, genéricas e sem qualidade competitiva; nenhuma pode ser usada como baseline, direção aprovada ou referência de implementação.
+4. O assistente não deve continuar definindo sozinho a linguagem visual do produto.
+5. A próxima direção deverá ser construída por designer de produto/UI independente, com teardown real dos concorrentes, referências visuais documentadas, protótipo navegável, testes de usabilidade, acessibilidade e revisão adversarial.
+6. O objetivo continua sendo superar os concorrentes, mas essa superioridade não pode ser declarada antes de evidência comparável.
+7. Nenhum código, banco ou produção foi alterado; esta é uma correção documental e de governança do design.
