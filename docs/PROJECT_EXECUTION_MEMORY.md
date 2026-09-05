@@ -1357,3 +1357,18 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 8. Produção não foi alterada; não houve merge, deploy ou migration em produção.
 
 **Resultado:** o CI agora reproduz a separação de identidades prevista no provisionamento canônico e cria as roles necessárias antes das migrations privilegiadas.
+
+
+## 43. Inclusão da migration 009 no grupo administrativo do CI
+
+**Data:** 05 de setembro de 2026
+
+1. A inspeção posterior das migrations confirmou que `009_production_identity_adapter_support.sql` também executa `ALTER FUNCTION ... OWNER TO growth_identity_helper`.
+2. Portanto, executar `009` como `growth_migrator` violaria a separação de identidade e poderia falhar por ausência de capacidade de transferência de ownership.
+3. O workflow foi corrigido para executar como `postgres` administrativo as migrations `002`, `006` e `009`.
+4. As demais migrations continuam executadas como `growth_migrator`.
+5. Commit do ajuste: `2d407fac3a5c393cc98adc5e374d52ed45a00487`.
+6. A produção permanece intocada e nenhum deploy ou merge foi feito.
+7. O head candidato precisa ser reconfirmado depois desta atualização; nenhuma validação anterior pode ser reutilizada automaticamente.
+
+**Resultado:** todas as migrations identificadas que transferem ownership para roles auxiliares agora estão no grupo administrativo correto do CI.
