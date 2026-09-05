@@ -185,3 +185,115 @@
     width: calc(100vw - 28px);
   }
 }
+
+
+/* Editorial integration surface v0.1 */
+.youtube-integration-panel {
+  color: var(--ink, #f2efe6);
+  filter: drop-shadow(0 20px 42px rgba(0, 0, 0, .42));
+}
+
+.youtube-panel-toggle,
+.youtube-panel-body {
+  border-color: #34352f;
+  background: #121412;
+  color: var(--ink, #f2efe6);
+}
+
+.youtube-panel-toggle {
+  border-radius: 2px;
+}
+
+.youtube-integration-panel.expanded .youtube-panel-toggle {
+  border-radius: 2px 2px 0 0;
+  border-bottom-color: #34352f;
+}
+
+.youtube-panel-toggle strong,
+.youtube-panel-body h2,
+.youtube-account-heading strong {
+  color: #f0ede4;
+}
+
+.youtube-panel-toggle small,
+.youtube-copy,
+.youtube-account-heading div > span,
+.youtube-muted,
+.youtube-kicker,
+.youtube-meta dt,
+.youtube-policy-note {
+  color: #92968e;
+}
+
+.youtube-chevron {
+  color: #b8b9b1;
+}
+
+.youtube-panel-body {
+  border-top: 0;
+  border-radius: 0 0 2px 2px;
+  padding: 20px;
+}
+
+.youtube-notice,
+.youtube-error,
+.youtube-empty,
+.youtube-sync-result {
+  border-radius: 2px;
+}
+
+.youtube-notice {
+  background: rgba(71, 131, 85, .16);
+  border-color: rgba(101, 174, 116, .34);
+  color: #b8e2bf;
+}
+
+.youtube-error {
+  background: rgba(163, 76, 67, .16);
+  border-color: rgba(202, 109, 98, .38);
+  color: #f0b9b0;
+}
+
+.youtube-empty {
+  background: #1a1b18;
+  border-color: #3b3c35;
+  color: #b2b4ac;
+}
+
+.youtube-account {
+  background: #181a17;
+  border-color: #34352f;
+  border-radius: 2px;
+}
+
+.youtube-state {
+  border-radius: 2px;
+  background: #252721;
+  color: #b0b3aa;
+}
+
+.youtube-state.state-connected {
+  background: rgba(71, 131, 85, .18);
+  color: #b8e2bf;
+}
+
+.youtube-meta dd {
+  color: #d4d1c7;
+}
+
+.youtube-primary {
+  border: 1px solid #bd9241;
+  border-radius: 2px;
+  background: #d5a84f;
+  color: #13130f;
+}
+
+.youtube-primary:hover:not(:disabled) {
+  background: #f0c96e;
+}
+
+.youtube-sync-result {
+  background: rgba(71, 102, 151, .16);
+  border-color: rgba(121, 154, 211, .3);
+  color: #c3d5f5;
+}
