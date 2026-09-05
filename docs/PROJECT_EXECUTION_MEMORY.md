@@ -701,3 +701,22 @@ O deploy SUCCESS da Railway não significa que o produto inteiro está pronto. N
 - fases posteriores do roadmap: não executadas ou apenas parciais.
 
 Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um slice validado seja confundido com a finalização do Growth OS.
+
+
+---
+
+## 16. Correção registrada: identidade do benchmark “Doxa”
+
+**Data:** 05 de setembro de 2026
+
+1. Foi solicitado o link do concorrente Doxa citado anteriormente como benchmark do Growth OS.
+2. A verificação pública não confirmou um site oficial de uma plataforma de crescimento orgânico chamada Doxa.
+3. O domínio https://doxa.com/ encontrado na pesquisa é de uma empresa de seguros e não deve ser tratado como concorrente do Growth OS.
+4. Foi encontrado o perfil relacionado https://www.instagram.com/doxascale/, associado à mensagem “future of organic growth”, mas o acesso público ao perfil redirecionou para login e não permitiu confirmar toda a plataforma.
+5. Até confirmação adicional por fonte primária, Doxa/DoxaScale deve ser classificada como benchmark não verificado, e não como concorrente oficialmente confirmado.
+6. A lista de concorrentes confirmados deve continuar separando:
+   - social media management: Sprout Social, Hootsuite, Metricool, Later e Buffer;
+   - social listening/inteligência: Brandwatch, Meltwater, Sprinklr e Emplifi;
+   - growth/market intelligence: Semrush, Rival IQ, Exploding Topics e TrendIntel;
+   - referências verticais/adjacentes: Kalodata e Cruva.
+7. Esta correção não altera código, banco ou produção; altera apenas a precisão do registro de concorrentes.
