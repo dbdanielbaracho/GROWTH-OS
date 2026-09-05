@@ -1406,3 +1406,18 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 9. O novo commit invalida validações anteriores; o teste completo precisa ser repetido no novo head.
 
 **Resultado:** o fixture agora respeita a invariável de projeção de autoridade exigida pelo schema real, sem relaxar trigger, RLS ou regra de produção.
+
+
+## 46. Correção da projeção completa de autoridade no fixture
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução seguinte confirmou que a linha aberta em `authority_history` já existia, mas o trigger de integridade ainda rejeitava o fixture.
+2. A causa era a divergência em `authority_clause_ref`: `authority_history` usava `test-fixture`, enquanto `managed_accounts` permanecia com `NULL`.
+3. O trigger exige igualdade entre `managed_accounts` e a autoridade aberta em `owner_type`, `authority_status`, `contribution_eligibility` e `authority_clause_ref`.
+4. Os dois inserts de `managed_accounts` no teste foram corrigidos para incluir `authority_clause_ref='test-fixture'`.
+5. Commit da correção: `b173c99401806e3793c7bdb55b267160d3cb382e`.
+6. A produção permanece intocada; não houve merge, deploy ou alteração de banco de produção.
+7. A alteração invalida a validação do SHA anterior; o teste completo deve ser repetido no novo head.
+
+**Resultado:** os campos projetados de autoridade do fixture agora são idênticos aos da linha aberta de `authority_history`, respeitando o trigger real do schema.
