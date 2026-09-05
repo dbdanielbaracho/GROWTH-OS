@@ -867,3 +867,18 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. Somente depois dos gates: decisão de sair de draft, merge e eventual deploy controlado.
 
 **Resultado desta execução:** evolução visual aplicada ao produto e registrada na memória oficial; PR #39 ainda não está aprovado para merge; produção intocada.
+
+
+## 26. Correção preventiva de compilação após a evolução visual
+
+**Data:** 05 de setembro de 2026
+
+1. Depois da mudança do hero, a métrica antiga `evidenceTotal` deixou de ser renderizada.
+2. A variável e a importação `useMemo` que existia apenas para essa métrica foram removidas de `apps/web/src/main.tsx`.
+3. A correção evita variável/importação sem uso no TypeScript e não altera a lógica de carregamento, seleção, tenant, evidência ou API.
+4. Commit da correção: `e4ee5ae4f881142e863c01ec323724f03012acf5`.
+5. O head do PR #39 passou a ser `e4ee5ae4f881142e863c01ec323724f03012acf5` antes desta atualização documental.
+6. O CI do SHA exato ainda precisa ser confirmado; nenhuma execução de SHA anterior é considerada prova deste head.
+7. PR #39 permanece OPEN e DRAFT; não houve merge, deploy ou alteração de produção.
+
+**Resultado:** correção preventiva aplicada e registrada; próximo gate continua sendo CI/inspeção visual/revisão adversarial no SHA exato.
