@@ -116,6 +116,12 @@ export type YoutubeSyncResponse = {
   observationsProcessed: number;
   rowsReceived: number;
   derivedAnalyticsPolicyAccepted: boolean;
+  intelligenceStatus: "opportunity_created" | "insufficient_signal";
+  signalId: string | null;
+  insightId: string | null;
+  opportunityId: string | null;
+  intelligenceObservationsUsed: number;
+  intelligenceDeltaRatio: number | null;
 };
 
 type OpportunityListResponse = {
