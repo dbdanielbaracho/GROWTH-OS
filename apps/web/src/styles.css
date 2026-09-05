@@ -488,3 +488,6 @@ h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; color: #f
 footer { color: #70746e; border-top: 1px solid #252622; margin-top: 28px; padding-top: 22px; }
 footer span:first-child { color: #d4d0c5; }
 @media (max-width: 720px) { .app-shell { width: min(100% - 32px, 1440px); } .hero { padding-top: 56px; } h1 { font-size: clamp(3rem, 16vw, 5rem); } }
+
+
+/* Exact-SHA validation marker: editorial baseline unchanged. */
