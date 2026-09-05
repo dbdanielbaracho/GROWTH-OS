@@ -922,3 +922,31 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 8. PR #39 continua OPEN e DRAFT; nenhum merge ou deploy foi executado; produção intocada.
 
 **Resultado:** requisito básico de navegação por teclado registrado e aplicado; gates externos continuam obrigatórios.
+
+
+## 29. Gate de consistência do head visual atual
+
+**Data:** 05 de setembro de 2026
+
+1. Foram buscados novamente no GitHub os arquivos finais do branch `feat/growth-os-editorial-ui-v0-1`.
+2. `apps/web/src/main.tsx` confirmou:
+   - hero com `Signal feed · this week`;
+   - âncora `radar-feed`;
+   - fallback `Waiting for a real signal`;
+   - ausência de `evidenceTotal`;
+   - ausência de `useMemo` após a remoção da métrica obsoleta.
+3. `apps/web/src/styles.css` confirmou o bloco `Keyboard focus baseline v0.1`.
+4. `apps/web/src/youtube-integration.css` confirmou o bloco `Editorial integration surface v0.1`.
+5. SHAs de blob verificados:
+   - `main.tsx`: `c33fb7b5302c9eda16c7ef7f1a0040b7a947d25a`;
+   - `styles.css`: `b03cfdbaa0664c83a67152f13c2aab427914c38f`;
+   - `youtube-integration.css`: `4ce0f901309008dc28f8c6cb5de444cef9d8d0c6`.
+6. O head do PR #39 confirmado antes desta atualização documental foi `57d0d31ff0d3004be2fa156ba1cf122f5d4b023a`.
+7. O PR #39 continua OPEN, DRAFT e não mergeado.
+8. Não há review, thread ou comentário registrado no PR #39 nesta verificação.
+9. Não há workflow run publicado para o SHA exato `57d0d31ff0d3004be2fa156ba1cf122f5d4b023a`.
+10. O CI #117 do SHA anterior não é reutilizado como prova do head atual.
+11. Nenhum deploy foi executado e a produção permaneceu intocada.
+12. A revisão adversarial formal do Claude continua sendo um bloqueio externo obrigatório; sem ela, não há autorização para sair de draft, fazer merge ou fazer deploy.
+
+**Resultado:** consistência estrutural e documental verificada; gates externos permanecem corretamente abertos.
