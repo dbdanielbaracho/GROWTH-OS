@@ -1421,3 +1421,21 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. A alteração invalida a validação do SHA anterior; o teste completo deve ser repetido no novo head.
 
 **Resultado:** os campos projetados de autoridade do fixture agora são idênticos aos da linha aberta de `authority_history`, respeitando o trigger real do schema.
+
+
+## 47. Correção de USAGE do schema e ambiguidade SQL na migration 015
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução seguinte confirmou que as migrations, roles, gate 033 e fixture de autoridade passaram.
+2. O teste do engine revelou dois bloqueios independentes:
+   - `app_runtime` não possuía `USAGE` no schema `growth` no banco efêmero do CI;
+   - a função da migration `015` tinha ambiguidade entre a variável de saída `insight_id` e a coluna usada no upsert de `growth.insight_evidence`.
+3. O workflow foi corrigido para executar, depois das migrations, `GRANT USAGE ON SCHEMA growth TO app_runtime` exclusivamente no banco isolado do CI.
+4. A migration `015` foi corrigida para usar a constraint nomeada `insight_evidence_insight_id_evidence_type_evidence_ref_key` no `ON CONFLICT`, eliminando a resolução ambígua de `insight_id`.
+5. Commit da migration: `8f62f1ae23f4b9cbc240f2fb627dec00024113db`.
+6. Commit do CI: `58610b7671ad23d2020582a825eaade70aa1e175`.
+7. Nenhuma migration foi aplicada em produção. Não houve merge ou deploy.
+8. O novo head precisa de validação completa; nenhum SHA anterior deve ser reutilizado.
+
+**Resultado:** o ambiente isolado agora concede o privilégio de schema necessário ao runtime e o upsert de evidência da migration 015 deixa de depender de uma referência ambígua.
