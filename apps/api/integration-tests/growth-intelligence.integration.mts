@@ -13,10 +13,12 @@ function requiredDatabaseUrl(name: "MIGRATOR_DATABASE_URL") {
 const workspaceId = "b0000000-0000-4000-8000-000000000001";
 const userId = "a0000000-0000-4000-8000-000000000001";
 const managedAccountId = randomUUID();
+const authorityHistoryId = randomUUID();
 const connectionId = randomUUID();
 const socialAccountId = randomUUID();
 const observationIds = [randomUUID(), randomUUID(), randomUUID()];
 const noSignalManagedAccountId = randomUUID();
+const noSignalAuthorityHistoryId = randomUUID();
 const noSignalConnectionId = randomUUID();
 const noSignalSocialAccountId = randomUUID();
 const providerAccountId = `growth-intelligence-${socialAccountId}`;
@@ -51,6 +53,14 @@ try {
       [managedAccountId, workspaceId]
     );
     await client.query(
+      `insert into growth.authority_history
+        (id, workspace_id, managed_account_id, owner_type, authority_status, contribution_eligibility,
+         authority_clause_ref, effective_from, effective_to)
+       values ($1,$2,$3,'direct','contractually_granted','eligible','test-fixture',
+         '2026-09-01T00:00:00Z'::timestamptz,null)`,
+      [authorityHistoryId, workspaceId, managedAccountId]
+    );
+    await client.query(
       `insert into growth.platform_connections
         (id, workspace_id, managed_account_id, platform, state)
        values ($1,$2,$3,'youtube','connected')`,
@@ -67,6 +77,14 @@ try {
         (id, workspace_id, owner_type, authority_status, contribution_eligibility)
        values ($1,$2,'direct','contractually_granted','eligible')`,
       [noSignalManagedAccountId, workspaceId]
+    );
+    await client.query(
+      `insert into growth.authority_history
+        (id, workspace_id, managed_account_id, owner_type, authority_status, contribution_eligibility,
+         authority_clause_ref, effective_from, effective_to)
+       values ($1,$2,$3,'direct','contractually_granted','eligible','test-fixture',
+         '2026-09-01T00:00:00Z'::timestamptz,null)`,
+      [noSignalAuthorityHistoryId, workspaceId, noSignalManagedAccountId]
     );
     await client.query(
       `insert into growth.platform_connections
@@ -205,9 +223,11 @@ try {
     await client.query("delete from growth.metric_observations where workspace_id=$1 and social_account_id=$2", [workspaceId, socialAccountId]);
     await client.query("delete from growth.social_accounts where workspace_id=$1 and id=$2", [workspaceId, noSignalSocialAccountId]);
     await client.query("delete from growth.platform_connections where workspace_id=$1 and id=$2", [workspaceId, noSignalConnectionId]);
+    await client.query("delete from growth.authority_history where workspace_id=$1 and id=$2", [workspaceId, noSignalAuthorityHistoryId]);
     await client.query("delete from growth.managed_accounts where workspace_id=$1 and id=$2", [workspaceId, noSignalManagedAccountId]);
     await client.query("delete from growth.social_accounts where workspace_id=$1 and id=$2", [workspaceId, socialAccountId]);
     await client.query("delete from growth.platform_connections where workspace_id=$1 and id=$2", [workspaceId, connectionId]);
+    await client.query("delete from growth.authority_history where workspace_id=$1 and id=$2", [workspaceId, authorityHistoryId]);
     await client.query("delete from growth.managed_accounts where workspace_id=$1 and id=$2", [workspaceId, managedAccountId]);
   });
   await migrator.end();
