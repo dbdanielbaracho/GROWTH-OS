@@ -784,3 +784,18 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
 5. As notas dos concorrentes foram marcadas como benchmark preliminar, sujeitas a auditoria funcional completa.
 6. A matriz também mantém separada a lista de concorrentes do Creator Commerce OS.
 7. Nenhum código, banco ou produção foi alterado.
+\n
+
+---
+
+## 21. Requisito de design competitivo definido
+
+**Data:** 05 de setembro de 2026
+
+1. Foi definido que o Growth OS deve construir o melhor design entre os concorrentes relevantes, e não tratar a tela atual como design final.
+2. A exigência foi formalizada em `docs/DESIGN_QUALITY_BENCHMARK_V0.1.md`.
+3. “Melhor design” passa a incluir hierarquia visual, clareza da tarefa principal, baixa fricção, confiança na evidência, continuidade da ação, responsividade, acessibilidade, recuperação e diferenciação.
+4. O benchmark separa Doxa Viral como referência direta e Sprout Social, Hootsuite, Metricool, Later, Buffer e demais produtos adjacentes como referências de capacidades específicas.
+5. A avaliação final deverá combinar designer de produto/UI, pesquisa de UX com usuários, auditoria de acessibilidade, revisão cross-browser, análise competitiva e revisão adversarial do Claude; nenhuma opinião isolada será tratada como prova.
+6. A tela atual do Opportunity Radar foi classificada como fundação promissora, não como superioridade comprovada.
+7. Nenhum código, banco ou produção foi alterado nesta execução; foi criada apenas a especificação do benchmark e do gate de aceitação.
