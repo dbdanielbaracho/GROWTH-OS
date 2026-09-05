@@ -1313,3 +1313,22 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. Nenhuma migration foi aplicada em produção. Não houve merge, deploy ou alteração de banco de produção.
 
 **Resultado:** o bloqueio técnico identificado pelo Claude foi corrigido no executor comum usado pelo CI e pelos validators; a correção ainda precisa ser executada e revisada no SHA novo.
+
+
+## 41. Correção do segundo bug no regex do executor de migrations
+
+**Data:** 05 de setembro de 2026
+
+1. A revisão adversarial do Claude reproduziu a correção do executor no SHA `f93b9e9407f4e7ba83a57d1d519cc81a3e6b58e5`.
+2. Foi confirmado que o padrão publicado continha barras em excesso em `\\s+` e `\\s*`, impedindo o reconhecimento de espaços em branco.
+3. O comportamento incorreto foi reproduzido com Node: a linha `\\set ON_ERROR_STOP on` não correspondia ao caso especial e caía no erro de meta-comando não suportado.
+4. O regex foi corrigido para:
+   - manter `\\\\set` no início, para reconhecer a barra literal de `\\set`;
+   - usar `\\s+` e `\\s*` no código-fonte do regex, para reconhecer whitespace.
+5. A verificação direta do arquivo agora confirma que o regex corresponde a `\\set ON_ERROR_STOP on`.
+6. Commit da correção: `ad4bff618d2819c070ac448eb96cbdfe2b402ac1`.
+7. O head vivo da PR #39 passou a ser `ad4bff618d2819c070ac448eb96cbdfe2b402ac1`.
+8. Como a correção altera o executor, todos os gates precisam ser repetidos nesse novo SHA.
+9. Não houve merge, deploy, alteração da produção ou chamada de CI publicada até este registro.
+
+**Resultado:** o segundo defeito encontrado pelo Claude foi corrigido e o reconhecimento do meta-comando foi verificado diretamente no conteúdo do novo head; a execução completa das migrations e a revisão final ainda são obrigatórias.
