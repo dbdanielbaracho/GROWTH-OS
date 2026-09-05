@@ -69,3 +69,15 @@ This slice does not claim:
 - that a single provider signal completes the whole Growth OS product.
 
 Those claims require separate evidence, policy and adversarial review.
+
+
+## Integration no-op proof
+
+The integration fixture also creates a connected, authorized YouTube account with zero observations. Calling the deterministic helper for that account must return:
+
+- `insufficient_signal`;
+- null signal, insight, and opportunity IDs;
+- zero observations used;
+- null delta ratio.
+
+This keeps the truthful empty/no-op behavior executable and prevents a sparse account from becoming a synthetic Radar item.
