@@ -25,7 +25,7 @@ function normalizeSqlForPgDriver(sql) {
     .split("\n")
     .map((line) => {
       const trimmed = line.trim();
-      if (/^\\set\\s+ON_ERROR_STOP\\s+(?:on|off)\\s*$/i.test(trimmed)) return "";
+      if (/^\\set\s+ON_ERROR_STOP\s+(?:on|off)\s*$/i.test(trimmed)) return "";
       if (/^\\/.test(trimmed)) {
         throw new Error(`Unsupported psql meta-command in ${absolutePath}: ${trimmed}`);
       }
