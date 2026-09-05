@@ -1130,3 +1130,53 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 6. Não é permitido sair de draft, fazer merge ou fazer deploy antes de CI do SHA atual, validação isolada aprovada, revisão do Claude e Production Truth Gate final.
 
 **Resultado:** a falha foi localizada no ambiente do validator, o teste do produto foi corrigido e a produção continua protegida; a prova física do SHA atual segue pendente.
+
+
+## 34. Tentativas adicionais de tornar a validação observável
+
+**Data:** 05 de setembro de 2026
+
+1. O head atual da PR #39 foi reconfirmado como `8c6be7c9bdf956b81e2c6a9b64d160c6c121b05c`.
+2. A PR #39 continua OPEN, DRAFT e não mergeada; o base SHA continua `17ee387477763921c0c4cbab326557142d4b26b3).
+3. O GitHub continua sem workflow publicado para o SHA atual; a lista de runs associada ao SHA é vazia.
+
+### 34.1 Executor Bun
+
+1. O serviço anterior `pr33-sha-6a0bc99-validator-ephemeral` falhou no preflight porque o container não tinha `psql`.
+2. O serviço foi atualizado para um script Bun com cliente PostgreSQL, mas seus redeploys continuaram reutilizando snapshot antigo; nenhum resultado do SHA atual foi aceito.
+3. Foi criado `pr39-growth-intelligence-validator` com o SHA atual e referências ao banco de teste.
+4. A configuração foi confirmada pelo Railway, mas o runtime one-shot não expôs stdout nos logs.
+5. A tentativa de transformá-lo em HTTP produziu HTTP 502 `connection refused`; o serviço reiniciou e não forneceu resultado de validação.
+6. Um diagnóstico independente do Railway confirmou que esse tipo de wrapper Bun não oferece stdout observável de forma confiável.
+
+### 34.2 Executor PostgreSQL
+
+1. Foi criado `pr39-growth-intelligence-psql-validator` com a imagem `postgres:16-alpine`.
+2. O container iniciou o próprio Postgres local por causa do entrypoint da imagem e não executou o comando `psql` contra o banco de validação; portanto, também não é prova.
+3. O script SQL completo preparado continha preflight `growth_os_test`, migration 015, gate 033, fixtures autorizados, execução como `app_runtime`, idempotência, contagens e limpeza.
+4. Nenhum dado de produção foi usado ou alterado por essa tentativa.
+
+### 34.3 Executor Node isolado
+
+1. Foi criado `pr39-growth-intelligence-node-validator` com a imagem `node:20-alpine`.
+2. As variáveis foram referenciadas do serviço de integração existente, mantendo os bancos de teste separados.
+3. Deployment: `acd69e2c-2329-4e49-9a24-5277874f7feb`.
+4. O start command foi confirmado contendo:
+   - download do repositório no SHA `8c6be7c9bdf956b81e2c6a9b64d160c6c121b05c`;
+   - instalação das dependências da API;
+   - execução de `npx tsx integration-tests/growth-intelligence.integration.mts`.
+5. O deployment terminou SUCCESS, mas os logs capturados contêm apenas `Starting Container`; não há `PASS`, `FAIL`, `EXIT` ou resultado JSON do teste.
+6. SUCCESS do container não é tratado como SUCCESS do teste. O resultado do teste permanece `UNKNOWN/PENDING`.
+7. A execução anterior do serviço `node-integration-tests` mostrou apenas a suíte antiga de confirmação; ela não é reutilizada como prova do SHA atual.
+
+### 34.4 Decisão e proteção
+
+1. Não foi feito merge.
+2. Não foi feito deploy do SHA da PR #39.
+3. O serviço canônico `growth-os` continua no deployment de produção `23629579-551e-456b-85d1-29b29a53a050`, commit `17ee387477763921c0c4cbab326557142d4b26b3`.
+4. A production database continua intocada.
+5. A validação física do SHA atual segue pendente porque o Railway não forneceu uma saída observável do teste.
+6. O próximo caminho seguro é executar o teste em um executor já conhecido por publicar logs de runtime, ou registrar o resultado em um canal persistente de teste e lê-lo sem expor segredos.
+7. Depois da validação, ainda são obrigatórios: CI do SHA atual, revisão adversarial do Claude, confirmação de credenciais OAuth reais, Production Truth Gate completo e somente então merge/deploy controlado.
+
+**Resultado:** todos os bloqueios e tentativas foram registrados; nenhum resultado não observado foi promovido a aprovação.
