@@ -6,8 +6,10 @@ DO $$
 DECLARE
   fn regprocedure := 'growth.youtube_integration_status()'::regprocedure;
   def text;
+  normalized_def text;
 BEGIN
   SELECT pg_get_functiondef(fn) INTO def;
+  normalized_def := regexp_replace(def, '[[:space:]]+', '', 'g');
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_proc p
@@ -32,11 +34,11 @@ BEGIN
   END IF;
 
   IF def IS NULL
-     OR position('growth.current_workspace_id()' in def)=0
-     OR position('growth.tenant_context_valid(ma.workspace_id)' in def)=0
-     OR position('ma.authority_status = ''contractually_granted''' in def)=0
-     OR position('p.platform = ''youtube''' in def)=0 THEN
-    RAISE EXCEPTION '032 failed: helper lost tenant/authority/provider filters';
+     OR position('growth.current_workspace_id()' in normalized_def)=0
+     OR position('growth.tenant_context_valid(ma.workspace_id)' in normalized_def)=0
+     OR position('ma.authority_status=''contractually_granted''' in normalized_def)=0
+     OR position('p.platform=''youtube''' in normalized_def)=0 THEN
+    RAISE EXCEPTION '032 failed: helper lost tenant/authority/provider filters after whitespace-normalized inspection';
   END IF;
 
   IF position('credential_ciphertext' in def)>0
