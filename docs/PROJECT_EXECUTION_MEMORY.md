@@ -950,3 +950,22 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 12. A revisão adversarial formal do Claude continua sendo um bloqueio externo obrigatório; sem ela, não há autorização para sair de draft, fazer merge ou fazer deploy.
 
 **Resultado:** consistência estrutural e documental verificada; gates externos permanecem corretamente abertos.
+
+
+## 30. Production Truth Gate parcial: superfície pública canônica
+
+**Data:** 05 de setembro de 2026
+
+1. O ambiente consultado foi exclusivamente o canônico: Railway `successful-embrace`, serviço `growth-os`, domínio `https://growth-os-production-d120.up.railway.app`.
+2. `GET /health/ready` retornou HTTP 200 com:
+   `{"status":"ready","database":"ok"}`.
+3. `GET /` retornou HTTP 200 e entregou o shell HTML do Growth OS.
+4. `GET /v1/system` retornou HTTP 200 com:
+   `{"name":"Growth OS","version":"0.1.0","environment":"production"}`.
+5. Esses checks confirmam disponibilidade pública, serving do shell, identificação do serviço e conectividade do banco no healthcheck.
+6. Esses checks não comprovam autenticação, workspace, OAuth YouTube, sync real, observação, sinal, insight, oportunidade ou Radar com dados reais.
+7. Não foi feito deploy, alteração de variável, migration ou mudança no banco nesta etapa.
+8. Produção permaneceu somente em leitura.
+9. O próximo gate é provar signup/signin/sessão/workspace no banco canônico e, depois, autorização e sync real do YouTube.
+
+**Resultado:** superfície pública canônica saudável; Production Truth Gate completo ainda pendente.
