@@ -297,3 +297,19 @@
   border-color: rgba(121, 154, 211, .3);
   color: #c3d5f5;
 }
+
+
+.youtube-intelligence-success,
+.youtube-intelligence-muted {
+  display: block;
+  margin-top: 4px;
+}
+
+.youtube-intelligence-success {
+  color: #b8e2bf;
+  font-weight: 700;
+}
+
+.youtube-intelligence-muted {
+  color: #aaa99e;
+}
