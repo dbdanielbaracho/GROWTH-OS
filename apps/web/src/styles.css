@@ -677,3 +677,14 @@ footer span:first-child { color: #d4d0c5; }
     max-width: none;
   }
 }
+
+
+/* Keyboard focus baseline v0.1 */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent-strong, #f0c96e);
+  outline-offset: 4px;
+}
+.hero-text-link:focus-visible {
+  border-radius: 2px;
+  outline-offset: 7px;
+}
