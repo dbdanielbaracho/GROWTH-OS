@@ -115,6 +115,7 @@ function YoutubeIntegrationPanel() {
     try {
       const result = await syncYoutube(connectionId, nonce, 7);
       setLastSync((current) => ({ ...current, [connectionId]: result }));
+      window.dispatchEvent(new CustomEvent("growth-os:radar-refresh"));
       setPendingNonce((current) => {
         const next = { ...current };
         delete next[connectionId];
@@ -191,6 +192,11 @@ function YoutubeIntegrationPanel() {
                       <div className="youtube-sync-result">
                         <strong>{last.observationsProcessed} real observations processed</strong>
                         <span>{last.rowsReceived} provider row{last.rowsReceived === 1 ? "" : "s"} · through {last.returnedThroughDate ?? "no returned day"}</span>
+                        {last.intelligenceStatus === "opportunity_created" ? (
+                          <span className="youtube-intelligence-success">Opportunity Radar updated from stored evidence.</span>
+                        ) : (
+                          <span className="youtube-intelligence-muted">Not enough complete observations for a factual opportunity yet.</span>
+                        )}
                       </div>
                     )}
                   </>
