@@ -186,3 +186,18 @@ Decisão: não criar outra variação de dashboard genérico. A próxima direç�
 5. A próxima direção deverá ser construída por designer de produto/UI independente, com teardown real dos concorrentes, referências visuais documentadas, protótipo navegável, testes de usabilidade, acessibilidade e revisão adversarial.
 6. O objetivo continua sendo superar os concorrentes, mas essa superioridade não pode ser declarada antes de evidência comparável.
 7. Nenhum código, banco ou produção foi alterado; esta é uma correção documental e de governança do design.
+
+
+## 15. Direção visual de trabalho adotada
+
+**Data:** 05 de setembro de 2026
+
+1. O usuário decidiu seguir a direção visual apresentada em `growth-os-doxa-inspired.html` como baseline de trabalho para o Growth OS.
+2. A direção combina editorial premium, alto contraste, fundo preto, tipografia forte, dourado como sinal de oportunidade, narrativa visual e CTA claro.
+3. O produto deve parecer uma experiência de inteligência e decisão, não um dashboard genérico de métricas.
+4. A direção é inspirada em princípios visuais observados no Doxa Viral, mas não copia marca, textos, interface, código ou métodos proprietários.
+5. A aplicação deverá conectar sinal, evidência, oportunidade e ação em uma experiência simples e global.
+6. O Growth Brain deve aparecer como contexto da decisão, e não como painel separado.
+7. Esta decisão cria um baseline de trabalho para a próxima implementação; não constitui freeze visual final.
+8. Antes do freeze, será necessária revisão independente de designer/UI, validação de usabilidade, acessibilidade, responsividade, cross-browser e revisão adversarial.
+9. Nenhum código de produção, banco ou deploy foi alterado por esta decisão documental.
