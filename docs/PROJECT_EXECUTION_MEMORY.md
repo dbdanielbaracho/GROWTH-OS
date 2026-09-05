@@ -812,3 +812,58 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
 5. PR #39 continua aberto e draft. Nenhum merge ou deploy foi executado.
 6. Produção permaneceu intocada.
 7. Próximo gate: obter CI do SHA atual, fazer inspeção visual real em desktop/mobile, registrar achados de acessibilidade/responsividade e enviar o SHA final para revisão adversarial do Claude.
+
+
+## 25. Evolução executada: Radar editorial orientado por sinais
+
+**Data:** 05 de setembro de 2026
+
+### 25.1 Objetivo
+
+Continuar a implementação do baseline visual escolhido pelo usuário, convertendo o shell do Opportunity Radar em uma experiência de produto mais editorial e orientada por sinais, sem inventar dados e sem alterar produção.
+
+### 25.2 Alterações realizadas
+
+1. O arquivo `apps/web/src/main.tsx` foi atualizado no branch `feat/growth-os-editorial-ui-v0-1`.
+2. A seção inicial do Radar foi substituída por uma composição editorial com:
+   - rótulo `Signal feed · this week`;
+   - promessa centrada em detectar movimento inicial;
+   - explicação explícita de que oportunidades dependem de observações armazenadas;
+   - link de navegação para o feed de oportunidades;
+   - aviso `Evidence first · no synthetic signals`;
+   - leitura do primeiro sinal real disponível no workspace;
+   - fallback factual `Waiting for a real signal` quando não houver oportunidade;
+   - contagem real de confiança e evidências quando existir oportunidade.
+3. O feed recebeu o identificador `radar-feed` para permitir navegação direta a partir do hero.
+4. O arquivo `apps/web/src/styles.css` recebeu o bloco `Editorial signal stage v0.1`.
+5. O bloco visual adiciona:
+   - composição orbital decorativa;
+   - leitura textual do sinal primário;
+   - CTA textual com affordance de navegação;
+   - contraste e hierarquia editorial;
+   - adaptação para largura intermediária;
+   - composição empilhada em telas estreitas.
+6. Nenhuma chamada de API, regra de tenant, persistência, migration, credencial, provider, banco ou configuração de produção foi alterada.
+
+### 25.3 Evidência dos commits
+
+- Commit da composição editorial em `main.tsx`: `0710bebc8f98b5da28dabe83a51ef34124e81527`.
+- Commit do CSS responsivo do signal stage: `50de62a6cc72316c54542c2b453019ef8edb900f`.
+- SHA atual do branch antes desta atualização documental: `50de62a6cc72316c54542c2b453019ef8edb900f`.
+- Ainda não existe CI publicado para esse SHA exato nesta execução; nenhuma prova anterior de outro SHA será reutilizada como se fosse prova do atual.
+- PR #39 continua OPEN e DRAFT.
+- Nenhum merge foi executado.
+- Nenhum deploy foi executado.
+- Produção permaneceu intocada.
+
+### 25.4 Critérios ainda obrigatórios
+
+1. CI para o SHA exato após o commit documental ou após o próximo head estável.
+2. Inspeção visual real em desktop e mobile.
+3. Verificação de foco, contraste, navegação por teclado, estados loading/empty/error e comportamento sem dados.
+4. Verificação de que o painel YouTube e demais superfícies do shell não quebram a coerência visual.
+5. Revisão competitiva baseada em critérios documentados, sem tratar intenção como capacidade comprovada.
+6. Revisão adversarial formal do Claude.
+7. Somente depois dos gates: decisão de sair de draft, merge e eventual deploy controlado.
+
+**Resultado desta execução:** evolução visual aplicada ao produto e registrada na memória oficial; PR #39 ainda não está aprovado para merge; produção intocada.
