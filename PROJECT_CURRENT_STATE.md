@@ -9,11 +9,12 @@ Purpose: single operational checkpoint for resuming Growth OS work without relyi
 - Pull request: #29 — feat(issue-26): add YouTube connection and sync UX
 - PR URL: https://github.com/dbdanielbaracho/GROWTH-OS/pull/29
 - Branch: `feat/issue-26-youtube-integration-ux`
-- Current candidate SHA: `12242e143eefc3d950d4a556740f19465c190087`
-- PR state: open, draft, mergeable
+- Last implementation SHA fully validated before this checkpoint: `12242e143eefc3d950d4a556740f19465c190087`
+- Important: adding or changing this checkpoint file creates a new PR head SHA. Always fetch the live PR head before acting.
+- PR state: open, draft
 - Production merge/deploy: not performed
 
-## Gates completed for the current SHA
+## Gates completed for the last implementation SHA
 
 - GitHub CI run #91: success
 - Migration 014: applied successfully to `growth_os_test`
@@ -31,20 +32,22 @@ Purpose: single operational checkpoint for resuming Growth OS work without relyi
 - Test target: `growth_os_test`
 - Apply service: `pr29-014-apply`
 - Validator service: `pr29-sha-dcf8c0d-validator-ephemeral`
-- Validator result: `VALIDATION COMPLETE - PR #29 CANDIDATE 12242e1 VALIDATED`
+- Last validator result: `VALIDATION COMPLETE - PR #29 CANDIDATE 12242e1 VALIDATED`
 - Migrations reapplied during final validation: no
 
-## Current blocker
+## Current status
 
-- Formal adversarial review by Claude on the exact current SHA is still pending.
-- No merge or production deployment is authorized until that review is approved.
+- This checkpoint commit changes the PR head, so CI and exact-SHA validation must be rechecked for the live head before merge.
+- Formal adversarial review by Claude on the exact live head is still pending.
+- No merge or production deployment is authorized.
 
 ## Next action
 
-1. Send PR #29 at SHA `12242e143eefc3d950d4a556740f19465c190087` to Claude for adversarial review.
-2. Record Claude's APPROVE or REJECT result.
-3. If Claude rejects, fix only concrete blockers and repeat all gates on the new SHA.
-4. If Claude approves, perform the final merge/deploy gate.
+1. Fetch the live PR head SHA.
+2. Confirm CI for that exact SHA.
+3. Run the Railway validator against that exact SHA and `growth_os_test`.
+4. Send the exact same SHA to Claude for adversarial review.
+5. If Claude approves, perform the final merge/deploy gate.
 
 ## Operating rules
 
