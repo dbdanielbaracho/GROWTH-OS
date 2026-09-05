@@ -430,3 +430,61 @@ footer span:first-child { color: var(--ink); font-weight: 800; }
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
   .opportunity-card { transition: none; }
 }
+
+
+/* Growth OS Editorial Visual Baseline v0.1 — working direction */
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #f2efe6;
+  background: #070808;
+  --ink: #f2efe6;
+  --muted: #989b94;
+  --line: #2a2b27;
+  --panel: rgba(19, 20, 18, 0.94);
+  --panel-strong: #151614;
+  --soft: #1c1e1a;
+  --accent: #d5a84f;
+  --accent-strong: #f0c96e;
+  --accent-soft: rgba(213, 168, 79, 0.14);
+  --warning-soft: rgba(213, 168, 79, 0.15);
+  --danger-soft: rgba(163, 76, 67, 0.16);
+  --shadow: 0 24px 80px rgba(0,0,0,.34);
+}
+html, body { background: #070808; }
+body { background: radial-gradient(circle at 50% 0%, rgba(213,168,79,.09), transparent 36rem), #070808; }
+.app-shell { width: min(1440px, calc(100% - 64px)); }
+.topbar { min-height: 82px; border-bottom: 1px solid #252622; }
+.brand { color: #f2efe6; letter-spacing: .08em; text-transform: uppercase; font-size: .84rem; }
+.brand-mark { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #10100d; font-family: Georgia, serif; font-size: 1rem; }
+.product-label { border: 1px solid #34352f; border-radius: 2px; background: #111311; color: #bfc0b8; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+.live-dot { background: var(--accent); box-shadow: 0 0 0 4px rgba(213,168,79,.12); }
+.signout-button { color: #91958e !important; }
+.hero { padding: 82px 0 48px; gap: 40px; }
+.eyebrow, .section-kicker { color: var(--accent); letter-spacing: .18em; font-size: .64rem; }
+h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; color: #f4f0e7; font-size: clamp(3.25rem, 7vw, 7rem); line-height: .91; letter-spacing: -.07em; max-width: 980px; }
+.lede { color: #9b9e96; max-width: 630px; font-size: 1rem; }
+.hero-proof { gap: 24px; }
+.hero-proof > div { min-width: 120px; padding: 0 0 0 18px; border: 0; border-left: 1px solid #48483e; border-radius: 0; background: transparent; backdrop-filter: none; }
+.hero-proof strong { color: #ebe7dc; font-family: Georgia, serif; font-weight: 400; font-size: 1.8rem; }
+.hero-proof span { color: #858981; font-size: .68rem; text-transform: uppercase; letter-spacing: .07em; }
+.radar-layout { gap: 28px; }
+.opportunity-list, .detail-panel { border: 1px solid #2a2b27; border-radius: 2px; background: rgba(16,17,15,.88); box-shadow: var(--shadow); backdrop-filter: none; }
+.opportunity-list { padding: 22px; }
+.list-heading h2, .detail-header h2, .section-heading h3 { color: #f0ede4; font-family: Georgia, serif; font-weight: 400; letter-spacing: -.03em; }
+.opportunity-card { border-color: #34352f; border-radius: 2px; background: #121412; color: #ebe7dc; }
+.opportunity-card:hover, .opportunity-card.active { border-color: #bd9241; background: #1a1914; box-shadow: inset 3px 0 var(--accent); }
+.platform-label, .card-status, .card-footer, .card-metrics { color: #8f938b; }
+.score-pill, .confidence-badge, .source-badge, .state-badge { border-radius: 2px; background: var(--accent-soft); color: var(--accent-strong); }
+.card-metrics strong { color: #ddd9cd; }
+.detail-panel { padding: 32px; }
+.detail-meta { border-color: #32332e; color: #92968e; }
+.detail-section { border-color: #32332e; }
+.evidence-row, .insight-card { border-color: #30312d; border-radius: 2px; background: #151715; }
+.evidence-row p, .insight-claim, .action-section > p:last-child { color: #b0b2aa; }
+.evidence-row time, .insight-topline, .insight-meta { color: #80857d; }
+.truthful-empty { border-color: #4a493d; border-radius: 2px; background: #151612; color: #9ea197; }
+.truthful-empty h3, .truthful-empty h2, .truthful-empty.compact strong { color: #ece8de; }
+.action-section { background: linear-gradient(135deg, rgba(213,168,79,.12), transparent 65%); padding: 20px; border: 1px solid #4a3c22; }
+footer { color: #70746e; border-top: 1px solid #252622; margin-top: 28px; padding-top: 22px; }
+footer span:first-child { color: #d4d0c5; }
+@media (max-width: 720px) { .app-shell { width: min(100% - 32px, 1440px); } .hero { padding-top: 56px; } h1 { font-size: clamp(3rem, 16vw, 5rem); } }
