@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   fetchAuthSession,
@@ -315,11 +315,6 @@ function RadarApp({
       });
     return () => { active = false; };
   }, [selectedId, onUnauthorized]);
-
-  const evidenceTotal = useMemo(
-    () => opportunities.reduce((sum, opportunity) => sum + opportunity.evidence_count, 0),
-    [opportunities]
-  );
 
   return (
     <main className="app-shell">
