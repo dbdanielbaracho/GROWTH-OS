@@ -1180,3 +1180,26 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 7. Depois da validação, ainda são obrigatórios: CI do SHA atual, revisão adversarial do Claude, confirmação de credenciais OAuth reais, Production Truth Gate completo e somente então merge/deploy controlado.
 
 **Resultado:** todos os bloqueios e tentativas foram registrados; nenhum resultado não observado foi promovido a aprovação.
+
+
+## 35. Fechamento da tentativa de validação observável
+
+**Data:** 05 de setembro de 2026
+
+1. Claude não foi chamado, conforme a regra do projeto: ele será acionado somente após desenvolvimento, validações internas e documentação concluídos.
+2. O executor Node isolado foi configurado para:
+   - baixar o SHA `8c6be7c9bdf956b81e2c6a9b64d160c6c121b05c`;
+   - instalar dependências;
+   - executar `growth-intelligence.integration.mts`;
+   - publicar o resultado em um endpoint HTTP temporário.
+3. Deployment `2f5b5845-d352-4a2c-ac49-9acc87bcc828` confirmou o comando e o SHA, mas o endpoint retornou HTTP 502 por `connection refused`; o teste não produziu resultado observável.
+4. O comando foi então alterado para capturar `PASS/FAIL`, código de saída e logs em JSON mesmo em caso de falha. Deployment `ac2ed8a7-5838-4af9-9eb8-a4d4882523b7` também não forneceu resposta observável.
+5. Foi feita uma última checagem com um servidor Node mínimo no mesmo serviço, deployment `56c6d819-b88d-4ac7-9911-6db647abfe10`; o Railway registrou apenas `Starting Container`, sem resposta HTTP capturada pelo canal disponível.
+6. Essa sequência não prova aprovação nem reprovação do engine. O resultado correto permanece `UNKNOWN/PENDING`.
+7. O código do produto, a PR #39, a branch, o banco canônico e o deployment de produção não foram alterados por essas tentativas.
+8. Os serviços criados são apenas executores efêmeros de validação no projeto Railway `successful-embrace`; não são fonte de verdade do produto.
+9. Não foi feito merge, deploy da PR ou migration em produção.
+10. Próximo gate interno: obter uma execução observável em um executor de CI/validator que publique stdout ou artefato persistente; somente depois considerar a validação aprovada.
+11. Após esse gate, ainda faltam revisão final do Claude, confirmação de credenciais OAuth reais e Production Truth Gate completo.
+
+**Resultado:** desenvolvimento continua protegido; a validação permanece explicitamente pendente e Claude permanece reservado para o final.
