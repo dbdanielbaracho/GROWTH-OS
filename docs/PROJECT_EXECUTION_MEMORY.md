@@ -720,3 +720,21 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
    - growth/market intelligence: Semrush, Rival IQ, Exploding Topics e TrendIntel;
    - referências verticais/adjacentes: Kalodata e Cruva.
 7. Esta correção não altera código, banco ou produção; altera apenas a precisão do registro de concorrentes.
+
+
+---
+
+## 17. Correção definitiva: Doxa não pertence ao Growth OS
+
+**Data:** 05 de setembro de 2026
+
+1. O usuário corrigiu que Doxa não tem relação com o projeto Growth OS.
+2. A referência anterior a Doxa como concorrente, benchmark ou plataforma-alvo foi incorreta.
+3. Doxa e DoxaScale devem ser removidas da lista de concorrentes, benchmarks, referências e comparativos do Growth OS.
+4. O domínio doxa.com não deve ser usado para analisar o projeto.
+5. O perfil doxa/doxascale também não deve ser tratado como referência do Growth OS.
+6. Nenhum novo concorrente deve ser atribuído ao projeto sem confirmação explícita ou fonte primária adequada.
+7. A busca no repositório canônico dbdanielbaracho/GROWTH-OS não encontrou referências atuais a Doxa no código, issues ou arquivos pesquisados.
+8. Esta correção substitui qualquer registro anterior que tenha classificado Doxa/DoxaScale como concorrente ou benchmark do Growth OS.
+9. O registro de concorrentes do Growth OS fica pendente de revisão correta; não há substituição automática por outro nome nesta etapa.
+10. Esta alteração é documental e não altera código, banco ou produção.
