@@ -754,3 +754,18 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
 5. A classificação anterior que removeu Doxa por completo foi corrigida: a referência válida é Doxa Viral.
 6. A análise competitiva do Growth OS deve considerar Doxa Viral como referência/concorrente, usando o site correto.
 7. Esta atualização não altera código, banco ou produção; corrige somente a identidade do concorrente no registro operacional.
+
+
+---
+
+## 19. Matriz de concorrentes criada
+
+**Data:** 05 de setembro de 2026
+
+1. Foi criada a matriz versionada docs/COMPETITOR_MATRIX.md.
+2. A matriz separa Growth OS de Creator Commerce OS.
+3. Doxa Viral foi registrado como concorrente direto/benchmark principal do Growth OS conforme link fornecido pelo usuário.
+4. Sprout Social, Hootsuite, Metricool, Later, Buffer, Brandwatch, Meltwater, Sprinklr, Emplifi, Semrush, Rival IQ, Exploding Topics e TrendIntel foram classificados como concorrentes adjacentes ou referências de categorias diferentes.
+5. Kalodata, FastMoss, Cruva e Euka foram registrados como concorrentes principais do Creator Commerce OS, que é um produto independente.
+6. Reacher, Colaba, EchoTik, Shoplus, TikWatch e PiPiADS foram registrados como benchmarks adjacentes/secundários do Creator Commerce OS.
+7. Nenhum código, banco ou produção foi alterado.
