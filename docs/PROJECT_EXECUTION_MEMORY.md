@@ -1203,3 +1203,21 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 11. Após esse gate, ainda faltam revisão final do Claude, confirmação de credenciais OAuth reais e Production Truth Gate completo.
 
 **Resultado:** desenvolvimento continua protegido; a validação permanece explicitamente pendente e Claude permanece reservado para o final.
+
+
+## 36. Encerramento dos executores temporários
+
+**Data:** 05 de setembro de 2026
+
+1. Após as tentativas de validação, os três serviços temporários foram reconfigurados para `sleep 1`, `restartPolicy=NEVER` e modo de sono:
+   - `pr39-growth-intelligence-validator`;
+   - `pr39-growth-intelligence-psql-validator`;
+   - `pr39-growth-intelligence-node-validator`.
+2. Foram disparados redeploys de encerramento:
+   - `f7d8b4a5-7f29-444e-b992-46f3a0d74d40`;
+   - `9d67818a-46e6-4c1b-95f9-cc6ea9849963`;
+   - `ee086eb2-6fa6-49f0-aeb6-0fcf44a9a788`.
+3. Os três deployments terminaram SUCCESS.
+4. O serviço canônico `growth-os` não foi alterado e permanece no deployment de produção `23629579-551e-456b-85d1-29b29a53a050`.
+5. Nenhum executor temporário foi tratado como fonte de verdade do projeto.
+6. A validação do SHA atual continua PENDING/UNKNOWN; Claude não foi chamado.
