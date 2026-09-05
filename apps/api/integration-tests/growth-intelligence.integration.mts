@@ -80,7 +80,7 @@ try {
            'America/Los_Angeles','youtube-analytics-v2','youtube-source-v1','polling',
            $7,'youtube-adapter-v1','youtube','channel_daily_report',
            'youtube.analytics.views.provider-day-2026-08-24.v2',
-           ($6 || 'T07:00:00Z')::timestamptz, (($6::date + 1) || 'T07:00:00Z')::timestamptz,
+           ($6 || 'T07:00:00Z')::timestamptz, ((($6::date + 1)::text) || 'T07:00:00Z')::timestamptz,
            now(),'authorized_account',now() + interval '30 days',now() + interval '29 days',
            'complete','fresh',gen_random_uuid(),$8)`,
         [
@@ -124,13 +124,10 @@ try {
     result_status: string;
   }>("select * from growth.recompute_youtube_growth_intelligence($1)", [socialAccountId]);
 
-  assert.deepEqual(second.rows[0], {
-    ...second.rows[0],
-    signal_id: first.rows[0]?.signal_id,
-    insight_id: first.rows[0]?.insight_id,
-    opportunity_id: first.rows[0]?.opportunity_id,
-    result_status: "opportunity_created"
-  });
+  assert.equal(second.rows[0]?.signal_id, first.rows[0]?.signal_id);
+  assert.equal(second.rows[0]?.insight_id, first.rows[0]?.insight_id);
+  assert.equal(second.rows[0]?.opportunity_id, first.rows[0]?.opportunity_id);
+  assert.equal(second.rows[0]?.result_status, "opportunity_created");
 
   const counts = await appClient.query<{ signals: string; insights: string; opportunities: string }>(
     `select
