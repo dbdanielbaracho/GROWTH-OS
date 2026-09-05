@@ -160,3 +160,16 @@ A avaliação preliminar, limitada às superfícies públicas e sem substituir a
 - Growth OS atual: conceito ainda insuficiente; não aprovado visualmente e abaixo do padrão de referência.
 
 Consequência: a proposta anterior fica cancelada como direção visual. A próxima proposta deverá ser construída a partir de teardown tela a tela, três direções visuais alternativas, protótipo navegável, teste de tarefa e arbitragem independente.
+
+
+## 13. Inspeção visual direta do Doxa Viral
+
+**Data:** 05 de setembro de 2026
+
+A página pública https://www.doxaviral.com/ foi aberta e inspecionada diretamente. Foram observados: fundo preto dominante, marca branca de alto contraste, navegação compacta, tipografia editorial de grande escala, promessa central muito forte (“Um milhão de views. Ou seu dinheiro de volta.”), demonstração visual de cases/conteúdo, prova social e CTA de conversão claro.
+
+A comparação confirma que os mockups anteriores do Growth OS estavam em uma categoria visual errada: pareciam um painel SaaS genérico, enquanto o Doxa apresenta uma narrativa de produto com identidade, tensão comercial, prova visual e hierarquia muito mais marcante.
+
+Limite da evidência: essa inspeção cobre a página pública e não a área interna autenticada do Doxa. Portanto, não se deve afirmar superioridade ou inferioridade da aplicação interna sem acesso equivalente. Mesmo assim, a proposta pública do Growth OS precisa atingir um nível equivalente de identidade, composição, tipografia, prova visual e clareza de promessa antes de qualquer nova aprovação.
+
+Decisão: não criar outra variação de dashboard genérico. A próxima direção deve começar por uma estratégia visual de marca e produto, com referências reais, protótipo navegável e avaliação independente.
