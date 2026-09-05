@@ -129,15 +129,18 @@ try {
   assert.equal(second.rows[0]?.opportunity_id, first.rows[0]?.opportunity_id);
   assert.equal(second.rows[0]?.result_status, "opportunity_created");
 
-  const counts = await appClient.query<{ signals: string; insights: string; opportunities: string }>(
-    `select
-       (select count(*) from growth.factual_signals where workspace_id=$1 and social_account_id=$2) as signals,
-       (select count(*) from growth.insights where workspace_id=$1 and source_signal_id=$3) as insights,
-       (select count(*) from growth.opportunities where workspace_id=$1 and source_signal_id=$3) as opportunities`,
-    [workspaceId, socialAccountId, first.rows[0]?.signal_id]
+  await appClient.query("COMMIT");
+
+  const counts = await withMigrator((client) =>
+    client.query<{ signals: string; insights: string; opportunities: string }>(
+      `select
+         (select count(*) from growth.factual_signals where workspace_id=$1 and social_account_id=$2) as signals,
+         (select count(*) from growth.insights where workspace_id=$1 and source_signal_id=$3) as insights,
+         (select count(*) from growth.opportunities where workspace_id=$1 and source_signal_id=$3) as opportunities`,
+      [workspaceId, socialAccountId, first.rows[0]?.signal_id]
+    )
   );
   assert.deepEqual(counts.rows[0], { signals: "1", insights: "1", opportunities: "1" });
-  await appClient.query("COMMIT");
 } finally {
   try {
     await appClient.query("ROLLBACK");
