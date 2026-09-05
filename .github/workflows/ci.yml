@@ -1,9 +1,11 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [main]
+    branches: [main, "feat/**"]
 
 permissions:
   contents: read
@@ -11,7 +13,25 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: growth_os_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d growth_os_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      CI_DATABASE_NAME: growth_os_ci
+      CI_MIGRATOR_URL: postgresql://growth_migrator:growth_migrator@127.0.0.1:5432/growth_os_ci
+      CI_APP_URL: postgresql://app_runtime:app_runtime@127.0.0.1:5432/growth_os_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,13 +53,55 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Provision isolated CI roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_migrator') THEN
+              CREATE ROLE growth_migrator LOGIN PASSWORD 'growth_migrator';
+            ELSE
+              ALTER ROLE growth_migrator LOGIN PASSWORD 'growth_migrator';
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_runtime') THEN
+              CREATE ROLE app_runtime LOGIN PASSWORD 'app_runtime';
+            ELSE
+              ALTER ROLE app_runtime LOGIN PASSWORD 'app_runtime';
+            END IF;
+          END
+          $$;
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          SQL
+
+      - name: Apply every canonical migration to isolated CI database
+        env:
+          DATABASE_URL: ${{ env.CI_MIGRATOR_URL }}
+        run: |
+          for migration in db/migrations/*.sql; do
+            node db/scripts/apply-migration.mjs "$migration"
+          done
+
+      - name: Run SQL gates against isolated CI database
+        env:
+          PGPASSWORD: growth_migrator
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/033_youtube_growth_intelligence.sql
+
+      - name: Run Growth Intelligence integration test
+        env:
+          DATABASE_URL: ${{ env.CI_APP_URL }}
+          MIGRATOR_DATABASE_URL: ${{ env.CI_MIGRATOR_URL }}
+        run: npx tsx apps/api/integration-tests/growth-intelligence.integration.mts
+
       - name: Production same-origin web shell gate
-        run: npx tsx apps/api/integration-tests/production-web-shell.integration.mts
         env:
           NODE_ENV: production
           APP_ORIGIN: https://ci.growth-os.invalid
           CSRF_SECRET: ci-only-csrf-secret-with-more-than-32-characters
           DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+        run: npx tsx apps/api/integration-tests/production-web-shell.integration.mts
 
       - name: Test
         run: npm test
