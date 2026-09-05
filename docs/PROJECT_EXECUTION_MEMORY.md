@@ -624,3 +624,80 @@ A próxima execução deve começar confirmando o SHA vivo, o estado da revisão
 23. Próxima ação obrigatória: enviar o SHA exato 05bc516df3479b0ab338efe0ad991877d80812dd ao Claude para revisão adversarial; qualquer novo commit invalida as provas específicas do SHA atual e exige repetição dos gates.
 
 **Resultado desta execução:** revisão independente concluída; nenhum novo bloqueador encontrado; gate Claude pendente; produção intocada.
+
+
+---
+
+## 15. Diagnóstico registrado: o que falta para finalizar o projeto
+
+**Data:** 05 de setembro de 2026  
+**Fontes verificadas:** Issue #26, FULL_PRODUCT_ROADMAP.md, PR #29 e estado Railway/GitHub registrado neste documento.
+
+### 15.1 Fechamento do PR #29
+
+Ainda falta:
+
+1. Revisão adversarial formal do Claude no SHA exato 05bc516df3479b0ab338efe0ad991877d80812dd.
+2. Se houver achados do Claude, implementar as correções e repetir CI/validação no novo SHA.
+3. Sair de draft somente depois dos gates exigidos.
+4. Fazer merge do PR #29.
+5. Fazer deploy controlado do merge na Railway canônica.
+6. Repetir o Production Truth Gate no SHA efetivamente implantado.
+
+O CI #93 e a validação isolada da migration 014 já estão verdes, mas não substituem a revisão Claude nem a prova de produção.
+
+### 15.2 Conclusão do Issue #26
+
+O Issue #26 só estará concluído quando a cadeia abaixo for comprovada com dados reais:
+
+provider data -> normalized observations -> factual signal -> insight/evidence -> ranked opportunity -> Opportunity Radar
+
+Ainda falta:
+
+1. Confirmar no Google Auth Platform a origem e o callback canônicos do cliente Growth OS Web.
+2. Resolver o primeiro acesso por signup/provisionamento seguro no banco canônico.
+3. Criar ou selecionar workspace real.
+4. Garantir managed_account com authority_status=contractually_granted.
+5. Executar autorização YouTube real.
+6. Confirmar callback, state, expiração, proteção contra replay, criptografia e persistência da credencial.
+7. Executar o primeiro sync real.
+8. Confirmar metric_observations reais com provenance, semantic version, source range, freshness e idempotência.
+9. Provar retry/crash safety, rate limit, erro do provedor e dado incompleto/atrasado.
+10. Gerar pelo menos um sinal determinístico e baseado em evidência, sem transformar correlação em causalidade.
+11. Criar insight com estado epistemológico explícito: confirmed account, account hypothesis, general practice ou insufficient signal.
+12. Criar oportunidade ranqueada somente se a evidência permitir.
+13. Confirmar a apresentação no API/web.
+14. Se os dados não forem suficientes, provar o empty/no-op verdadeiro em vez de inventar resultado.
+15. Executar o Production Truth Gate completo: URL pública -> SHA implantado -> usuário autenticado -> workspace -> provedor real -> observações -> sinal/evidência -> Radar.
+16. Registrar todas as provas no GitHub.
+17. Remover o ambiente secundário grateful-courage e URLs OAuth secundárias quando não forem mais necessários.
+
+### 15.3 Finalização do produto Growth OS inteiro
+
+O PR #29 e o Issue #26 representam apenas o primeiro vertical slice de inteligência com YouTube. O produto inteiro ainda exige as fases do roadmap:
+
+1. Controle do programa: contratos de arquitetura/API/eventos, política de segredos/dados, release, rollback, backup, disaster recovery e rastreabilidade requisito-teste-freeze.
+2. Identity, tenancy e acesso: signup, signin, signout, sessão, workspaces, convites, RBAC, troca de workspace, onboarding, recuperação de conta, controles de segurança e auditoria.
+3. Application shell/design system: navegação, telas de autenticação/onboarding, administração de equipe, estados de loading/empty/error/recovery, acessibilidade e cobertura de navegador.
+4. Conectores: além do YouTube, Instagram/Meta, TikTok e X conforme acesso, quotas, regras, revisão, histórico, webhooks/polling e limites reais dos provedores.
+5. Content Operations: Content Intelligence, Content Authoring, AI Content Studio, Creative Production, biblioteca de assets, lineage, revisão, aprovação, versionamento, calendário e campanhas.
+6. Publishing/orchestration: agendamento, publicação idempotente, validação por provedor, filas, retries, dead-letter, cancelamento, reconciliação, falhas parciais, status e notificações.
+7. Data/analytics: ingestão de métricas, normalização, provenance, atribuição, experimentos, dashboards, relatórios, exports, OGI, freshness e anomalias.
+8. Intelligence Platform: Growth Brain, Opportunity Radar completo, Global Trend Migration, Competitor Intelligence, Viral DNA, recomendações explicáveis, feedback/evaluation datasets, abstração de modelos, custos e segurança.
+9. Experiments/multiplication: hipóteses, variantes, originalidade, MULTIPLY, lineage, adaptação entre canais, medição, promoção de vencedores e arquivamento de perdedores.
+10. Copilot/Autopilot/operations: Copilot baseado em evidências, execução com aprovação, políticas de Autopilot, limites, emergency stop, command center, alertas, incidentes, runbooks, workers e custos.
+11. Comercial/enterprise: planos, assinaturas, billing, entitlements, usage metering, limites, agências multi-cliente, administração enterprise, compliance, consentimento, retenção, exclusão, suporte e conformidade com políticas dos provedores.
+12. Hardening/launch: testes end-to-end e cross-browser, carga, resiliência, segurança, observabilidade, SLOs, alertas, backup/restore drill, revisão de privacidade/segurança, pilotos com contas reais e freeze final.
+
+### 15.4 Conclusão de status
+
+O deploy SUCCESS da Railway não significa que o produto inteiro está pronto. Neste momento:
+
+- fundamento do conector YouTube: implementado e validado;
+- PR #29: tecnicamente validado no candidato, mas ainda sem Claude/merge/deploy final;
+- Issue #26: em andamento;
+- primeiro Production Truth Gate real: não concluído;
+- produto completo: não concluído;
+- fases posteriores do roadmap: não executadas ou apenas parciais.
+
+Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um slice validado seja confundido com a finalização do Growth OS.
