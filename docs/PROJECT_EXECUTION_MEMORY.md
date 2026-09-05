@@ -3,7 +3,7 @@
 **Repositório:** dbdanielbaracho/GROWTH-OS  
 **Documento:** memória operacional completa, versionada no GitHub  
 **Data desta consolidação:** 05 de setembro de 2026  
-**Última atualização coberta:** PR #29, SHA 05bc516df3479b0ab338efe0ad991877d80812dd
+**Última atualização coberta:** revisão independente do PR #29, SHA 05bc516df3479b0ab338efe0ad991877d80812dd
 
 ## 1. Finalidade
 
@@ -556,3 +556,71 @@ Documento de checkpoint criado no branch do PR #29:
 Continuar no GROW OS usando o repositório dbdanielbaracho/GROWTH-OS e consultar primeiro este arquivo. O ambiente canônico é Railway successful-embrace, serviço growth-os, domínio https://growth-os-production-d120.up.railway.app, com Postgres canônico no mesmo projeto. O PR #28 foi aprovado pelo Claude e mergeado no commit d68bcf0430d181e456e30523c46a590142560704. O PR #29 está aberto/draft/mergeable no SHA 05bc516df3479b0ab338efe0ad991877d80812dd, CI #93 SUCCESS e validator final SUCCESS no banco growth_os_test, com produção intocada. A revisão adversarial formal do Claude e o merge do PR #29 ainda estão pendentes. grateful-courage é um desvio com Postgres vazio e não deve virar fonte da verdade.
 
 A próxima execução deve começar confirmando o SHA vivo, o estado da revisão do PR #29 e o gate correspondente. Nenhuma validação do SHA anterior deve ser tratada como válida automaticamente depois de novo commit.
+
+
+---
+
+## 14. Retomada registrada: revisão independente do PR #29
+
+**Data:** 05 de setembro de 2026  
+**Objetivo:** continuar o projeto a partir da memória oficial e revisar o candidato exato antes do gate Claude/merge.
+
+1. A memória oficial foi consultada na branch main antes de agir.
+2. O PR #29 foi consultado diretamente no GitHub.
+3. O SHA vivo confirmado foi 05bc516df3479b0ab338efe0ad991877d80812dd.
+4. O PR continua OPEN, draft e sem merge.
+5. O PR continua com base main no commit d68bcf0430d181e456e30523c46a590142560704.
+6. O PR declara como escopo:
+   - migration 014 com growth.youtube_integration_status();
+   - gate SQL 032;
+   - endpoint autenticado de status;
+   - callback OAuth retornando à aplicação;
+   - painel web Connect -> consentimento Google -> Sync;
+   - retry com o mesmo caller nonce;
+   - derived analytics fail-closed.
+7. A lista de arquivos do PR foi revisada no SHA exato.
+8. Foram revisados, no mínimo, os caminhos de:
+   - rotas API YouTube;
+   - connector OAuth/sync;
+   - migration 014;
+   - teste SQL 032;
+   - API web;
+   - painel YouTube;
+   - shell same-origin;
+   - checkpoint operacional.
+9. A revisão verificou que o endpoint de status usa o helper SQL e não concede SELECT direto do app_runtime em managed_accounts ou platform_connections.
+10. A revisão verificou que a migration mantém SECURITY DEFINER, owner growth_migrator, EXECUTE para app_runtime e revoga PUBLIC.
+11. A revisão verificou que o teste 032 inspeciona tenant, authority, provider, privilégio e ausência de material secreto, normalizando whitespace.
+12. A revisão verificou que o fluxo de callback não retorna credenciais ao navegador e redireciona para o shell da aplicação.
+13. A revisão verificou que o retry de sync preserva o mesmo requestNonce depois de erro ambíguo.
+14. A revisão verificou que a produção não foi alterada por esta etapa.
+15. Não foi identificado novo bloqueador técnico na revisão estática do SHA exato.
+16. O GitHub Actions check run foi confirmado:
+   - workflow: CI;
+   - job: validate;
+   - run id: 33945965750;
+   - job id: 101251988844;
+   - head SHA: 05bc516df3479b0ab338efe0ad991877d80812dd;
+   - conclusão: success.
+17. As etapas verdes confirmadas foram:
+   - Checkout;
+   - Setup Node;
+   - Install dependencies;
+   - Test Integrity Gate;
+   - Typecheck;
+   - Build;
+   - Production same-origin web shell gate;
+   - Test.
+18. O endpoint agregado de commit status não tinha statuses tradicionais publicados, mas o check run do GitHub Actions estava concluído com SUCCESS; os dois fatos foram preservados separadamente.
+19. A validação Railway anterior permanece vinculada ao SHA exato e confirmou:
+   - target_db=growth_os_test;
+   - migration 014 presente;
+   - TEST-032 PASS;
+   - MIGRATIONS REAPPLIED: NO;
+   - production untouched.
+20. Não há integração Claude disponível nesta sessão para executar a revisão adversarial formal.
+21. Portanto, o PR #29 não foi aprovado para merge nesta etapa.
+22. O merge e o deploy de produção continuam pendentes.
+23. Próxima ação obrigatória: enviar o SHA exato 05bc516df3479b0ab338efe0ad991877d80812dd ao Claude para revisão adversarial; qualquer novo commit invalida as provas específicas do SHA atual e exige repetição dos gates.
+
+**Resultado desta execução:** revisão independente concluída; nenhum novo bloqueador encontrado; gate Claude pendente; produção intocada.
