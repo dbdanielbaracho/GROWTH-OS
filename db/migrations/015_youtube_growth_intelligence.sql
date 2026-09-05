@@ -378,7 +378,7 @@ BEGIN
     'metric_observation:' || observation_id::text,
     v_latest_at
     FROM unnest(v_observation_ids) AS observation_id
-  ON CONFLICT (opportunity_id,source_class,evidence_ref) DO UPDATE SET
+  ON CONFLICT ON CONSTRAINT opportunity_evidence_opportunity_id_source_class_evidence_r_key DO UPDATE SET
     observed_at = EXCLUDED.observed_at;
 
   RETURN QUERY SELECT
