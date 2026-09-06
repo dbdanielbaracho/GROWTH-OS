@@ -1793,3 +1793,30 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 4. Ainda não estão completos neste slice: refresh/reconexão operacional, revogação, sync de mídia/métricas, publicação real, reconciliação, webhooks, UI completa e prova com conta profissional real.
 5. As capacidades de publicação e insights permanecem fail-closed.
 6. O Claude deve revisar exclusivamente o SHA final após o novo CI. Só depois de APPROVE poderá haver decisão de merge/deploy.
+
+
+## 60. Revisão Claude do Instagram — bloqueio de regex corrigido
+
+**Data:** 06 de setembro de 2026  
+**PR:** #41  
+**SHA revisado inicialmente pelo Claude:** `f1bbf25b3549002e666c986eeedd213f953ca82c`
+
+1. O Claude confirmou três execuções de validate com sucesso para o SHA inicial e confirmou produção intocada, mas rejeitou a aprovação por um bloqueio concreto em `apps/api/src/instagram-connector.ts`.
+2. O erro estava no `parseConfig()`: a expressão da versão Graph usava barras duplicadas e rejeitava o próprio padrão padrão `v24.0`.
+3. A cadeia de impacto era material: com as credenciais Instagram configuradas, `beginInstagramAuthorization` e `completeInstagramAuthorizationFromCallback` retornariam `instagram_graph_api_version_invalid` e o OAuth ficaria inutilizável.
+4. A correção foi aplicada em `apps/api/src/instagram-connector.ts`, commit `a5044b423b2f61c7710527786b6ce99d0c44d3d2`.
+5. O teste `apps/api/src/instagram-connector.test.ts` foi ampliado em `07849b8c56727be2e8a34e5de8e6ebb97ed31ca8` para:
+   - aceitar explicitamente `v24.0`;
+   - rejeitar uma versão malformada;
+   - exercer `instagramConnectorConfigured()`, `parseConfig()` indiretamente e a validação de configuração.
+6. O CI run #218 encontrou um segundo erro da mesma classe em `apps/api/src/config.ts`: o schema Zod central também tinha regex duplicado. O teste de configuração falhou antes de qualquer chamada externa, confirmando que o novo teste detectou a regressão corretamente.
+7. A correção central foi aplicada em `apps/api/src/config.ts`, commit `f1ea71096aa06ab9edea67f3dd21629441597056`.
+8. O CI run #220, run id `34007981919`, job `validate` `101418591209`, passou com todos os passos verdes:
+   - integrity, typecheck e build;
+   - migrations 001–017;
+   - gates SQL 033, 034 e 035;
+   - Growth Intelligence, idempotência e no-op;
+   - production web shell;
+   - testes unitários.
+9. Nenhuma alteração foi feita em produção durante a revisão ou as correções. O PR #41 continua sem merge e sem deploy.
+10. Este novo registro documental altera o head novamente. O SHA final deve ser confirmado e o CI repetido antes de nova aprovação do Claude.
