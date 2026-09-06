@@ -1929,3 +1929,104 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
    - testes unitários.
 3. O código do bloco não foi mergeado, deployado nem aplicado em produção. Nenhuma credencial Meta foi configurada.
 4. O próximo commit documental deve ser validado novamente antes de enviar o SHA final ao Claude.
+
+
+## 66. PR #42 — merge, deploy e aplicação comprovada das migrations Instagram 017–018
+
+**Data:** 06 de setembro de 2026  
+**PR:** #42  
+**Claude:** APPROVE no SHA exato `faeb19b89c38c77ac912b19ef23cbd4a6440783a`  
+**Commit mergeado em main:** `08f10e046b8e0b6e708a5dfd262fc34daeec3ae8`
+
+### 66.1 Aprovação, merge e deploy do código
+
+1. O Claude revisou exclusivamente o PR #42 no SHA `faeb19b89c38c77ac912b19ef23cbd4a6440783a`.
+2. A revisão confirmou migration 018, refresh oficial de token, reconnect/revoke, proteção de credenciais, RLS/FORCE RLS, SECURITY DEFINER, grants, idempotência e CI verde.
+3. A primeira tentativa de merge falhou porque o PR ainda estava marcado como draft. Isso foi corrigido marcando o PR como pronto para revisão.
+4. O PR #42 foi mergeado por squash com head esperado.
+5. O commit resultante em `main` foi `08f10e046b8e0b6e708a5dfd262fc34daeec3ae8`.
+6. O serviço público `growth-os` foi deployado no Railway pelo deployment `ea1275fc-48ab-4846-95c6-3231fd3183d3`, SUCCESS, commit `08f10e0`.
+7. Production Truth Gate público permaneceu saudável:
+   - `GET /health/ready` → HTTP 200, `{"status":"ready","database":"ok"}`;
+   - `GET /v1/system` → HTTP 200, ambiente production;
+   - `GET /` → HTTP 200, shell web presente.
+8. Nenhum merge, deploy ou configuração temporária alterou o serviço principal além do deploy do código aprovado.
+
+### 66.2 Tentativas iniciais de verificar/aplicar migrations
+
+1. O estado inicial do serviço `migrator` usava uma checagem antiga que retornava `0` para `instagram_revoke_connection`.
+2. Foi criada uma configuração temporária para baixar os SQLs 017 e 018 do commit mergeado e executar `psql`.
+3. Os redeploys `94e67fa9-48fc-4323-86df-2283bc33b00a` e `8894bb9f-0258-4fe8-a806-e8c257b43124` executaram o snapshot antigo; os logs ainda mostravam a checagem anterior e `0`. Portanto, não foram tratados como prova de aplicação.
+4. Uma tentativa intermediada pelo agente Railway expirou por HTTP 504 antes de devolver resultado; o estado foi verificado depois e nenhuma prova foi inferida desse timeout.
+5. O deployment `45b3bf8e-c455-4f3e-8f5a-17fc2c787cd7` usou a configuração temporária, mas falhou repetidamente com `sh: syntax error: unexpected "(" (expecting ")")`.
+6. Os deployments `b5d6de6d-3eae-4a36-8bbf-57c654a8c34e` e `fe0f639f-714f-454b-ab45-e44c838dc214` repetiram o mesmo erro de interpretação do shell.
+7. O diagnóstico mínimo `echo MIGRATOR_DIAGNOSTIC_OK; sleep 45` demonstrou que o redeploy simples continuava reutilizando snapshot antigo. Pelo fluxo de deploy do agente, o deployment `f3fdcbf0-95f4-456e-aa96-efd9c8f2ead3` executou corretamente o diagnóstico.
+8. Uma tentativa de consulta com `ADMIN_DATABASE_URL` produziu no deployment `97cdf316-6acb-4b4e-8af1-7073ae667fa8` o erro concreto: `database "$ADMIN_DATABASE_URL" does not exist`. A variável foi interpretada literalmente pelo wrapper. Nenhum segredo foi revelado.
+9. O deployment `e53dc2d4-cc32-4471-ac52-320ad72a5309` executou uma configuração de migration, mas a captura de logs parou após a instalação do curl; não foi usado como prova suficiente.
+10. Os deployments `c59f3662-5641-4572-8f8d-40e11feb9745` e `8d1d52f3-c17b-42e8-9e9c-1ac2acb84ed1` capturaram apenas marcadores iniciais/base64, sem as linhas SQL necessárias. Também não foram tratados como confirmação.
+11. Foi identificado que a imagem `postgres:18-alpine` precisava de um `sh -c` explícito para executar sequências de comandos; comandos sem esse encapsulamento executavam apenas o primeiro `echo`.
+
+### 66.3 Falso negativo do precheck e correção
+
+1. O deployment `98397d6b-0ebf-42f8-b203-52b77dc497f6` executou o script idempotente com precheck, mas o script usava `grep -qx 0`.
+2. O `psql` retornou `0` com espaços; por isso o grep não reconheceu o zero e o script marcou incorretamente `SKIPPING_017` e `SKIPPING_018`.
+3. A verificação pós-script retornou `status=0`, `revoke=0`, `capabilities=0`. Isso provou que as migrations ainda não estavam aplicadas; a interpretação anterior de “já presentes” foi corrigida.
+4. A correção foi normalizar o resultado com `tr -d '[:space:]'` antes do grep.
+5. O script final usou:
+   - `sh -c` explícito;
+   - SQLs 017 e 018 baixados do commit exato `08f10e046b8e0b6e708a5dfd262fc34daeec3ae8`;
+   - conexão padrão do migrator via `PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE`;
+   - `psql -v ON_ERROR_STOP=1`;
+   - prechecks idempotentes normalizados;
+   - marcadores de início, aplicação, verificação e fim.
+6. Essa correção foi registrada como aprendizado operacional: nunca interpretar saída visualmente alinhada do `psql` sem normalizar whitespace; sempre exigir marcador de aplicação ou verificação pós-estado.
+
+### 66.4 Aplicação confirmada em produção
+
+1. O deployment final de aplicação foi `34ee4800-3550-4e1f-adb3-e2097a39ee81`, SUCCESS.
+2. Evidência capturada nos logs:
+   - `COUNT017_BEFORE = 0`;
+   - `APPLYING_017`;
+   - execução SQL da migration 017 com BEGIN, CREATE FUNCTION, INSERT, ALTER FUNCTION, REVOKE, GRANT e COMMIT;
+   - `COUNT018_BEFORE = 0`;
+   - `APPLYING_018`;
+   - execução SQL da migration 018 com BEGIN, SET, CREATE FUNCTION, ALTER FUNCTION, REVOKE, GRANT e COMMIT;
+   - verificação final `status=1`;
+   - verificação final `revoke=1`;
+   - verificação final `capabilities=3`;
+   - `MIGRATION_END`.
+3. Essa é a primeira evidência direta e suficiente nesta sequência de que as migrations 017 e 018 existem no banco de produção.
+4. Não foram inseridos usuários, contas Instagram, tokens, métricas ou dados sintéticos. A aplicação alterou somente schema, funções, grants e capabilities previstas pelas migrations.
+5. O serviço público `growth-os` não foi alterado durante a operação de migration.
+
+### 66.5 Restauração do migrator e verificação final
+
+1. Depois da aplicação, o start command temporário foi removido.
+2. O comando original do migrator foi restaurado:
+   - consulta dos check-runs do commit aprovado;
+   - uso do banco configurado originalmente;
+   - verificação da função `instagram_revoke_connection`;
+   - espera controlada.
+3. O deployment final de restauração foi `dd14e33f-c5b6-450e-9f76-a97ebd08903a`, SUCCESS.
+4. Os logs confirmaram:
+   - check-runs para `faeb19b89c38c77ac912b19ef23cbd4a6440783a`;
+   - `conclusion: success`;
+   - `total_count: 3`;
+   - função `instagram_revoke_connection` com contagem `1`;
+   - start command original ativo.
+5. A configuração temporária de migration não ficou ativa no migrator.
+6. Não foi criado serviço novo nesta etapa, não houve alteração no serviço principal além do deploy aprovado e nenhum segredo foi exposto.
+
+### 66.6 Estado correto após esta etapa
+
+- PR #42: mergeado.
+- Código do lifecycle Instagram: publicado em produção.
+- Migrations 017–018: aplicadas e confirmadas no banco de produção.
+- Helpers Instagram verificados: status e revoke presentes; capabilities Instagram: 3 registros.
+- Meta App ID/secret: ainda não configurados no serviço público.
+- Conta profissional real: ainda não conectada.
+- Refresh, reconnect e revoke: código publicado e schema aplicado; prova com conta real ainda pendente.
+- Sync de mídia/métricas, publicação, reconciliação, webhooks e UI completa: pendentes.
+- Phase 3: In Progress, não Frozen.
+- Fases 4–11: ainda não concluídas.
+- Próximo ponto de retomada: corrigir/validar o estado da aplicação web do Instagram, configurar credenciais Meta somente quando disponíveis, executar fluxo com conta profissional real e continuar os módulos restantes do roadmap.
