@@ -264,3 +264,12 @@ Required next gate for PR #41: re-run CI after this roadmap/memory commit, send 
 The adversarial review of PR #41 identified a real configuration blocker: the Graph API version regex rejected the default `v24.0`. The connector and central Zod configuration were corrected, and tests now exercise both acceptance of `v24.0` and rejection of malformed versions. CI run #220 passed all gates on code SHA `f1ea71096aa06ab9edea67f3dd21629441597056` before this documentation update.
 
 The documentation update creates a new branch head, so the final candidate SHA and CI must be revalidated before Claude reviews again. The Instagram foundation remains In progress, not Frozen.
+
+
+## 11. PR #41 integrado — Instagram foundation em produção
+
+PR #41 foi aprovado pelo Claude no SHA exato `55f2d879055baf949d5abb803da429088afd9f78`, mergeado no commit `63a8eec9d0bb8986f2653f1fad67dc1c60e35a6d` e publicado pelo Railway com deployment SUCCESS. O shell web, health e system endpoints passaram o Production Truth Gate.
+
+A classificação correta é: Phase 3 — Instagram foundation **In Progress**, não Frozen. O código está publicado, mas a migration 017 ainda precisa de confirmação controlada no banco de produção; as credenciais Meta também não estão configuradas. Refresh/reconnect, sincronização, publicação, métricas, webhooks, UI completa e prova com conta real continuam pendentes.
+
+O histórico completo, incluindo a limitação operacional de acesso ao banco e o serviço temporário staged para remoção por 2FA, está em `docs/PROJECT_EXECUTION_MEMORY.md`.
