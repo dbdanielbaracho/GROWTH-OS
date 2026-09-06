@@ -1457,3 +1457,28 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 9. Todos os gates precisam ser repetidos no novo head.
 
 **Resultado:** as duas ambiguidades de nomes de saída e colunas de evidência na migration 015 agora usam constraints nomeadas, eliminando esses conflitos de PL/pgSQL.
+
+
+## 49. Correção do trigger deferido de evidência sob app_runtime
+
+**Data:** 06 de setembro de 2026
+
+1. A reprodução do Claude confirmou que os bugs de ambiguidade da migration `015` estavam resolvidos e que o engine avançava até o commit da transação.
+2. No commit, o trigger deferido `check_insight_state_evidence_purity()` chamava `assert_confirmed_insight_evidence_purity()` no contexto da sessão `app_runtime`.
+3. O helper tentava ler `growth.insights`, mas `app_runtime` não possui SELECT direto nessa tabela por desenho de least privilege.
+4. A migration `015` foi ampliada para:
+   - tornar `growth.assert_confirmed_insight_evidence_purity(uuid,uuid)` `SECURITY DEFINER`;
+   - manter o owner em `growth_migrator`;
+   - revogar EXECUTE de `PUBLIC`;
+   - conceder apenas EXECUTE a `app_runtime`, necessário para o trigger chamar o helper;
+   - manter fechado o SELECT direto de `app_runtime` nas tabelas.
+5. O gate SQL 033 foi ampliado para exigir:
+   - helper de evidência como `SECURITY DEFINER`;
+   - owner `growth_migrator`;
+   - ausência de SELECT direto de `app_runtime` em `growth.insights`.
+6. Commit da migration: `06711cc68fc5d06ecc4dcded8153ea00888f8852`.
+7. Commit do gate: `a60c0e91a4d4db23bcf57f9964ea9950ae049b13`.
+8. Não houve merge, deploy ou alteração da produção.
+9. O novo head precisa ser validado integralmente; nenhum SHA anterior deve ser reutilizado.
+
+**Resultado:** o trigger continua funcionando no commit sem abrir leitura direta das tabelas para `app_runtime`; a verificação passa por um helper estreito, com owner e execução controlados.
