@@ -1670,3 +1670,32 @@ Resultado confirmado diretamente nos jobs do GitHub:
 - produção não foi tocada.
 
 O PR #40 continua aberto e não mergeado. O próximo gate obrigatório é a revisão adversarial do Claude exclusivamente neste SHA.
+
+
+---
+
+## 58. Identity v1 merge, deploy e Production Truth Gate
+
+**Data:** 06 de setembro de 2026
+
+1. O Claude aprovou exclusivamente o PR #40 no SHA `dcea951c4df2eaf1408818895727b24e52f3fb2d`.
+2. O PR #40 foi mergeado por squash com head esperado confirmado.
+3. Commit resultante no `main`: `b61527c893ddc5147dcc690bccec4fcfb4becf92`.
+4. Railway production deployment:
+   - projeto `successful-embrace`;
+   - serviço `growth-os`;
+   - deployment `c5ca7f41-3eef-4d94-baf7-11383e754483`;
+   - status `SUCCESS`;
+   - commit `b61527c893ddc5147dcc690bccec4fcfb4becf92`.
+5. Production Truth Gate confirmado:
+   - `GET /` → HTTP 200, shell web servido;
+   - `GET /health/ready` → HTTP 200, `{"status":"ready","database":"ok"}`;
+   - `GET /v1/system` → HTTP 200, versão `0.1.0`, ambiente `production`.
+6. Não houve alteração manual de banco, seed sintético ou aplicação manual de migration em produção durante a validação.
+7. A lista de variáveis do serviço foi verificada sem expor valores. O deploy ainda não possui:
+   - `RESEND_API_KEY`;
+   - `IDENTITY_EMAIL_FROM`.
+8. Consequência: o código de signup/verificação está publicado, mas o envio real de e-mail permanece bloqueado até esses dois segredos serem configurados no Railway. Nenhum valor secreto deve ser colocado no GitHub ou nesta memória.
+9. O projeto completo continua em execução. Instagram, publicação, analytics multicanal, experimentos, Copilot/Autopilot, billing/enterprise e hardening final ainda não estão concluídos.
+
+**Resultado:** Identity v1 foi mergeado e publicado com endpoints básicos saudáveis; o cadastro por e-mail permanece explicitamente pendente de configuração operacional.
