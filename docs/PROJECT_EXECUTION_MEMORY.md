@@ -2030,3 +2030,94 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 - Phase 3: In Progress, não Frozen.
 - Fases 4–11: ainda não concluídas.
 - Próximo ponto de retomada: corrigir/validar o estado da aplicação web do Instagram, configurar credenciais Meta somente quando disponíveis, executar fluxo com conta profissional real e continuar os módulos restantes do roadmap.
+
+
+## 67. PR #43 — bloqueio de dados sintéticos em produção e limpeza comprovada
+
+**Data:** 06 de setembro de 2026  
+**PR:** #43  
+**Branch:** `feat/growth-os-instagram-web-ui-v1`  
+**SHA de código revisado:** `0a4425148dab39beaea3d6aa9d8ee018d6db4583`
+
+### 67.1 Bloqueio encontrado pelo Claude
+
+1. O Claude revisou exclusivamente o SHA acima e confirmou que o código do PR, CI e arquitetura Instagram não tinham bloqueio técnico concreto.
+2. A aprovação foi impedida por contaminação pré-existente no banco de produção `growth_os_797f0a3`, não introduzida pelo PR #43.
+3. O workspace sintético identificado foi:
+   - ID `b0000000-0000-4000-8000-000000000001`;
+   - nome `RC9 own workspace`.
+4. As contas Instagram sintéticas identificadas foram:
+   - `provider-acct-l1-a`;
+   - `provider-acct-l1-b`.
+5. A posição correta foi `CHANGES_REQUIRED`: não declarar APPROVE enquanto a produção contivesse dados sintéticos indevidos.
+
+### 67.2 Auditoria inicial direta
+
+1. A auditoria confirmou o workspace, as duas contas sociais, uma conexão Instagram, uma managed account, duas memberships, uma linha de authority history, três insights e uma oportunidade.
+2. Não havia provider credential real nesse escopo.
+3. O total inicial conhecido era 13 linhas; depois a auditoria ampliou a contagem ao incluir conteúdo relacionado.
+4. Foram confirmadas as identidades sintéticas:
+   - owner ativo: `a0000000-0000-4000-8000-000000000001`;
+   - viewer revogado: `a0000000-0000-4000-8000-000000000003`.
+5. Nenhum token, segredo ou credencial foi reproduzido no registro.
+
+### 67.3 Tentativa inválida rejeitada
+
+1. Havia no serviço Railway `migrator` um comando antigo com `\echo`, escapes incorretos e texto não-ASCII.
+2. Os deployments anteriores exibiam marcadores de sucesso junto com erros de sintaxe, transação abortada e comandos `psql` inválidos.
+3. Esses marcadores foram rejeitados como prova; não foi assumido que qualquer exclusão tinha ocorrido.
+4. Isso confirmou uma regra operacional: marcador de sucesso só vale se o mesmo deployment tiver `ON_ERROR_STOP=1`, nenhum erro e contagens pós-commit comprovadas.
+
+### 67.4 Descoberta das dependências e tentativas abortadas
+
+Todas as tentativas abaixo falharam antes do COMMIT; por isso o modelo ACID preservou os dados até a tentativa final:
+
+1. Deployment `d87c418d-0ac8-4ae4-81c4-02138c9657d9`: faltava `content_approvals`, filha de `content_versions`.
+2. Deployment `8ea302fb-0b16-4df4-9d0c-227b2079e815`: faltava `content_localizations`, também filha de `content_versions`.
+3. Deployment `8cecea22-ab3e-4981-a933-2241fd406c4f`: `growth.content_performance_analytics` não existia; a referência foi removida.
+4. Deployment `69b75f66-d65b-448a-91c2-50dd74c32edd`: faltava `media_asset_lineage`, filha de `media_assets`.
+5. Deployment `ae37b2c5-7550-42d5-a25e-b8fdb51997db`: o trigger `membership_write_guard()` exigiu `app.user_id`.
+6. Deployment `0395f186-8f74-498d-b395-5047a92ae364`: `growth.hypothesis_outcomes` não existia; a referência foi removida.
+7. As consultas de catálogo confirmaram mais de 40 FKs de workspace com `NO ACTION`; não havia função oficial de purge do workspace.
+8. O único FK direto com `CASCADE` era `memberships.workspace_id`, mas o trigger do último owner ainda impede uma exclusão normal.
+9. A exceção administrativa ficou restrita ao caso exato do workspace sintético: o viewer revogado foi removido pelo fluxo normal com o owner como ator; o trigger `memberships_write_guard` foi desabilitado apenas dentro da transação para remover o último owner sintético e foi reabilitado antes do commit. Não foi usado `session_replication_role`, não foram desabilitados RLS/FORCE RLS e nenhum outro workspace foi atingido.
+
+### 67.5 Limpeza final comprovada
+
+1. O deployment final foi `41331ace-42df-42cb-b7b2-87592c4c7526`.
+2. O script final usou:
+   - guards exatos para nome do workspace, IDs das contas e ID da conexão;
+   - `psql -v ON_ERROR_STOP=1`;
+   - transação explícita;
+   - exclusão ordenada das tabelas filhas;
+   - validação pós-limpeza antes do `COMMIT`;
+   - marcadores pós-commit.
+3. Evidência final do mesmo deployment:
+   - `CLEANUP_COMMIT_OK`;
+   - `WORKSPACE_AFTER = 0`;
+   - `SOCIAL_AFTER = 0`;
+   - `CONNECTION_AFTER = 0`;
+   - `MANAGED_AFTER = 0`;
+   - nenhum erro.
+4. O workspace, as contas Instagram, a conexão, a managed account, as memberships e os dados dependentes do escopo foram removidos.
+5. A limpeza não alterou o código do PR #43 e não fez merge nem deploy do PR #43.
+
+### 67.6 Restauração operacional
+
+1. O comando temporário do `migrator` foi substituído por `sh -c "echo MIGRATOR_IDLE; sleep 31536000"`.
+2. O deployment direto `10aabb74-8427-492b-a7ed-9b751e6557d7` reutilizou um snapshot antigo e por isso não foi tratado como prova de restauração.
+3. A restauração efetiva ocorreu no deployment `6809672c-d274-44d2-a65b-75f0aaf92bef`.
+4. O log desse deployment contém somente `MIGRATOR_IDLE`; não há cleanup/audit SQL ativo.
+5. O serviço principal `growth-os` não foi alterado nesta limpeza.
+6. A produção permanece sem o workspace e as contas sintéticas do bloqueio.
+
+### 67.7 Estado e próximo gate
+
+1. O bloqueio de higiene de produção reportado pelo Claude foi corrigido e comprovado.
+2. O PR #43 continua sem merge/deploy até nova aprovação.
+3. O próximo passo obrigatório é pedir ao Claude uma revalidação exclusivamente do SHA `0a4425148dab39beaea3d6aa9d8ee018d6db4583`, verificando:
+   - workspace sintético ausente;
+   - provider IDs `provider-acct-l1-a` e `provider-acct-l1-b` ausentes;
+   - connection e managed account sintéticas ausentes;
+   - CI e revisão de código sem alteração de SHA.
+4. Só depois de `APPROVE` do Claude poderá ser considerada a decisão de merge/deploy do PR #43.
