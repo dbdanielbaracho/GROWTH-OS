@@ -290,3 +290,8 @@ The next Phase 3 slice adds the safe token lifecycle around the approved Instagr
 - unit coverage for the refresh URL contract and secret non-disclosure.
 
 This block does not enable publishing or insights, does not configure Meta credentials and does not prove migration 017 or 018 in the production database. It remains incomplete until exact-SHA CI, Claude adversarial review, merge/deploy controls, production migration evidence and real-account validation pass.
+
+
+### CI evidence for the lifecycle candidate
+
+The lifecycle candidate reached a complete green CI in run #250 at intermediate SHA `d07fbeea19edbce4c47e2fe73d3bbe4ef088b910`. Subsequent hardening changes reject invalid token expiry values, assert exact helper signatures in gate 036 and correct Markdown formatting; therefore the intermediate SHA is not the review SHA. The final candidate must rerun CI after these changes, then undergo Claude adversarial review before any merge or deploy.
