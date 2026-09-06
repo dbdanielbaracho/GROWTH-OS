@@ -385,3 +385,22 @@ Este bloco não habilita publicação, insights avançados, comentários/modera�
 ### Próximo bloco
 
 Após aprovação: integrar/deployar com smoke test sem dados sintéticos; depois implementar insights avançados com contrato de métricas por tipo de mídia, seguido de publicação e reconciliação em blocos independentes.
+
+
+---
+
+## Addendum 16 — correção de idempotência do Instagram — 2026-09-06
+
+A revisão adversarial do Claude encontrou uma regressão material na primeira implementação do sync de métricas do Instagram: a função de gravação aceitava a mesma idempotency key quando campos factuais/proveniência, como unit, mudavam. O exemplo reproduzido foi 120 seconds seguido de 120 minutes, com retorno silencioso da mesma UUID.
+
+A correção foi implementada como migration forward-only 020, sem alterar a migration 019 já validada no branch. O contrato agora compara todos os campos estáveis de identidade factual e origem com ROW(...) IS NOT DISTINCT FROM ROW(...), seguindo o padrão comprovado da migration 013 do YouTube. Retry idêntico permanece idempotente; mudança material gera conflito explícito.
+
+Foi adicionado o gate comportamental 038. Ele cria fixtures somente no PostgreSQL isolado do CI, confirma retry idêntico, exige conflito para unidade diferente e termina com ROLLBACK. O CI foi atualizado para executá-lo sob a role de harness de teste.
+
+A sequência de execução foi registrada integralmente na memória operacional:
+
+- run 304 falhou por referência regprocedure com uma assinatura SQL incompleta;
+- run 307 falhou por SELECT set_config sem destino dentro de PL/pgSQL;
+- run 309 passou integralmente no SHA f0136c15253f00def2fdbd73ae72127d83b9ce2d.
+
+O bloco Instagram media/metrics continua In Progress, não Frozen. O PR #44 ainda não foi mergeado nem deployado, e a produção permanece intocada. O próximo gate obrigatório é uma nova revisão adversarial do Claude no SHA exato f0136c15253f00def2fdbd73ae72127d83b9ce2d.
