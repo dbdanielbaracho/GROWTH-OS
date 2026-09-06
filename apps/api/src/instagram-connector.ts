@@ -100,7 +100,7 @@ function parseConfig(): InstagramConfig | null {
     throw new InstagramConnectorError("instagram_credential_key_invalid", 503);
   }
   const graphApiVersion = process.env.INSTAGRAM_GRAPH_API_VERSION?.trim() || "v24.0";
-  if (!/^v[0-9]+\\.[0-9]+$/.test(graphApiVersion)) {
+  if (!/^v[0-9]+\.[0-9]+$/.test(graphApiVersion)) {
     throw new InstagramConnectorError("instagram_graph_api_version_invalid", 503);
   }
   return {
