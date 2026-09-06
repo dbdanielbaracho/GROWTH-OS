@@ -33,6 +33,7 @@ import {
   type IdentitySessionView
 } from "./identity-adapter.js";
 import { z } from "zod";
+import { registerIdentityRoutes } from "./identity-routes.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
   const pgCode =
@@ -93,6 +94,7 @@ export function buildApp(logger = false) {
   });
 
   app.register(cookie);
+  registerIdentityRoutes(app);
 
   async function requestPrincipal(request: Parameters<typeof resolvePrincipal>[0], reply: any): Promise<AuthPrincipal | null> {
     try {

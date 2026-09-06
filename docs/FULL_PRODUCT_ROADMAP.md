@@ -212,3 +212,17 @@ Deliverables:
 ## 6. Progress accounting
 
 Progress is measured by accepted deliverables, not lines of code or files. Each phase receives status Not started, In progress, Validated or Frozen. The complete application reaches 100% only after Phase 11 is Frozen.
+
+
+## 7. Live execution addendum — 06 September 2026
+
+The Identity v1 block is implemented on PR #40, branch `feat/growth-os-identity-v1`, pending CI and adversarial review. The block covers atomic signup with email verification issuance, server-side identity routes, workspace creation/onboarding, invitation and password-reset APIs, and the corresponding web journeys.
+
+This does not mark Phase 1 or Phase 2 as complete. The exit gates still require:
+- successful CI on the exact final SHA;
+- independent Claude review;
+- production secret provisioning for identity email delivery;
+- merge/deploy and live tenant-isolation evidence;
+- remaining team administration, recovery and connector journeys.
+
+Instagram, publishing, analytics, experiments, Copilot/Autopilot, commercial/enterprise modules and final production hardening remain future phases. The project is not complete until Phase 11 is Frozen.

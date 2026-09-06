@@ -200,6 +200,15 @@ async function lookupPassword(email: string): Promise<PasswordLookup | null> {
   return result.rows[0] ?? null;
 }
 
+
+export function hashIdentityToken(rawToken: string): string {
+  return hashToken(rawToken);
+}
+
+export async function hashIdentityPassword(password: string): Promise<string> {
+  return argon2.hash(password, currentArgon2Options());
+}
+
 export async function signInWithPassword(
   emailInput: string,
   password: string,

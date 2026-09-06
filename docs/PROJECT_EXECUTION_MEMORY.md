@@ -1552,3 +1552,121 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 6. O projeto saiu do estado de PR pendente e passou a estar publicado em produção com o baseline editorial e a infraestrutura de Growth Intelligence validados.
 
 **Resultado:** PR, CI, merge, deploy e verificação pública concluídos com evidência direta.
+
+
+---
+
+## 55. Identity v1 — signup, verification and first-workspace onboarding
+
+**Data:** 06 de setembro de 2026  
+**Branch:** `feat/growth-os-identity-v1`  
+**PR:** #40, aberto e sem merge  
+**Estado:** aguardando CI e revisão adversarial do Claude; produção intocada
+
+Esta seção registra todas as ações desta frente, inclusive correções intermediárias:
+
+1. Foi criado o branch `feat/growth-os-identity-v1` a partir do main publicado em `b87f5f8bf51e451f9e83c0bb0382538447ec7496`.
+2. Foi criada a migration `016_identity_signup_verification.sql` no commit `ad0acf357d15b4edaacef6074f4b35860d94b7cc`.
+   - cria `growth.identity_signup_with_verification`;
+   - mantém signup e emissão do token na mesma função SECURITY DEFINER;
+   - grava somente hash SHA-256 do token;
+   - exige hash hexadecimal de 64 caracteres e expiração futura;
+   - transfere ownership para `growth_identity_helper`;
+   - revoga PUBLIC e concede EXECUTE somente a `app_runtime`.
+3. Foi criado o gate SQL `db/tests/034_identity_signup.sql` no commit `88619af1414377fb3bf6131f754d7e5ffa61fd70`.
+   - executa signup + consumo de verificação em transação;
+   - faz rollback;
+   - imprime `PASS 034_identity_signup`.
+4. Foi criado `apps/api/src/identity-email.ts` no commit `34381dbf49cf5b7884ebedbba3eb67d92f14208`.
+   - usa API compatível com Resend;
+   - falha explicitamente quando `RESEND_API_KEY` ou `IDENTITY_EMAIL_FROM` não estão configurados;
+   - não registra segredos no log.
+5. Foram criadas as rotas em `apps/api/src/identity-routes.ts` no commit `ad30b70eed1863068997f3e212f64a20daae3ca1`:
+   - `POST /v1/auth/signup`;
+   - `POST /v1/auth/verify-email`;
+   - `GET /v1/workspaces`;
+   - `POST /v1/workspaces`;
+   - `POST /v1/workspaces/:workspaceId/invitations`;
+   - `POST /v1/auth/invitations/accept`;
+   - `POST /v1/auth/password-reset/request`;
+   - `POST /v1/auth/password-reset/complete`.
+6. `identity-adapter.ts` passou a exportar hashing de senha Argon2id e hashing de token no commit `39972af4a6b19e2a2b40361bb55db313189cee1d`.
+7. `config.ts` recebeu as variáveis opcionais de e-mail no commit `fbdac0c6c636754d0b970ba0163958d11fd4e13e`:
+   - `RESEND_API_KEY`;
+   - `IDENTITY_EMAIL_FROM`;
+   - `IDENTITY_EMAIL_API_URL`.
+8. `app.ts` passou a registrar as rotas de identidade no commit `5b60c83da9cb13a6ffc752d343bdca9473f43dc0`.
+9. O workflow CI passou a:
+   - aplicar `016_identity_signup_verification.sql` como identidade administrativa;
+   - executar `db/tests/034_identity_signup.sql`;
+   no commit `df5c6f93c06e192ce973bf41b5fcae6863fa0f3d`.
+10. `apps/web/src/api.ts` recebeu clientes de signup, verificação e criação de workspace no commit `c729724b2dee194066fa69adec0c87940357e1b4`.
+11. `apps/web/src/main.tsx` recebeu:
+   - tela de cadastro;
+   - tela de verificação de e-mail;
+   - tela de criação do primeiro workspace;
+   - roteamento para `/verify-email?token=...`;
+   no commit inicial `3f573c64bb99b6fac452533110c9ef4d08785876`.
+12. Foi corrigida uma dependência de efeito React que havia sido aplicada ao componente errado; o ajuste está no commit `7d160d2464e8aa94b9d5910cc9509e5f70e09855`.
+13. Foi aberto o PR #40 com 10 arquivos alterados, sem merge nem deploy.
+14. O PR foi marcado como ready for review para permitir a execução normal dos gates do GitHub.
+15. Durante a revisão estática adversarial interna foram corrigidos:
+   - convite restrito ao workspace atualmente selecionado;
+   - parâmetro de workspace validado com resposta 400, não exceção genérica;
+   - erros de origem/CSRF mapeados para 403;
+   - pedido de reset sem resposta que revele a existência da conta quando o provedor de e-mail está indisponível;
+   no commit `e9e583b504f135b0c48a6a158d4d49f2a118348f` e no commit seguinte `9a498aac06306512a322aee31324eab00a2c7c93`.
+16. Nenhum commit desta frente foi mergeado. Nenhuma migration foi aplicada em Railway. Nenhuma tabela, função ou linha de produção foi alterada.
+17. Limite operacional pendente: para cadastro real funcionar, o ambiente de produção precisará receber `RESEND_API_KEY` e `IDENTITY_EMAIL_FROM` por segredo Railway. Esses valores não devem ser enviados ao GitHub nem registrados nesta memória.
+18. Próximo gate obrigatório: CI no SHA final do branch, revisão adversarial independente do Claude do SHA exato, depois somente com PASS decidir merge/deploy.
+
+
+---
+
+## 56. CI do Identity v1 — falha reproduzida e correção
+
+**Data:** 06 de setembro de 2026
+
+1. O primeiro head documental do PR #40 foi `215542ab23766356fc43d6fd5218545f5effc726`.
+2. O CI run #185 executou no merge ref do PR e passou por:
+   - Test Integrity Gate;
+   - typecheck;
+   - build;
+   - provisionamento de roles;
+   - migrations 001–016;
+   - grant de schema;
+   - fixtures;
+   - SQL gate 033.
+3. O CI falhou exclusivamente no gate `034_identity_signup.sql`.
+4. A mensagem PostgreSQL foi:
+   `function growth.identity_signup_with_verification(text, unknown, integer, text, timestamp with time zone) does not exist`.
+5. A causa foi uma incompatibilidade de tipo no próprio teste: a função recebe `p_hash_version smallint`, mas o teste passou o literal `19` como `integer`.
+6. O teste foi corrigido para usar `19::smallint` no commit `77cf5f017353c0e81d9909673a759ee6b0d3bc14`.
+7. Não houve alteração de migration ou relaxamento de segurança; foi corrigida somente a chamada tipada do gate.
+
+## 57. CI final verde do Identity v1
+
+**Data:** 06 de setembro de 2026  
+**SHA exato:** `77cf5f017353c0e81d9909673a759ee6b0d3bc14`  
+**CI run:** #187  
+**Job:** `validate` / `101405522457`
+
+Resultado confirmado diretamente nos jobs do GitHub:
+
+- Test Integrity Gate: PASS;
+- typecheck: PASS;
+- build: PASS;
+- Provision isolated CI roles: PASS;
+- migrations 001–016: PASS;
+- Grant runtime schema usage: PASS;
+- test fixtures: PASS;
+- SQL gate 033: PASS;
+- Identity SQL gate 034: PASS;
+- Growth Intelligence integration: PASS;
+- idempotência: PASS dentro da integração;
+- `insufficient_signal` / no-op: PASS dentro da integração;
+- production same-origin web shell: PASS;
+- `npm test`: PASS;
+- produção não foi tocada.
+
+O PR #40 continua aberto e não mergeado. O próximo gate obrigatório é a revisão adversarial do Claude exclusivamente neste SHA.

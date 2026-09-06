@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   fetchAuthSession,
+  createWorkspace,
+  signUp,
+  verifyEmail,
   fetchOpportunities,
   fetchOpportunityDetail,
   hasDevelopmentIdentity,
@@ -444,7 +447,10 @@ function AuthLoading() {
   );
 }
 
-function SignInScreen({ onSignedIn }: { onSignedIn: (session: AuthSessionResponse) => void }) {
+function SignInScreen({ onSignedIn, onCreateAccount }: {
+  onSignedIn: (session: AuthSessionResponse) => void;
+  onCreateAccount: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -493,6 +499,129 @@ function SignInScreen({ onSignedIn }: { onSignedIn: (session: AuthSessionRespons
             {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
+        <button className="auth-secondary" type="button" onClick={onCreateAccount}>Create a new account</button>
+      </section>
+    </main>
+  );
+}
+
+function SignupScreen({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (password !== confirmation) {
+      setMessage("Passwords do not match.");
+      return;
+    }
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await signUp(email, password);
+      setMessage("Account created. Check your email to verify the account before signing in.");
+    } catch (error) {
+      if (error instanceof RadarApiError && error.apiStatus === "identity_email_unavailable") {
+        setMessage("Account email delivery is not configured yet. Please contact the workspace administrator.");
+      } else if (error instanceof RadarApiError && error.httpStatus === 409) {
+        setMessage("This account cannot be created with the submitted details.");
+      } else {
+        setMessage("Growth OS could not create the account right now.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-brand"><span className="brand-mark">G</span><strong>Growth OS</strong></div>
+        <p className="eyebrow">Create your account</p>
+        <h1 className="auth-title">Start with a verified identity.</h1>
+        <p className="auth-copy">We send a verification link before any workspace access is granted.</p>
+        <form className="auth-form" onSubmit={submit}>
+          <label><span>Email</span><input autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+          <label><span>Password</span><input autoComplete="new-password" type="password" minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+          <label><span>Confirm password</span><input autoComplete="new-password" type="password" minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></label>
+          {message && <p className="auth-error" role="alert">{message}</p>}
+          <button className="auth-primary" type="submit" disabled={submitting}>{submitting ? "Creating…" : "Create account"}</button>
+        </form>
+        <button className="auth-secondary" type="button" onClick={onBack}>Back to sign in</button>
+      </section>
+    </main>
+  );
+}
+
+function EmailVerificationScreen({ token, onDone }: { token: string; onDone: () => void }) {
+  const [state, setState] = useState<"loading" | "verified" | "error">("loading");
+
+  useEffect(() => {
+    verifyEmail(token).then(() => setState("verified")).catch(() => setState("error"));
+  }, [token]);
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-brand"><span className="brand-mark">G</span><strong>Growth OS</strong></div>
+        <p className="eyebrow">Email verification</p>
+        {state === "loading" && <><h1 className="auth-title">Verifying your account…</h1><p className="auth-copy">The verification token is checked once and then consumed.</p></>}
+        {state === "verified" && <><h1 className="auth-title">Your email is verified.</h1><p className="auth-copy">You can sign in now and create or select a workspace.</p><button className="auth-primary" type="button" onClick={onDone}>Continue to sign in</button></>}
+        {state === "error" && <><h1 className="auth-title">This link is no longer valid.</h1><p className="auth-copy">The token may be expired or already used. Request a new verification email through the administrator.</p><button className="auth-secondary" type="button" onClick={onDone}>Back to sign in</button></>}
+      </section>
+    </main>
+  );
+}
+
+function WorkspaceOnboardingScreen({
+  session,
+  onCreated,
+  onSignOut
+}: {
+  session: AuthSessionResponse;
+  onCreated: (session: AuthSessionResponse) => void;
+  onSignOut: () => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [market, setMarket] = useState("US");
+  const [language, setLanguage] = useState("en-US");
+  const [timezone, setTimezone] = useState("America/New_York");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await createWorkspace({ name, defaultMarket: market, defaultLanguage: language, defaultTimezone: timezone });
+      onCreated(await fetchAuthSession());
+    } catch {
+      setMessage("Growth OS could not create this workspace. Check the details and try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-brand"><span className="brand-mark">G</span><strong>Growth OS</strong></div>
+        <p className="eyebrow">First workspace</p>
+        <h1 className="auth-title">Give your growth system a home.</h1>
+        <p className="auth-copy">This workspace becomes the tenant boundary for accounts, evidence, opportunities, and future publishing controls.</p>
+        <form className="auth-form" onSubmit={submit}>
+          <label><span>Workspace name</span><input value={name} onChange={(event) => setName(event.target.value)} required /></label>
+          <label><span>Default market</span><input value={market} onChange={(event) => setMarket(event.target.value)} required /></label>
+          <label><span>Default language</span><input value={language} onChange={(event) => setLanguage(event.target.value)} required /></label>
+          <label><span>Default timezone</span><input value={timezone} onChange={(event) => setTimezone(event.target.value)} required /></label>
+          {message && <p className="auth-error" role="alert">{message}</p>}
+          <button className="auth-primary" type="submit" disabled={submitting}>{submitting ? "Creating…" : "Create workspace"}</button>
+        </form>
+        <button className="auth-secondary" type="button" onClick={() => void onSignOut()}>Sign out</button>
       </section>
     </main>
   );
@@ -553,10 +682,15 @@ function WorkspaceScreen({
 }
 
 function RootApp() {
-  const [state, setState] = useState<"loading" | "signed_out" | "workspace" | "ready" | "dev">("loading");
+  const [state, setState] = useState<"loading" | "signed_out" | "signup" | "verify" | "workspace" | "onboarding" | "ready" | "dev">("loading");
+  const verificationToken = new URLSearchParams(window.location.search).get("token");
   const [session, setSession] = useState<AuthSessionResponse | null>(null);
 
   useEffect(() => {
+    if (window.location.pathname === "/verify-email" && verificationToken) {
+      setState("verify");
+      return;
+    }
     if (hasDevelopmentIdentity()) {
       setState("dev");
       return;
@@ -567,7 +701,7 @@ function RootApp() {
       .then((result) => {
         if (!active) return;
         setSession(result);
-        setState(result.selected_workspace ? "ready" : "workspace");
+        setState(result.selected_workspace ? "ready" : result.workspaces.length > 0 ? "workspace" : "onboarding");
       })
       .catch(() => {
         if (!active) return;
@@ -575,7 +709,7 @@ function RootApp() {
         setState("signed_out");
       });
     return () => { active = false; };
-  }, []);
+  }, [verificationToken]);
 
   async function doSignOut() {
     try { await signOut(); } catch { /* local state still clears */ }
@@ -585,11 +719,21 @@ function RootApp() {
 
   function acceptSession(result: AuthSessionResponse) {
     setSession(result);
-    setState(result.selected_workspace ? "ready" : "workspace");
+    setState(result.selected_workspace ? "ready" : result.workspaces.length > 0 ? "workspace" : "onboarding");
   }
 
   if (state === "loading") return <AuthLoading />;
-  if (state === "signed_out") return <SignInScreen onSignedIn={acceptSession} />;
+  if (state === "signed_out") return <SignInScreen onSignedIn={acceptSession} onCreateAccount={() => setState("signup")} />;
+  if (state === "signup") return <SignupScreen onBack={() => setState("signed_out")} />;
+  if (state === "verify" && verificationToken) {
+    return <EmailVerificationScreen token={verificationToken} onDone={() => {
+      window.history.replaceState({}, "", "/");
+      setState("signed_out");
+    }} />;
+  }
+  if (state === "onboarding" && session) {
+    return <WorkspaceOnboardingScreen session={session} onCreated={acceptSession} onSignOut={doSignOut} />;
+  }
   if (state === "workspace" && session) {
     return <WorkspaceScreen session={session} onSelected={acceptSession} onSignOut={doSignOut} />;
   }
