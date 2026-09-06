@@ -1820,3 +1820,27 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
    - testes unitários.
 9. Nenhuma alteração foi feita em produção durante a revisão ou as correções. O PR #41 continua sem merge e sem deploy.
 10. Este novo registro documental altera o head novamente. O SHA final deve ser confirmado e o CI repetido antes de nova aprovação do Claude.
+
+
+## 61. PR #41 Instagram foundation — merge, deploy e estado operacional
+
+**Data:** 06 de setembro de 2026  
+**PR aprovado:** #41  
+**SHA revisado pelo Claude:** `55f2d879055baf949d5abb803da429088afd9f78`  
+**Estado:** código mergeado e serviço web publicado; ativação de banco/credenciais Instagram ainda não confirmada.
+
+1. O Claude aprovou o PR #41 exclusivamente no SHA `55f2d879055baf949d5abb803da429088afd9f78`, após confirmar CI run #224 e ausência de bloqueios.
+2. O PR foi mergeado por squash usando head esperado. Commit resultante no `main`: `63a8eec9d0bb8986f2653f1fad67dc1c60e35a6d`.
+3. O Railway iniciou o deployment `1d4a4e3d-a925-4492-b98f-fef30bc74fc0` no serviço `growth-os`, branch `main`, commit `63a8eec9...`, status `SUCCESS`.
+4. Production Truth Gate público:
+   - `GET /health/ready` → HTTP 200, `status=ready`, `database=ok`;
+   - `GET /v1/system` → HTTP 200, `name=Growth OS`, `version=0.1.0`, `environment=production`;
+   - `GET /` → HTTP 200, shell web e headers de segurança presentes.
+5. A configuração do serviço público foi conferida e não contém `INSTAGRAM_APP_ID` nem `INSTAGRAM_APP_SECRET`. Portanto o conector permanece desativado com segurança até a configuração externa da aplicação Meta e dos segredos Railway.
+6. A aplicação automática da migration 017 no banco de produção não foi presumida. O serviço público não possui `pre-deploy` de migrations, e a tentativa de consulta read-only via Railway Agent não conseguiu executar o `psql` com as referências protegidas.
+7. Foi tentada uma verificação controlada pelo serviço `migrator`, mas os logs continuaram mostrando o comando antigo; o `preDeployCommand` temporário foi removido da configuração para não deixar uma ação futura inesperada.
+8. Um serviço temporário `m017-verify-readonly` foi criado pelo agente durante a tentativa e falhou por incompatibilidade Bun/Postgres. A remoção foi staged, mas o Railway exigiu 2FA no dashboard para concluir. Esse serviço é resíduo operacional temporário e não faz parte do produto.
+9. Não há evidência suficiente para afirmar que os cinco helpers Instagram e as três capabilities já existem no banco de produção. Esse ponto permanece **PENDENTE**, não aprovado por inferência do deploy web.
+10. Próximo gate operacional obrigatório: concluir a remoção do serviço temporário no dashboard Railway e executar uma verificação controlada do banco; se a migration 017 estiver ausente, aplicar exatamente o SQL aprovado e validar catálogo/grants antes de considerar Instagram publicado.
+
+**Conclusão desta etapa:** PR #41 está integrado no código e o serviço web está saudável em produção, mas o conector Instagram ainda não deve ser considerado operacionalmente ativado até o gate de banco e configuração externa.
