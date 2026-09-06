@@ -345,3 +345,11 @@ Ainda falta para congelar Phase 3:
 - evidência operacional e revisão final do conector.
 
 O projeto completo continua incompleto. Fases 4–11 — conteúdo completo, publicação/orquestração, analytics, inteligência, experimentos, Copilot/Autopilot, comercial/enterprise e hardening/launch — permanecem pendentes conforme a definição de completude da seção 2.
+
+
+## 14. PR #43 — Instagram lifecycle web surface
+
+O PR #43 adiciona a primeira superfície web utilizável para o ciclo Instagram: status autenticado, autorização/reconexão, refresh de token, revogação local e estados fail-closed. O CI inicial passou no SHA `5d70754b973c9f67460e0e9a034f09f576024913`; o bloco ainda aguarda revisão adversarial final antes de merge/deploy.
+
+Isso avança a usabilidade da integração, mas não congela a Phase 3. Continuam pendentes: credenciais Meta e conta profissional real, prova do OAuth real, sync de mídia/métricas, publicação, reconciliação, webhooks, insights autorizados, testes de jornada real e as fases 4–11.
+
