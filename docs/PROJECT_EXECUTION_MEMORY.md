@@ -2098,3 +2098,93 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 13. O serviço público `growth-os` permaneceu saudável após o rebuild documental, com deployment Railway em `SUCCESS`.
 14. O PR #43 está integrado no código e a primeira interface web do ciclo Instagram está publicada no `main`.
 15. Isto não significa que o produto Instagram esteja completo: credenciais Meta reais, conta profissional real, sync de mídia/métricas, publicação, reconciliação, webhooks, insights autorizados e fases 4–11 continuam pendentes.
+
+
+---
+
+## Registro operacional — bloco Instagram media/metrics sync v0.1 — 2026-09-06
+
+### Ponto de partida e decisão
+
+- Base utilizada: `main` no commit `1809e968935ca18a0002421c1fa4bd856105221b`, que já contém o merge de PR #43 e o registro da limpeza de produção.
+- Branch criada: `feat/growth-os-instagram-sync-v0-1`.
+- Objetivo deste bloco: transformar o conector Instagram de somente lifecycle/UI em uma primeira ingestão real de mídia e métricas diretas de engajamento, mantendo o modelo aprovado do YouTube: proveniência completa, idempotência por workspace, helpers `SECURITY DEFINER`, RLS/FORCE RLS e zero acesso direto do `app_runtime` às tabelas sensíveis.
+- Escopo deliberadamente limitado: mídia e `like_count`/`comments_count` provenientes do objeto de mídia. Insights avançados, publicação, comentários, webhooks e reconciliação continuam blocos posteriores; não foram simulados nem habilitados por este bloco.
+
+### Auditoria realizada antes da implementação
+
+1. Comparação do `youtube-connector.ts`, `youtube-routes.ts`, migration 010 e gate 033 para reutilizar o contrato já exercitado:
+   - nonce UUID;
+   - janela limitada;
+   - payload digest SHA-256;
+   - `metric_observations` com proveniência;
+   - helper SQL restrito;
+   - retry idempotente e conflito explícito.
+2. Inspeção do Instagram atual:
+   - migrations 017–018: OAuth, credencial cifrada, refresh, revoke e reconexão;
+   - `instagram-connector.ts`: configuração Graph API, state AES-GCM/AAD, profile profissional e credential helper;
+   - `instagram-routes.ts`: status/authorize/callback/refresh/revoke/reconnect;
+   - UI já integrada, mas sem ação de sincronização.
+3. Consulta à documentação oficial Meta localizada para o objeto Instagram Media, endpoint de mídia e Media Insights. A decisão desta etapa usa somente campos diretos de mídia que já fazem parte do objeto retornado: identificador, tipo, timestamp, permalink, URLs, `like_count` e `comments_count`.
+
+### Alterações realizadas no branch
+
+- `db/migrations/019_instagram_media_metrics_sync.sql`
+  - criou `growth.instagram_media`;
+  - RLS e FORCE RLS ativos;
+  - índice por conta/data;
+  - `app_runtime` sem SELECT/INSERT/UPDATE/DELETE direto;
+  - helper `growth.instagram_record_media(...)` para upsert tenant-scoped e rejeição de transplante de mídia entre contas;
+  - helper `growth.instagram_record_metric_observation(...)` para gravar proveniência completa e idempotência estrita;
+  - ambos os helpers são `SECURITY DEFINER`, owner `growth_migrator`, EXECUTE para `app_runtime`, PUBLIC revogado.
+- `db/tests/037_instagram_media_metrics_sync.sql`
+  - gate de existência da tabela, RLS/FORCE RLS, ausência de privilégios de tabela para `app_runtime`, owner/SECURITY DEFINER/grants dos dois helpers.
+- `.github/workflows/ci.yml`
+  - executa o gate 037 após os gates Instagram 035/036.
+- `apps/api/src/instagram-connector.ts`
+  - `InstagramSyncSchema` com connection UUID, nonce UUID e lookback de 1–30 dias;
+  - paginação limitada a 20 páginas;
+  - filtro de lookback e rejeição de timestamps inválidos;
+  - digest SHA-256 por payload de mídia;
+  - gravação de metadados via helper;
+  - gravação de métricas diretas `like_count` e `comments_count`;
+  - refresh automático quando o token está a até 60 segundos de expirar;
+  - resposta com media/observation counts e `collectionRunId`.
+- `apps/api/src/instagram-routes.ts`
+  - endpoint autenticado e protegido por CSRF: POST `/v1/integrations/instagram/sync`.
+- `apps/web/src/api.ts`
+  - tipo e client `syncInstagram`.
+- `apps/web/src/instagram-integration.tsx`
+  - botão “Sync media & metrics”;
+  - exibição da última contagem de mídia/métricas;
+  - texto de estado atualizado, mantendo publishing/advanced insights explicitamente separados.
+- `apps/api/src/instagram-connector.test.ts`
+  - teste de URL sem token exposto, fields limitados e cursor;
+  - teste de schema para nonce/lookback;
+  - testes anteriores de config, refresh endpoint, state round-trip e tampering permanecem.
+
+### Execuções, falhas e correções — sequência integral
+
+1. Commit `83d1bf86226542b48b66a3475624edc25a65e01d`: adicionou migration 019.
+2. Commit `5ae0313d82b88723828eac8ad7396eb85a7fbbcc`: adicionou gate 037 e inseriu a etapa do gate no CI.
+3. Commit `6711c39b0b5ec48b0aefdb13e973ecf80dcf134c`: adicionou endpoint de sync às rotas.
+4. Commit `7b0d18a68c46fe470ba8b75ce86d8ae194db0a5f`: adicionou tipo/client web.
+5. Commit `c20831c98718f44a2ca26ee0e3775c32ee17d22c`: adicionou ação e feedback de sync à UI.
+6. Commit `c65fa4347f6df6cf0a05b8bd638fd279098e2c26`: adicionou testes de contrato.
+7. CI run 292, SHA `c65fa4347f6df6cf0a05b8bd638fd279098e2c26`: falhou no Typecheck antes dos gates. Evidência: `apps/web/src/instagram-integration.tsx`, acesso repetido a `lastSync[row.connection_id]` podia ser undefined. Correção: introdução da variável estreitada `sync`.
+8. Commit `000717296ab6fd21e415fab361cd144f85aa4ecd`: correção de narrowing na UI. CI run 293 passou Typecheck/Build, mas falhou na migration 019.
+9. CI run 293, SHA `000717296ab6fd21e415fab361cd144f85aa4ecd`: falhou na aplicação da migration com PostgreSQL 42883. Evidência: os comandos `REVOKE/GRANT` do helper métrico repetiam uma assinatura com quatro `timestamptz` no trecho final, enquanto a função criada possui cinco (incluindo `p_collected_at`). A função foi criada, mas a referência de grant não resolvia.
+10. Correção aplicada no commit `2a34b96d5136cac7fc55d794b433252295982341`: alinhadas as assinaturas completas nos comandos `REVOKE/GRANT`.
+11. CI run 294, SHA exato `2a34b96d5136cac7fc55d794b433252295982341`: conclusão `success`.
+12. Gates confirmados no run 294: Test Integrity, typecheck, build, provisionamento de roles, migrations 001–019, schema usage, fixtures, SQL gates 033/034/035/036/037, Growth Intelligence integration, production web shell e `npm test`.
+13. Validação local adicional:
+    - `npm run typecheck`: passou no clone do branch;
+    - `node --import tsx --test apps/api/src/instagram-connector.test.ts`: 7 testes passaram;
+    - `npm test` no ambiente local falhou antes da suíte por `tsx` não conseguir criar pipe IPC (`listen EPERM /tmp/tsx-0/...pipe`); isso é limitação do ambiente local, não falha do código, e o CI oficial passou o mesmo gate completo.
+14. Não houve merge, deploy ou alteração de produção neste bloco. O SHA `2a34b96d5136cac7fc55d794b433252295982341` aguarda revisão adversarial final do Claude antes de qualquer integração.
+
+### Estado após o bloco
+
+- A fundação de ingestão Instagram está implementada e validada em CI isolado.
+- O fluxo ainda não está aprovado para merge/deploy: falta a revisão final adversarial do Claude no SHA exato.
+- O projeto não está concluído: faltam insights avançados, publicação real, webhooks, comentários/moderação, reconciliação, testes com conta Instagram real, observabilidade operacional, rollout e fases posteriores do produto.
