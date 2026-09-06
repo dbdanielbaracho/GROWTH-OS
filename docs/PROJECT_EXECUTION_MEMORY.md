@@ -2066,3 +2066,35 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 10. O painel ainda é uma superfície de lifecycle; não declara Instagram completo. Sync de mídia/métricas, publicação, reconciliação, webhooks, insights autorizados, testes de jornada real e credenciais Meta permanecem pendentes.
 11. Este registro documental altera o head do branch. O SHA final deve ser obtido e o CI repetido antes de enviar o código ao Claude para revisão adversarial.
 
+
+
+## 68. PR #43 — aprovação Claude, limpeza de produção e merge concluído
+
+**Data:** 06 de setembro de 2026  
+**PR:** #43  
+**SHA revisado pelo Claude:** `0a4425148dab39beaea3d6aa9d8ee018d6db4583`  
+**Commit mergeado em main:** `10557fbcf9bb259fa9d5966d9370121641c68130`
+
+1. O Claude revalidou exclusivamente o SHA `0a4425148dab39beaea3d6aa9d8ee018d6db4583`.
+2. O CI foi confirmado diretamente para esse SHA: duas execuções, ambas com `head_sha` exato e `conclusion=success`.
+3. O bloqueio anterior de produção foi rechecado diretamente e todos os oito checks retornaram zero:
+   - workspace sintético ausente;
+   - `provider-acct-l1-a` ausente;
+   - `provider-acct-l1-b` ausente;
+   - platform connection sintética ausente;
+   - managed account sintética ausente;
+   - memberships/social accounts/platform connections residuais ausentes;
+   - nenhuma conexão Instagram restante em produção;
+   - nenhum resíduo do workspace RC9.
+4. O Claude confirmou novamente typecheck/build, autenticação, CSRF, tenant isolation, estados fail-closed e ausência de credenciais no frontend.
+5. Veredito do Claude: `APPROVE — PR #43 — SHA 0a4425148dab39beaea3d6aa9d8ee018d6db4583`.
+6. O PR estava draft; foi marcado como pronto para revisão.
+7. A primeira tentativa de merge foi recusada pelo GitHub porque a atualização posterior do documento de memória em `main` criou conflito documental. O conflito não envolvia código.
+8. Para preservar o SHA aprovado, `main` foi temporariamente restaurado ao conteúdo documental da base do PR; nenhum arquivo de código do PR foi alterado.
+9. O PR foi então mergeado por squash com verificação do head esperado. O commit resultante foi `10557fbcf9bb259fa9d5966d9370121641c68130`.
+10. Depois do merge, esta seção foi registrada novamente no documento de memória.
+11. A limpeza de produção havia sido comprovada no deployment Railway `41331ace-42df-42cb-b7b2-87592c4c7526`, com `CLEANUP_COMMIT_OK` e contagens `WORKSPACE_AFTER=0`, `SOCIAL_AFTER=0`, `CONNECTION_AFTER=0`, `MANAGED_AFTER=0`, sem erros.
+12. O migrator foi restaurado para `MIGRATOR_IDLE` no deployment `6809672c-d274-44d2-a65b-75f0aaf92bef`; nenhum cleanup temporário permanece ativo.
+13. O serviço público `growth-os` permaneceu saudável após o rebuild documental, com deployment Railway em `SUCCESS`.
+14. O PR #43 está integrado no código e a primeira interface web do ciclo Instagram está publicada no `main`.
+15. Isto não significa que o produto Instagram esteja completo: credenciais Meta reais, conta profissional real, sync de mídia/métricas, publicação, reconciliação, webhooks, insights autorizados e fases 4–11 continuam pendentes.
