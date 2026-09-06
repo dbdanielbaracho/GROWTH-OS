@@ -124,6 +124,41 @@ export type YoutubeSyncResponse = {
   intelligenceDeltaRatio: number | null;
 };
 
+
+export type InstagramIntegration = {
+  managed_account_id: string;
+  owner_type: string;
+  authority_status: string;
+  contribution_eligibility: string;
+  connection_id: string | null;
+  connection_state: string | null;
+  connection_updated_at: string | null;
+  social_account_id: string | null;
+  provider_account_id: string | null;
+  handle: string | null;
+  account_type: string | null;
+  market: string | null;
+  source_timezone: string | null;
+};
+
+export type InstagramStatusResponse = {
+  status: "ok";
+  configured: boolean;
+  integrations: InstagramIntegration[];
+};
+
+export type InstagramAuthorizeResponse = {
+  status: "ok";
+  connectionId: string;
+  authorizationUrl: string;
+};
+
+export type InstagramRefreshResponse = {
+  status: "ok";
+  connectionId: string;
+  tokenExpiresAt: string;
+};
+
 type OpportunityListResponse = {
   status: "ok";
   opportunities: OpportunitySummary[];
@@ -322,4 +357,36 @@ export async function syncYoutube(
     method: "POST",
     body: { connectionId, requestNonce, lookbackDays }
   });
+}
+
+export async function fetchInstagramStatus(): Promise<InstagramStatusResponse> {
+  return requestJson<InstagramStatusResponse>("/v1/integrations/instagram/status");
+}
+
+export async function authorizeInstagram(managedAccountId: string): Promise<InstagramAuthorizeResponse> {
+  return requestJson<InstagramAuthorizeResponse>("/v1/integrations/instagram/authorize", {
+    method: "POST",
+    body: { managedAccountId }
+  });
+}
+
+export async function reconnectInstagram(managedAccountId: string): Promise<InstagramAuthorizeResponse> {
+  return requestJson<InstagramAuthorizeResponse>("/v1/integrations/instagram/reconnect", {
+    method: "POST",
+    body: { managedAccountId }
+  });
+}
+
+export async function refreshInstagram(connectionId: string): Promise<InstagramRefreshResponse> {
+  return requestJson<InstagramRefreshResponse>(
+    `/v1/integrations/instagram/${encodeURIComponent(connectionId)}/refresh`,
+    { method: "POST" }
+  );
+}
+
+export async function revokeInstagram(connectionId: string): Promise<void> {
+  await requestNoContent(
+    `/v1/integrations/instagram/${encodeURIComponent(connectionId)}/revoke`,
+    { method: "POST" }
+  );
 }

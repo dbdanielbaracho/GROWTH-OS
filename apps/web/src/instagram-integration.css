@@ -1,0 +1,187 @@
+.instagram-integration-panel {
+  position: fixed;
+  right: 22px;
+  bottom: 104px;
+  z-index: 59;
+  width: min(410px, calc(100vw - 28px));
+  color: #f2efe6;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  filter: drop-shadow(0 20px 42px rgba(0, 0, 0, .42));
+}
+
+.instagram-panel-toggle,
+.instagram-panel-body {
+  border: 1px solid #34352f;
+  background: #121412;
+}
+
+.instagram-panel-toggle {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 2px;
+  display: grid;
+  grid-template-columns: 38px 1fr 28px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 13px;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.instagram-integration-panel.expanded .instagram-panel-toggle {
+  border-radius: 2px 2px 0 0;
+  border-bottom-color: #34352f;
+}
+
+.instagram-panel-toggle strong,
+.instagram-panel-toggle small {
+  display: block;
+}
+.instagram-panel-toggle strong { font-size: .94rem; }
+.instagram-panel-toggle small { margin-top: 2px; color: #92968e; font-size: .76rem; }
+
+.instagram-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #f6c45d, #dd426c 52%, #8249a8);
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.instagram-chevron {
+  justify-self: center;
+  color: #b8b9b1;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.instagram-panel-body {
+  border-top: 0;
+  border-radius: 0 0 2px 2px;
+  padding: 20px;
+  max-height: min(650px, calc(100vh - 190px));
+  overflow: auto;
+}
+
+.instagram-kicker {
+  margin: 0 0 5px;
+  text-transform: uppercase;
+  letter-spacing: .13em;
+  font-size: .68rem;
+  font-weight: 800;
+  color: #92968e;
+}
+
+.instagram-panel-body h2 {
+  margin: 0;
+  color: #f0ede4;
+  font-size: 1.18rem;
+  line-height: 1.2;
+}
+
+.instagram-copy {
+  margin: 8px 0 15px;
+  font-size: .82rem;
+  line-height: 1.55;
+  color: #92968e;
+}
+
+.instagram-notice,
+.instagram-error,
+.instagram-empty {
+  border-radius: 2px;
+  padding: 10px 11px;
+  margin: 10px 0;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+.instagram-notice { background: rgba(71, 131, 85, .16); border: 1px solid rgba(101, 174, 116, .34); color: #b8e2bf; }
+.instagram-error { background: rgba(163, 76, 67, .16); border: 1px solid rgba(202, 109, 98, .38); color: #f0b9b0; }
+.instagram-empty { background: #1a1b18; border: 1px solid #3b3c35; color: #b2b4ac; display: grid; gap: 3px; }
+.instagram-muted { color: #92968e; font-size: .8rem; }
+
+.instagram-account {
+  border: 1px solid #34352f;
+  border-radius: 2px;
+  padding: 13px;
+  margin-top: 11px;
+  background: #181a17;
+}
+
+.instagram-account-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+}
+
+.instagram-account-heading strong,
+.instagram-account-heading span { display: block; }
+.instagram-account-heading strong { font-size: .9rem; }
+.instagram-account-heading div > span { margin-top: 3px; color: #92968e; text-transform: capitalize; font-size: .75rem; }
+
+.instagram-state {
+  border-radius: 2px;
+  padding: 4px 8px;
+  background: #252721;
+  color: #b0b3aa;
+  font-size: .68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.instagram-state.state-connected { background: rgba(71, 131, 85, .18); color: #b8e2bf; }
+
+.instagram-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 10px;
+  margin: 0 0 12px;
+  font-size: .74rem;
+}
+.instagram-meta dt { color: #92968e; }
+.instagram-meta dd { margin: 0; color: #d4d1c7; text-align: right; }
+
+.instagram-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.instagram-primary,
+.instagram-secondary {
+  width: 100%;
+  border-radius: 2px;
+  padding: 10px 12px;
+  font-size: .81rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.instagram-primary { border: 1px solid #bd9241; background: #d5a84f; color: #13130f; }
+.instagram-primary:hover:not(:disabled) { background: #f0c96e; }
+.instagram-secondary { border: 1px solid #57584f; background: transparent; color: #d4d1c7; }
+.instagram-secondary:hover:not(:disabled) { border-color: #aaa99e; }
+.instagram-primary:disabled,
+.instagram-secondary:disabled { opacity: .55; cursor: wait; }
+
+.instagram-policy-note {
+  margin: 13px 2px 0;
+  color: #92968e;
+  font-size: .68rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .instagram-integration-panel {
+    right: 14px;
+    bottom: 94px;
+    width: calc(100vw - 28px);
+  }
+  .instagram-actions { grid-template-columns: 1fr; }
+}
