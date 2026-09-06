@@ -7,6 +7,9 @@ const RawEnvSchema = z.object({
 
   APP_ORIGIN: z.string().url().optional(),
   CSRF_SECRET: z.string().min(32).optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  IDENTITY_EMAIL_FROM: z.string().min(3).optional(),
+  IDENTITY_EMAIL_API_URL: z.string().url().default("https://api.resend.com/emails"),
 
   SESSION_ABSOLUTE_TTL_SECONDS: z.coerce.number().int().min(3600).max(60 * 60 * 24 * 90).default(60 * 60 * 24 * 30),
   SESSION_IDLE_TTL_SECONDS: z.coerce.number().int().min(300).max(60 * 60 * 24 * 30).default(60 * 60 * 24),
