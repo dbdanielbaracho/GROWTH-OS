@@ -1496,3 +1496,16 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 6. Não houve merge, deploy ou alteração da produção.
 
 **Aprendizado operacional:** toda alteração de workflow que contenha heredoc, SQL ou regex deve ser relida no arquivo efetivamente versionado e executada no CI antes de ser considerada concluída; a intenção do texto gerado não substitui a verificação do conteúdo armazenado.
+
+
+## 51. Falha de interpolação no SQL do bootstrap do CI
+
+**Data:** 06 de setembro de 2026
+
+1. O CI run #149, no commit `f3096434884081aaf4841e7b97c30f7db2790589`, passou por integrity gate, typecheck e build.
+2. O provisionamento falhou ao executar `GRANT CONNECT, CREATE ON DATABASE "$CI_DATABASE_NAME"`.
+3. A causa foi o heredoc `<<'SQL'`: por ser protegido por aspas simples, o shell não expande `$CI_DATABASE_NAME`; o PostgreSQL recebeu literalmente o nome `$CI_DATABASE_NAME`.
+4. O workflow foi corrigido para usar explicitamente `growth_os_ci`, o banco isolado declarado no serviço PostgreSQL. O commit da correção é `13f296607c7941c9a507a61d006f6d8eb82cfc2a`.
+5. Não houve merge, deploy ou alteração da produção.
+
+**Aprendizado operacional:** em scripts CI, variáveis de shell dentro de heredocs SQL devem ser verificadas pelo comportamento efetivo do shell; preferir parâmetros explícitos ou variáveis nativas do `psql` quando o heredoc estiver protegido contra expansão.
