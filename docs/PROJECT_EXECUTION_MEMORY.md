@@ -1699,3 +1699,97 @@ O PR #40 continua aberto e não mergeado. O próximo gate obrigatório é a revi
 9. O projeto completo continua em execução. Instagram, publicação, analytics multicanal, experimentos, Copilot/Autopilot, billing/enterprise e hardening final ainda não estão concluídos.
 
 **Resultado:** Identity v1 foi mergeado e publicado com endpoints básicos saudáveis; o cadastro por e-mail permanece explicitamente pendente de configuração operacional.
+
+
+## 59. Instagram connector foundation — PR #41, tentativas, correções e CI verde
+
+**Data:** 06 de setembro de 2026  
+**Branch:** `feat/growth-os-instagram-connector-v1`  
+**PR:** [#41](https://github.com/dbdanielbaracho/GROWTH-OS/pull/41), draft, aberto e não mergeado  
+**Base:** `94b0e2a7cececcea58acc7356f6ea624a18df7b3`  
+**Estado desta seção:** fundação validada em CI; revisão adversarial do Claude, merge, deploy e prova de conta Instagram real ainda pendentes.
+
+### 59.1 Escopo implementado
+
+1. A frente foi iniciada para executar a Phase 3 do roadmap, começando pelo contrato seguro do Instagram.
+2. Foi criada a migration `017_instagram_connector_foundation.sql`:
+   - registra as capacidades `authorized_profile`, `content_publish` e `authorized_insights`;
+   - mantém publicação e insights com `kill_switch=true` e `status=validation_required`;
+   - cria helpers `SECURITY DEFINER` tenant-scoped para status, início/finalização OAuth, leitura e atualização de credenciais;
+   - grava credenciais somente no mecanismo criptografado já existente;
+   - revoga `PUBLIC EXECUTE` e concede execução a `app_runtime` apenas nos helpers previstos.
+3. Foi criado `apps/api/src/instagram-connector.ts` com:
+   - estado OAuth cifrado, autenticado por AES-GCM e AAD fixa;
+   - vinculação do estado a usuário, workspace, managed account e connection;
+   - expiração e rejeição de estado adulterado;
+   - troca do código em token de curta duração;
+   - troca para token de longa duração;
+   - consulta do perfil e validação de conta profissional;
+   - cifragem antes da persistência do token.
+4. Foram criadas as rotas:
+   - `GET /v1/integrations/instagram/status`;
+   - `POST /v1/integrations/instagram/authorize`;
+   - `GET /v1/integrations/instagram/callback`.
+5. O callback usa destinos same-origin literais, sem redirect controlado por input externo.
+6. Foram adicionadas configuração opcional, registro no servidor, teste unitário do estado OAuth e gate SQL 035.
+7. As referências externas usadas para os endpoints foram as documentações oficiais da Meta registradas no PR:
+   - autorização: `https://www.instagram.com/oauth/authorize`;
+   - troca inicial: `https://api.instagram.com/oauth/access_token`;
+   - Graph API/troca longa: `https://graph.instagram.com/`.
+
+### 59.2 Commits executados nesta frente
+
+1. Migration inicial: `98aa402d775729a73eed73fad2b5efac126be56b`.
+2. Ajuste inicial da assinatura da função: `6919d594fbdf12d6a1eaa603cf20b9744f561162`.
+3. Connector: `40b7f44a62c84ca59baaebde0b88ab24bbc8020c`.
+4. Rotas: `c21ccfd9af44a2f89a4ac751a2c694cb2529bb11`.
+5. Registro no servidor: `59d94105e0572a83ce2ab399b3eed6f12f6f774e`.
+6. Configuração: `35d2fe87b211b4a7570e767773e6eeeb00737843`.
+7. Gate SQL 035: `9e7a63f5689ab572028369a44490d152fd88e797`.
+8. Teste unitário OAuth state: `8f360ecf2922b74c8fc8c7f27c325922211c5f34`.
+9. CI com migration 017 e gate 035: `c26bc6c459fd567685905be8efdc0872aa692255`.
+10. Correção das assinaturas de `REVOKE/GRANT` para `timestamptz`: `e1f5fd0fb693ed19d7ed05cbdf25fbe946e1087b`.
+11. Correção do usuário do gate 035 para `growth_migrator`: `3c31a53fe362d89699e66c767b191f70cadd1eb2`.
+12. Correção da senha correspondente no ambiente do gate: `046a643aba6904499f0a1a16c3a9ac9e484610e6`.
+
+### 59.3 Falhas reais reproduzidas e correções
+
+1. No CI run #203, a migration 017 falhou porque `ALTER FUNCTION`/grants declaravam `text` para o parâmetro de expiração, enquanto a função real usava `timestamptz`. A função não era encontrada. A correção alinhou as três assinaturas ao tipo real.
+2. No CI run #205, migrations 001–017 passaram, mas o gate 035 falhou porque o teste executado como `app_runtime` leu diretamente `growth.capabilities`. Isso contrariava o least privilege do projeto. O passo foi movido para `growth_migrator`, preservando as verificações de owner, `SECURITY DEFINER`, grants e ausência de acesso direto do runtime.
+3. No CI run #207, o passo já usava `growth_migrator`, mas mantinha `PGPASSWORD=app_runtime`; a autenticação falhou deterministicamente. A senha foi alinhada ao usuário do passo.
+4. Nenhuma dessas tentativas alterou produção, banco persistente ou dados sintéticos. Todas ocorreram no PostgreSQL efêmero do CI.
+
+### 59.4 CI verde do candidato atual
+
+**SHA de código antes do registro documental:** `046a643aba6904499f0a1a16c3a9ac9e484610e6`  
+**CI:** run #209, run id `34004342145`, job `validate`, SUCCESS.
+
+Gates confirmados:
+
+- Test Integrity Gate;
+- typecheck;
+- build;
+- provisionamento de roles;
+- migrations 001–017;
+- grant de schema para runtime;
+- fixtures determinísticos;
+- SQL gate 033;
+- Identity gate 034;
+- Instagram gate 035;
+- Growth Intelligence integration;
+- idempotência;
+- `insufficient_signal`/no-op;
+- production same-origin web shell;
+- `npm test`;
+- teardown do PostgreSQL efêmero.
+
+O registro documental desta seção altera o head do branch. Portanto, o SHA final e o CI final precisam ser buscados novamente antes da revisão do Claude.
+
+### 59.5 Limites que permanecem explicitamente pendentes
+
+1. PR #41 não foi mergeado nem deployado.
+2. Produção não recebeu migration 017, credenciais Instagram ou dados sintéticos.
+3. Railway não possui credenciais Instagram reais configuradas nesta etapa.
+4. Ainda não estão completos neste slice: refresh/reconexão operacional, revogação, sync de mídia/métricas, publicação real, reconciliação, webhooks, UI completa e prova com conta profissional real.
+5. As capacidades de publicação e insights permanecem fail-closed.
+6. O Claude deve revisar exclusivamente o SHA final após o novo CI. Só depois de APPROVE poderá haver decisão de merge/deploy.
