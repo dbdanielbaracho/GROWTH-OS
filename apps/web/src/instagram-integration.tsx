@@ -7,6 +7,7 @@ import {
   fetchInstagramStatus,
   refreshInstagram,
   reconnectInstagram,
+  syncInstagram,
   revokeInstagram,
   type InstagramIntegration,
   type InstagramStatusResponse
@@ -48,6 +49,7 @@ function InstagramIntegrationPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Record<string, string>>({});
+  const [lastSync, setLastSync] = useState<Record<string, { media: number; observations: number; at: string }>>({});
   const [expanded, setExpanded] = useState(true);
 
   const callbackNotice = useMemo(() => {
@@ -123,6 +125,28 @@ function InstagramIntegrationPanel() {
     }
   }
 
+  async function syncMedia(row: InstagramIntegration) {
+    if (!row.connection_id) return;
+    setBusyId(row.connection_id);
+    setMessage(null);
+    try {
+      const result = await syncInstagram(row.connection_id, crypto.randomUUID(), 7);
+      setLastSync((current) => ({
+        ...current,
+        [row.connection_id!]: {
+          media: result.mediaProcessed,
+          observations: result.observationsProcessed,
+          at: new Date().toISOString()
+        }
+      }));
+      await refresh();
+    } catch (error) {
+      setMessage(friendlyError(error));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function revoke(row: InstagramIntegration) {
     if (!row.connection_id) return;
     if (!window.confirm("Revoke this Instagram connection locally? The stored credential will be removed.")) return;
@@ -173,6 +197,7 @@ function InstagramIntegrationPanel() {
             const connected = row.connection_state === "connected" && Boolean(row.connection_id);
             const busy = busyId === row.managed_account_id || busyId === row.connection_id;
             const expiresAt = row.connection_id ? lastRefresh[row.connection_id] : undefined;
+            const sync = row.connection_id ? lastSync[row.connection_id] : undefined;
 
             return (
               <section className="instagram-account" key={row.managed_account_id}>
@@ -193,10 +218,16 @@ function InstagramIntegrationPanel() {
                       <dt>Publishing</dt><dd>Protected until enabled</dd>
                       <dt>Insights</dt><dd>Protected until enabled</dd>
                       {expiresAt && <><dt>Token until</dt><dd>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(expiresAt))}</dd></>}
+                      {sync && (
+                        <><dt>Last sync</dt><dd>{sync.media} media / {sync.observations} metrics</dd></>
+                      )}
                     </dl>
                     <div className="instagram-actions">
-                      <button className="instagram-primary" type="button" disabled={busy} onClick={() => void refreshToken(row)}>
-                        {busy ? "Working…" : "Refresh token"}
+                      <button className="instagram-primary" type="button" disabled={busy} onClick={() => void syncMedia(row)}>
+                        {busy ? "Syncing…" : "Sync media & metrics"}
+                      </button>
+                      <button className="instagram-secondary" type="button" disabled={busy} onClick={() => void refreshToken(row)}>
+                        Refresh token
                       </button>
                       <button className="instagram-secondary" type="button" disabled={busy} onClick={() => void revoke(row)}>
                         Revoke locally
@@ -212,7 +243,7 @@ function InstagramIntegrationPanel() {
             );
           })}
 
-          <p className="instagram-policy-note">Publishing, insights and media sync remain disabled until their separate provider contracts and tests are complete.</p>
+          <p className="instagram-policy-note">Media metadata and direct engagement counts are now synced with provenance and retry-safe writes. Publishing and advanced insights remain separately gated.</p>
         </div>
       )}
     </aside>

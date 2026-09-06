@@ -353,3 +353,54 @@ O PR #43 adiciona a primeira superfície web utilizável para o ciclo Instagram:
 
 Isso avança a usabilidade da integração, mas não congela a Phase 3. Continuam pendentes: credenciais Meta e conta profissional real, prova do OAuth real, sync de mídia/métricas, publicação, reconciliação, webhooks, insights autorizados, testes de jornada real e as fases 4–11.
 
+
+
+---
+
+## Addendum 15 — Instagram media and direct metrics sync v0.1 — 2026-09-06
+
+### Concluído neste bloco
+
+- Migration forward-only 019 criada e aplicada no CI isolado.
+- Tabela `growth.instagram_media` com RLS + FORCE RLS, sem acesso direto do `app_runtime`.
+- Helpers `SECURITY DEFINER` para persistência de mídia e observações métricas, com owner/grants auditáveis.
+- Endpoint autenticado `POST /v1/integrations/instagram/sync`.
+- Paginação limitada, janela de lookback de 1–30 dias, rejeição de timestamp inválido e digest SHA-256 de payload.
+- Métricas diretas implementadas: `like_count` e `comments_count`.
+- Idempotência por workspace/request nonce/media/metric/semantic version.
+- UI com ação “Sync media & metrics” e retorno da contagem processada.
+- Gate SQL 037 e testes de contrato adicionados.
+- CI run 294: SHA `2a34b96d5136cac7fc55d794b433252295982341`, conclusão `success`, todos os gates existentes e o gate 037 aprovados.
+
+### Aprendizados incorporados
+
+- Typecheck de frontend é executado antes de qualquer migration gate; o primeiro CI encontrou e corrigiu o narrowing opcional da UI.
+- Assinaturas SQL de criação, alteração, REVOKE, GRANT e gates devem ser mantidas como uma única lista verificável; o segundo CI encontrou a divergência de um parâmetro `timestamptz`.
+- O CI oficial isolado permanece a autoridade para o conjunto completo; testes locais continuam úteis, mas limitações do ambiente local devem ser registradas separadamente.
+
+### Limites explícitos
+
+Este bloco não habilita publicação, insights avançados, comentários/moderação, webhooks, reconciliação, nem validação com conta Instagram real. O SHA aguarda revisão final adversarial do Claude antes de merge/deploy.
+
+### Próximo bloco
+
+Após aprovação: integrar/deployar com smoke test sem dados sintéticos; depois implementar insights avançados com contrato de métricas por tipo de mídia, seguido de publicação e reconciliação em blocos independentes.
+
+
+---
+
+## Addendum 16 — correção de idempotência do Instagram — 2026-09-06
+
+A revisão adversarial do Claude encontrou uma regressão material na primeira implementação do sync de métricas do Instagram: a função de gravação aceitava a mesma idempotency key quando campos factuais/proveniência, como unit, mudavam. O exemplo reproduzido foi 120 seconds seguido de 120 minutes, com retorno silencioso da mesma UUID.
+
+A correção foi implementada como migration forward-only 020, sem alterar a migration 019 já validada no branch. O contrato agora compara todos os campos estáveis de identidade factual e origem com ROW(...) IS NOT DISTINCT FROM ROW(...), seguindo o padrão comprovado da migration 013 do YouTube. Retry idêntico permanece idempotente; mudança material gera conflito explícito.
+
+Foi adicionado o gate comportamental 038. Ele cria fixtures somente no PostgreSQL isolado do CI, confirma retry idêntico, exige conflito para unidade diferente e termina com ROLLBACK. O CI foi atualizado para executá-lo sob a role de harness de teste.
+
+A sequência de execução foi registrada integralmente na memória operacional:
+
+- run 304 falhou por referência regprocedure com uma assinatura SQL incompleta;
+- run 307 falhou por SELECT set_config sem destino dentro de PL/pgSQL;
+- run 309 passou integralmente no SHA f0136c15253f00def2fdbd73ae72127d83b9ce2d.
+
+O bloco Instagram media/metrics continua In Progress, não Frozen. O PR #44 ainda não foi mergeado nem deployado, e a produção permanece intocada. O próximo gate obrigatório é uma nova revisão adversarial do Claude no SHA exato f0136c15253f00def2fdbd73ae72127d83b9ce2d.

@@ -43,6 +43,34 @@ test("Instagram configuration rejects malformed Graph API versions", () => {
   }
 });
 
+test("Instagram media request is tenant-neutral and bounded to provider fields", () => {
+  const url = new URL(connector.instagramMediaRequestUrlForTest("ig id", "v24.0", "cursor value"));
+  assert.equal(url.origin, "https://graph.instagram.com");
+  assert.equal(url.pathname, "/v24.0/ig%20id/media");
+  assert.equal(url.searchParams.get("limit"), "100");
+  assert.equal(url.searchParams.get("after"), "cursor value");
+  assert.equal(url.searchParams.get("fields")?.includes("like_count"), true);
+  assert.equal(url.searchParams.has("access_token"), false);
+});
+
+test("Instagram sync schema requires a UUID nonce and bounded lookback", () => {
+  assert.equal(connector.InstagramSyncSchema.safeParse({
+    connectionId: state().connectionId,
+    requestNonce: "55555555-5555-4555-8555-555555555555",
+    lookbackDays: 7
+  }).success, true);
+  assert.equal(connector.InstagramSyncSchema.safeParse({
+    connectionId: state().connectionId,
+    requestNonce: "not-a-uuid",
+    lookbackDays: 7
+  }).success, false);
+  assert.equal(connector.InstagramSyncSchema.safeParse({
+    connectionId: state().connectionId,
+    requestNonce: "55555555-5555-4555-8555-555555555555",
+    lookbackDays: 31
+  }).success, false);
+});
+
 test("Instagram refresh endpoint is fixed and carries only the access token", () => {
   const url = new URL(connector.instagramRefreshEndpointForTest("token with spaces"));
   assert.equal(url.origin, "https://graph.instagram.com");

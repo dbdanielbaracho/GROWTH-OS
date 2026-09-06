@@ -2098,3 +2098,172 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 13. O serviço público `growth-os` permaneceu saudável após o rebuild documental, com deployment Railway em `SUCCESS`.
 14. O PR #43 está integrado no código e a primeira interface web do ciclo Instagram está publicada no `main`.
 15. Isto não significa que o produto Instagram esteja completo: credenciais Meta reais, conta profissional real, sync de mídia/métricas, publicação, reconciliação, webhooks, insights autorizados e fases 4–11 continuam pendentes.
+
+
+---
+
+## Registro operacional — bloco Instagram media/metrics sync v0.1 — 2026-09-06
+
+### Ponto de partida e decisão
+
+- Base utilizada: `main` no commit `1809e968935ca18a0002421c1fa4bd856105221b`, que já contém o merge de PR #43 e o registro da limpeza de produção.
+- Branch criada: `feat/growth-os-instagram-sync-v0-1`.
+- Objetivo deste bloco: transformar o conector Instagram de somente lifecycle/UI em uma primeira ingestão real de mídia e métricas diretas de engajamento, mantendo o modelo aprovado do YouTube: proveniência completa, idempotência por workspace, helpers `SECURITY DEFINER`, RLS/FORCE RLS e zero acesso direto do `app_runtime` às tabelas sensíveis.
+- Escopo deliberadamente limitado: mídia e `like_count`/`comments_count` provenientes do objeto de mídia. Insights avançados, publicação, comentários, webhooks e reconciliação continuam blocos posteriores; não foram simulados nem habilitados por este bloco.
+
+### Auditoria realizada antes da implementação
+
+1. Comparação do `youtube-connector.ts`, `youtube-routes.ts`, migration 010 e gate 033 para reutilizar o contrato já exercitado:
+   - nonce UUID;
+   - janela limitada;
+   - payload digest SHA-256;
+   - `metric_observations` com proveniência;
+   - helper SQL restrito;
+   - retry idempotente e conflito explícito.
+2. Inspeção do Instagram atual:
+   - migrations 017–018: OAuth, credencial cifrada, refresh, revoke e reconexão;
+   - `instagram-connector.ts`: configuração Graph API, state AES-GCM/AAD, profile profissional e credential helper;
+   - `instagram-routes.ts`: status/authorize/callback/refresh/revoke/reconnect;
+   - UI já integrada, mas sem ação de sincronização.
+3. Consulta à documentação oficial Meta localizada para o objeto Instagram Media, endpoint de mídia e Media Insights. A decisão desta etapa usa somente campos diretos de mídia que já fazem parte do objeto retornado: identificador, tipo, timestamp, permalink, URLs, `like_count` e `comments_count`.
+
+### Alterações realizadas no branch
+
+- `db/migrations/019_instagram_media_metrics_sync.sql`
+  - criou `growth.instagram_media`;
+  - RLS e FORCE RLS ativos;
+  - índice por conta/data;
+  - `app_runtime` sem SELECT/INSERT/UPDATE/DELETE direto;
+  - helper `growth.instagram_record_media(...)` para upsert tenant-scoped e rejeição de transplante de mídia entre contas;
+  - helper `growth.instagram_record_metric_observation(...)` para gravar proveniência completa e idempotência estrita;
+  - ambos os helpers são `SECURITY DEFINER`, owner `growth_migrator`, EXECUTE para `app_runtime`, PUBLIC revogado.
+- `db/tests/037_instagram_media_metrics_sync.sql`
+  - gate de existência da tabela, RLS/FORCE RLS, ausência de privilégios de tabela para `app_runtime`, owner/SECURITY DEFINER/grants dos dois helpers.
+- `.github/workflows/ci.yml`
+  - executa o gate 037 após os gates Instagram 035/036.
+- `apps/api/src/instagram-connector.ts`
+  - `InstagramSyncSchema` com connection UUID, nonce UUID e lookback de 1–30 dias;
+  - paginação limitada a 20 páginas;
+  - filtro de lookback e rejeição de timestamps inválidos;
+  - digest SHA-256 por payload de mídia;
+  - gravação de metadados via helper;
+  - gravação de métricas diretas `like_count` e `comments_count`;
+  - refresh automático quando o token está a até 60 segundos de expirar;
+  - resposta com media/observation counts e `collectionRunId`.
+- `apps/api/src/instagram-routes.ts`
+  - endpoint autenticado e protegido por CSRF: POST `/v1/integrations/instagram/sync`.
+- `apps/web/src/api.ts`
+  - tipo e client `syncInstagram`.
+- `apps/web/src/instagram-integration.tsx`
+  - botão “Sync media & metrics”;
+  - exibição da última contagem de mídia/métricas;
+  - texto de estado atualizado, mantendo publishing/advanced insights explicitamente separados.
+- `apps/api/src/instagram-connector.test.ts`
+  - teste de URL sem token exposto, fields limitados e cursor;
+  - teste de schema para nonce/lookback;
+  - testes anteriores de config, refresh endpoint, state round-trip e tampering permanecem.
+
+### Execuções, falhas e correções — sequência integral
+
+1. Commit `83d1bf86226542b48b66a3475624edc25a65e01d`: adicionou migration 019.
+2. Commit `5ae0313d82b88723828eac8ad7396eb85a7fbbcc`: adicionou gate 037 e inseriu a etapa do gate no CI.
+3. Commit `6711c39b0b5ec48b0aefdb13e973ecf80dcf134c`: adicionou endpoint de sync às rotas.
+4. Commit `7b0d18a68c46fe470ba8b75ce86d8ae194db0a5f`: adicionou tipo/client web.
+5. Commit `c20831c98718f44a2ca26ee0e3775c32ee17d22c`: adicionou ação e feedback de sync à UI.
+6. Commit `c65fa4347f6df6cf0a05b8bd638fd279098e2c26`: adicionou testes de contrato.
+7. CI run 292, SHA `c65fa4347f6df6cf0a05b8bd638fd279098e2c26`: falhou no Typecheck antes dos gates. Evidência: `apps/web/src/instagram-integration.tsx`, acesso repetido a `lastSync[row.connection_id]` podia ser undefined. Correção: introdução da variável estreitada `sync`.
+8. Commit `000717296ab6fd21e415fab361cd144f85aa4ecd`: correção de narrowing na UI. CI run 293 passou Typecheck/Build, mas falhou na migration 019.
+9. CI run 293, SHA `000717296ab6fd21e415fab361cd144f85aa4ecd`: falhou na aplicação da migration com PostgreSQL 42883. Evidência: os comandos `REVOKE/GRANT` do helper métrico repetiam uma assinatura com quatro `timestamptz` no trecho final, enquanto a função criada possui cinco (incluindo `p_collected_at`). A função foi criada, mas a referência de grant não resolvia.
+10. Correção aplicada no commit `2a34b96d5136cac7fc55d794b433252295982341`: alinhadas as assinaturas completas nos comandos `REVOKE/GRANT`.
+11. CI run 294, SHA exato `2a34b96d5136cac7fc55d794b433252295982341`: conclusão `success`.
+12. Gates confirmados no run 294: Test Integrity, typecheck, build, provisionamento de roles, migrations 001–019, schema usage, fixtures, SQL gates 033/034/035/036/037, Growth Intelligence integration, production web shell e `npm test`.
+13. Validação local adicional:
+    - `npm run typecheck`: passou no clone do branch;
+    - `node --import tsx --test apps/api/src/instagram-connector.test.ts`: 7 testes passaram;
+    - `npm test` no ambiente local falhou antes da suíte por `tsx` não conseguir criar pipe IPC (`listen EPERM /tmp/tsx-0/...pipe`); isso é limitação do ambiente local, não falha do código, e o CI oficial passou o mesmo gate completo.
+14. Não houve merge, deploy ou alteração de produção neste bloco. O SHA `2a34b96d5136cac7fc55d794b433252295982341` aguarda revisão adversarial final do Claude antes de qualquer integração.
+
+### Estado após o bloco
+
+- A fundação de ingestão Instagram está implementada e validada em CI isolado.
+- O fluxo ainda não está aprovado para merge/deploy: falta a revisão final adversarial do Claude no SHA exato.
+- O projeto não está concluído: faltam insights avançados, publicação real, webhooks, comentários/moderação, reconciliação, testes com conta Instagram real, observabilidade operacional, rollout e fases posteriores do produto.
+
+
+---
+
+## Registro operacional — correção de idempotência Instagram após revisão Claude — 2026-09-06
+
+### 1. Bloqueio encontrado pelo Claude
+
+O Claude revisou adversarialmente o PR #44 no SHA '4ce7529b9b9ac703b76deea3e8d5ace9fa8df433' e rejeitou a aprovação com CHANGES_REQUIRED.
+
+O bloqueio foi reproduzido na função growth.instagram_record_metric_observation, na migration 019_instagram_media_metrics_sync.sql: a comparação para uma mesma idempotency_key verificava somente sete campos (social_account_id, provider_content_id, metric_name, raw_value, observed_at, metric_semantic_version e authorization_class). Campos materiais como unit, completeness_status, freshness_status, raw_payload_ref e collection_run_id eram ignorados.
+
+Cenário reproduzido pelo Claude:
+
+- primeira chamada: raw_value=120, unit='seconds';
+- segunda chamada: mesma chave, raw_value=120, unit='minutes';
+- resultado anterior: mesma UUID retornada, sem exceção, e o fato de 120 minutos foi silenciosamente descartado.
+
+A comparação estava atrás do padrão já corrigido para YouTube na migration 013. O gate 037 original passou porque era apenas estrutural e não exercitava o comportamento.
+
+### 2. Decisão de correção
+
+Para preservar a migration 019 imutável depois de sua validação no branch e aplicar a disciplina forward-only, foi criada:
+
+- db/migrations/020_instagram_observation_idempotency_hardening.sql;
+- db/tests/038_instagram_observation_idempotency.sql.
+
+A migration 020 usa CREATE OR REPLACE FUNCTION e replica o contrato comprovado da migration 013 do YouTube:
+
+- comparação ROW(...) IS NOT DISTINCT FROM ROW(...);
+- todos os campos factuais/de proveniência estáveis são comparados;
+- collected_at, retention_deadline e refresh_required_by continuam excluídos por serem metadados de retry/política;
+- retry idêntico retorna a mesma UUID;
+- mudança material sob a mesma chave lança instagram observation idempotency conflict;
+- owner growth_migrator, SECURITY DEFINER, PUBLIC sem EXECUTE e app_runtime com EXECUTE foram preservados.
+
+O gate 038 verifica tanto a definição no catálogo quanto o comportamento real em PostgreSQL isolado:
+
+- cria fixture temporária de workspace, managed account, authority history, conexão Instagram e social account;
+- executa duas chamadas idênticas;
+- confirma a mesma UUID;
+- executa a mesma chave com unit='minutes' em vez de unit='seconds';
+- exige o erro de conflito;
+- termina com ROLLBACK, sem persistência.
+
+### 3. Falhas intermediárias e correções
+
+A sequência foi registrada integralmente:
+
+1. CI run 304 — SHA '2a3b62af51f9043bede91274c2e148f954737c92' — FAILURE. A pré-condição da migration 020 usava uma assinatura regprocedure com quatro, em vez de cinco, parâmetros consecutivos timestamptz. A função real estava correta, mas a referência de catálogo não correspondia à assinatura. Corrigidos regprocedure, ALTER FUNCTION, REVOKE e GRANT na migration 020.
+
+2. CI run 307 — SHA 'd8fd0270c12149eab4700f23aa3d3b0d6c039888' — FAILURE. O novo gate 038 avançou até o teste comportamental, mas usava SELECT set_config(...) dentro de um bloco PL/pgSQL sem consumir o retorno. PostgreSQL retornou query has no destination for result data. Substituído por PERFORM set_config(...).
+
+3. CI run 309 — SHA 'f0136c15253f00def2fdbd73ae72127d83b9ce2d' — SUCCESS. O pipeline completo passou no SHA exato, incluindo Test Integrity Gate, typecheck, build, aplicação das migrations 001–020, gates SQL existentes, gate 037, gate 038 comportamental, Growth Intelligence integration, production web shell e testes unitários.
+
+Essas falhas não foram ocultadas nem tratadas como sucesso parcial; cada uma gerou correção rastreável, novo commit, novo SHA e nova execução.
+
+### 4. Commits desta correção
+
+- 9171f035d77c65f86e535c8fcf713db694f12f2f — criação da migration 020;
+- db3d49de5834ed79f702fd88d4c0a6190bff17e9 — criação do gate 038;
+- 2c559f7fa7652e11c9b117cf31a8aa504525457e — inclusão do gate 038 no CI;
+- 2a3b62af51f9043bede91274c2e148f954737c92 — correção do SET LOCAL ROLE do gate;
+- df60f4bedf6804230bddc451abbaa1daa2885691 — correção das assinaturas SQL da migration 020;
+- d8fd0270c12149eab4700f23aa3d3b0d6c039888 — correção da assinatura SQL do gate 038;
+- f0136c15253f00def2fdbd73ae72127d83b9ce2d — correção de SELECT set_config para PERFORM.
+
+### 5. Estado atual e próximo passo
+
+- PR: #44 — feat: Instagram media and direct metrics sync v0.1;
+- branch: feat/growth-os-instagram-sync-v0-1;
+- SHA candidato atual: f0136c15253f00def2fdbd73ae72127d83b9ce2d;
+- CI run #309: success;
+- produção: não alterada;
+- merge: não executado;
+- deploy: não executado;
+- revisão Claude: precisa ser repetida no SHA exato atual, incluindo a migration 020 e o gate 038.
+
+Conclusão desta etapa: o bloqueio de idempotência encontrado pelo Claude foi corrigido e protegido por teste comportamental. A aprovação final ainda não foi emitida, pois o Claude deve revisar novamente o SHA final.
