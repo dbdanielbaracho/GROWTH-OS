@@ -273,3 +273,20 @@ PR #41 foi aprovado pelo Claude no SHA exato `55f2d879055baf949d5abb803da429088a
 A classificação correta é: Phase 3 — Instagram foundation **In Progress**, não Frozen. O código está publicado, mas a migration 017 ainda precisa de confirmação controlada no banco de produção; as credenciais Meta também não estão configuradas. Refresh/reconnect, sincronização, publicação, métricas, webhooks, UI completa e prova com conta real continuam pendentes.
 
 O histórico completo, incluindo a limitação operacional de acesso ao banco e o serviço temporário staged para remoção por 2FA, está em `docs/PROJECT_EXECUTION_MEMORY.md`.
+
+
+## 12. Instagram lifecycle block — implementation candidate
+
+**Status:** In progress; not validated, frozen or deployed.  
+**Branch:** `feat/growth-os-instagram-lifecycle-v1`
+
+The next Phase 3 slice adds the safe token lifecycle around the approved Instagram foundation:
+
+- long-lived token refresh through Meta's official `refresh_access_token` endpoint;
+- encrypted credential replacement with tenant-bound AAD;
+- reconnect that reuses revoked/disconnected connections and updates the existing social projection;
+- local revocation that removes provider credentials and marks the connection `revoked`;
+- explicit SQL gate 036 for helper ownership, `SECURITY DEFINER`, grants and least privilege;
+- unit coverage for the refresh URL contract and secret non-disclosure.
+
+This block does not enable publishing or insights, does not configure Meta credentials and does not prove migration 017 or 018 in the production database. It remains incomplete until exact-SHA CI, Claude adversarial review, merge/deploy controls, production migration evidence and real-account validation pass.
