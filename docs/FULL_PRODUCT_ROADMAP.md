@@ -257,3 +257,10 @@ The candidate `046a643aba6904499f0a1a16c3a9ac9e484610e6` passed CI run #209, inc
 This advances Phase 3 from Not started to In progress. It does not complete Phase 3. The remaining Instagram work includes refresh/reconnect/revocation, media and metrics sync, publishing, reconciliation, webhooks, complete web UI, provider configuration and proof with a real professional account. YouTube also still requires the complete real-account loop, and Phases 4–11 remain incomplete.
 
 Required next gate for PR #41: re-run CI after this roadmap/memory commit, send the exact final SHA to Claude for adversarial review, then decide merge/deploy only after APPROVE. Production remains unchanged until those gates pass.
+
+
+## 10. Claude review correction — Instagram configuration validation
+
+The adversarial review of PR #41 identified a real configuration blocker: the Graph API version regex rejected the default `v24.0`. The connector and central Zod configuration were corrected, and tests now exercise both acceptance of `v24.0` and rejection of malformed versions. CI run #220 passed all gates on code SHA `f1ea71096aa06ab9edea67f3dd21629441597056` before this documentation update.
+
+The documentation update creates a new branch head, so the final candidate SHA and CI must be revalidated before Claude reviews again. The Instagram foundation remains In progress, not Frozen.
