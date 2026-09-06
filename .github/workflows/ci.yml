@@ -93,7 +93,7 @@ jobs:
           for migration in db/migrations/*.sql; do
             database_url="$CI_MIGRATOR_URL"
             case "$migration" in
-              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql|*009_production_identity_adapter_support.sql|*012_youtube_rls_helper_execute.sql)
+              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql|*009_production_identity_adapter_support.sql|*012_youtube_rls_helper_execute.sql|*016_identity_signup_verification.sql)
                 database_url="$CI_ADMIN_URL"
                 ;;
             esac
@@ -120,6 +120,12 @@ jobs:
           PGPASSWORD: growth_migrator
         run: |
           psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/033_youtube_growth_intelligence.sql
+
+      - name: Run identity SQL gate
+        env:
+          PGPASSWORD: app_runtime
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=app_runtime --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/034_identity_signup.sql
 
       - name: Run Growth Intelligence integration test
         env:
