@@ -24,8 +24,8 @@ BEGIN
     JOIN pg_roles r ON r.oid=p.proowner
     WHERE n.nspname='growth'
       AND p.proname=helper_name
-      AND regexp_replace(pg_get_function_identity_arguments(p.oid), '\\s+', '', 'g')
-          = regexp_replace(helper_args, '\\s+', '', 'g');
+      AND regexp_replace(pg_get_function_identity_arguments(p.oid), '\s+', '', 'g')
+          = regexp_replace(helper_args, '\s+', '', 'g');
 
     IF helper_owner <> 'growth_migrator' OR is_definer IS DISTINCT FROM true THEN
       RAISE EXCEPTION '036 failed: % owner/SECURITY DEFINER boundary', helper_name;
