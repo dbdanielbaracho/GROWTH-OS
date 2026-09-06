@@ -2030,3 +2030,39 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 - Phase 3: In Progress, não Frozen.
 - Fases 4–11: ainda não concluídas.
 - Próximo ponto de retomada: corrigir/validar o estado da aplicação web do Instagram, configurar credenciais Meta somente quando disponíveis, executar fluxo com conta profissional real e continuar os módulos restantes do roadmap.
+
+
+## 67. PR #43 — primeira interface web do ciclo Instagram
+
+**Data:** 06 de setembro de 2026  
+**PR:** #43  
+**Branch:** `feat/growth-os-instagram-web-ui-v1`  
+**SHA do código antes do registro documental:** `5d70754b973c9f67460e0e9a034f09f576024913`  
+**CI:** run #276 — success
+
+1. Após o merge/deploy do PR #42 e a aplicação confirmada das migrations 017–018 em produção, foi iniciado o próximo bloco: tornar o ciclo de vida Instagram utilizável na interface web.
+2. O branch foi criado a partir do `main` atual, sem alterar o serviço de produção.
+3. O cliente web `apps/web/src/api.ts` recebeu contratos e chamadas para:
+   - consultar `GET /v1/integrations/instagram/status`;
+   - iniciar autorização;
+   - iniciar reconexão;
+   - atualizar token;
+   - revogar localmente a conexão.
+4. Foi criado `apps/web/src/instagram-integration.tsx`, com:
+   - verificação de sessão antes de exibir o painel;
+   - estado configurado/não configurado fail-closed;
+   - conexão e reconexão via OAuth;
+   - aviso de callback conectado/negado;
+   - refresh de token;
+   - revogação local com confirmação explícita;
+   - mensagens de erro para sessão expirada, autorização rejeitada, rate limit, conta profissional ausente e indisponibilidade do provedor;
+   - exibição de conta, mercado, timezone e estado da conexão;
+   - publicação, insights e sync de mídia explicitamente protegidos como não disponíveis neste estágio.
+5. Foi criado `apps/web/src/instagram-integration.css`, alinhado ao sistema visual editorial já existente, com painel responsivo e sem inserir dados sintéticos.
+6. `apps/web/index.html` passou a montar o painel Instagram junto do shell existente e do painel YouTube.
+7. O PR #43 foi aberto como draft para o branch acima.
+8. O CI #276 validou exatamente o SHA `5d70754b973c9f67460e0e9a034f09f576024913` com conclusão `success`.
+9. Não houve merge, deploy, alteração de produção, configuração de credenciais Meta ou criação de conta/provedor real neste bloco.
+10. O painel ainda é uma superfície de lifecycle; não declara Instagram completo. Sync de mídia/métricas, publicação, reconciliação, webhooks, insights autorizados, testes de jornada real e credenciais Meta permanecem pendentes.
+11. Este registro documental altera o head do branch. O SHA final deve ser obtido e o CI repetido antes de enviar o código ao Claude para revisão adversarial.
+
