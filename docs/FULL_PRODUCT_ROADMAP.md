@@ -295,3 +295,8 @@ This block does not enable publishing or insights, does not configure Meta crede
 ### CI evidence for the lifecycle candidate
 
 The lifecycle candidate reached a complete green CI in run #250 at intermediate SHA `d07fbeea19edbce4c47e2fe73d3bbe4ef088b910`. Subsequent hardening changes reject invalid token expiry values, assert exact helper signatures in gate 036 and correct Markdown formatting; therefore the intermediate SHA is not the review SHA. The final candidate must rerun CI after these changes, then undergo Claude adversarial review before any merge or deploy.
+
+
+### Final code-candidate CI
+
+After the documented hardening, CI run #262 passed for code SHA `cf5b260d5a1c87cd05f5e0b34a3c39ccdf6910d6`, including migration 018 and gates 033–036. This roadmap update creates a new branch head; that new exact SHA must pass CI before Claude review. The lifecycle block remains In progress and not deployed.
