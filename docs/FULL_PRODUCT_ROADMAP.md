@@ -235,3 +235,25 @@ Instagram, publishing, analytics, experiments, Copilot/Autopilot, commercial/ent
 Identity v1 is now merged into `main` and deployed through Railway. The code and CI gates are complete. Production signup and email verification remain disabled operationally until `RESEND_API_KEY` and `IDENTITY_EMAIL_FROM` are configured as Railway secrets.
 
 The next implementation block is Phase 3 channel connectors, beginning with Instagram under the same tenant, provenance, consent, idempotency and adversarial-review rules. This does not change the full-product completion rule: Growth OS remains incomplete until all phases, including publishing, analytics, intelligence, experiments, automation, commercial controls and Phase 11 hardening, are frozen.
+
+
+## 9. Instagram connector foundation — PR #41
+
+**Status:** implementation complete for the foundation slice; not yet frozen or deployed.
+
+The branch `feat/growth-os-instagram-connector-v1` implements the first secure Instagram Login contract:
+
+- encrypted, expiring and tenant-bound OAuth state;
+- short-lived to long-lived token exchange;
+- professional-account profile validation;
+- encrypted provider credential persistence;
+- tenant-scoped SECURITY DEFINER helpers;
+- status, authorize and callback routes;
+- capability registry with content publishing and insights fail-closed;
+- SQL gate 035 and OAuth-state unit tests.
+
+The candidate `046a643aba6904499f0a1a16c3a9ac9e484610e6` passed CI run #209, including migrations 001–017, gates 033–035, Growth Intelligence integration, idempotency, no-op behavior, typecheck, build, unit tests and production web shell. The execution memory records the intermediate failures and corrections in full.
+
+This advances Phase 3 from Not started to In progress. It does not complete Phase 3. The remaining Instagram work includes refresh/reconnect/revocation, media and metrics sync, publishing, reconciliation, webhooks, complete web UI, provider configuration and proof with a real professional account. YouTube also still requires the complete real-account loop, and Phases 4–11 remain incomplete.
+
+Required next gate for PR #41: re-run CI after this roadmap/memory commit, send the exact final SHA to Claude for adversarial review, then decide merge/deploy only after APPROVE. Production remains unchanged until those gates pass.
