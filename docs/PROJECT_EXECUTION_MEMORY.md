@@ -1523,3 +1523,15 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 6. Não houve merge, deploy ou alteração da produção.
 
 **Aprendizado operacional:** testes de integração que exercitam RLS devem separar explicitamente a identidade de seed privilegiada, exclusiva do ambiente descartável, da identidade runtime sob teste; fixtures existentes no repositório devem ser carregados pelo CI, não apenas presumidos pelo teste.
+
+
+## 53. CI completo verde após correção dos fixtures RLS
+
+**Data:** 06 de setembro de 2026
+
+1. O CI run #159 (job `101400483833`) validou o commit `274c81dc222ac4d4cd79eb481b5f0ef1f16ab49f` com conclusão `success`.
+2. Passaram: Test Integrity Gate, typecheck, build, provisionamento das roles, migrations 001–015, grant de schema, provisionamento do test harness, SQL gate 033, Growth Intelligence ponta a ponta, idempotência, `insufficient_signal`/no-op, production web shell e `npm test`.
+3. O PR continua aberto e sem merge. A revisão adversarial do Claude ainda precisa ser executada no novo head após este registro; aprovações de SHAs anteriores não são reutilizadas.
+4. A produção Railway permaneceu no deploy do serviço `growth-os` baseado no commit main `17ee387477763921c0c4cbab326557142d4b26b3`, sem deploy deste PR.
+
+**Resultado:** a cadeia de validação isolada está verde; o próximo gate formal é a revisão independente do SHA final.
