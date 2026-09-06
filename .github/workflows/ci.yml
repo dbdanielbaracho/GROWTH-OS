@@ -33,6 +33,7 @@ jobs:
       CI_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5432/growth_os_ci
       CI_MIGRATOR_URL: postgresql://growth_migrator:growth_migrator@127.0.0.1:5432/growth_os_ci
       CI_APP_URL: postgresql://app_runtime:app_runtime@127.0.0.1:5432/growth_os_ci
+      CI_HARNESS_URL: postgresql://growth_test_harness:growth_test_harness@127.0.0.1:5432/growth_os_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,6 +106,15 @@ jobs:
         run: |
           psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --command="GRANT USAGE ON SCHEMA growth TO app_runtime"
 
+      - name: Provision test-only Growth Intelligence fixtures
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/provisioning/test/01_test_roles.sql
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/provisioning/test/02_test_membership.sql
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --command="ALTER ROLE growth_test_harness PASSWORD 'growth_test_harness'"
+          PGPASSWORD=growth_test_harness psql --host=127.0.0.1 --port=5432 --username=growth_test_harness --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/provisioning/test/03_test_fixtures.sql
+
       - name: Run SQL gates against isolated CI database
         env:
           PGPASSWORD: growth_migrator
@@ -114,7 +124,7 @@ jobs:
       - name: Run Growth Intelligence integration test
         env:
           DATABASE_URL: ${{ env.CI_APP_URL }}
-          MIGRATOR_DATABASE_URL: ${{ env.CI_MIGRATOR_URL }}
+          HARNESS_DATABASE_URL: ${{ env.CI_HARNESS_URL }}
         run: npx tsx apps/api/integration-tests/growth-intelligence.integration.mts
 
       - name: Production same-origin web shell gate
