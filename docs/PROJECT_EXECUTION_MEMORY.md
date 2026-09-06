@@ -1876,3 +1876,31 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 5. Registro documental criado: `docs/INSTAGRAM_CONNECTOR_LIFECYCLE_V0.1.md`.
 6. Ainda não há aprovação, merge, deploy ou aplicação em produção desta mudança. O próximo passo obrigatório é abrir a PR, executar CI no SHA exato, corrigir qualquer falha reproduzida, depois enviar somente o SHA final ao Claude.
 7. A pendência anterior permanece: a aplicação da migration 017 no banco de produção ainda não foi comprovada; portanto o Instagram continua classificado como código publicado, mas não operacionalmente ativado.
+
+
+## 64. Instagram lifecycle — CI e correções reproduzidas
+
+**Data:** 06 de setembro de 2026  
+**PR:** #42  
+**CI run inicial:** #240, SHA `8563b7816237fd11ddefb9b5c8f894115d080332`  
+**CI verde intermediário:** #250, SHA `d07fbeea19edbce4c47e2fe73d3bbe4ef088b910`
+
+1. O primeiro CI falhou no typecheck porque `InstagramConnectionParamsSchema` foi importado do conector embora estivesse declarado localmente em `instagram-routes.ts`. A importação incorreta foi removida.
+2. O segundo CI passou por typecheck, build e migrations 001–018, mas o gate 036 falhou porque comparava a formatação textual dos argumentos de funções no catálogo PostgreSQL. O gate foi corrigido para localizar cada helper por nome e consultar grants pelo OID da função.
+3. O terceiro CI revelou erro de sintaxe na montagem dinâmica de `has_function_privilege`; a montagem textual foi removida e substituída pela assinatura OID da função.
+4. O CI run #250 passou integralmente após essas correções:
+   - Test Integrity Gate;
+   - typecheck;
+   - build;
+   - provisionamento de roles;
+   - migrations 001–018;
+   - grant de schema de runtime;
+   - fixtures de teste;
+   - gates SQL 033, 034, 035 e 036;
+   - Growth Intelligence integration;
+   - production web shell;
+   - `npm test`.
+5. Na leitura adversarial do diff antes do Claude, foram encontradas duas melhorias preventivas: validação de `expires_in` precisava rejeitar NaN, infinito e valores não positivos; e o gate 036 precisava verificar a assinatura esperada, além do nome. Ambas foram aplicadas.
+6. A documentação `docs/INSTAGRAM_CONNECTOR_LIFECYCLE_V0.1.md` também foi corrigida para remover escapes Markdown literais.
+7. As correções dos itens 5–6 criam novo SHA; portanto o run #250 não é o SHA final. O próximo passo é aguardar o CI do SHA final e só então enviar exatamente esse SHA ao Claude.
+8. Nenhum merge, deploy, alteração de produção ou configuração de credenciais foi realizado neste bloco.
