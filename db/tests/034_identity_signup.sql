@@ -11,7 +11,7 @@ WITH created AS (
   FROM growth.identity_signup_with_verification(
     'identity-gate-' || gen_random_uuid()::text || '@example.test',
     '$argon2id$v=19$m=19456,t=2,p=1$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-    19,
+    19::smallint,
     repeat('a', 64),
     now() + interval '15 minutes'
   )
