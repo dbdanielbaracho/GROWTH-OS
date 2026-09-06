@@ -3,13 +3,14 @@ BEGIN;
 DO $$
 DECLARE
   helper_name text;
+  expected_args text;
   helper_args text;
   helper_owner text;
   is_definer boolean;
   app_execute boolean;
   public_execute boolean;
 BEGIN
-  FOR helper_name, helper_args IN
+  FOR helper_name, expected_args IN
     SELECT *
     FROM (VALUES
       ('instagram_begin_authorization', 'uuid,text[]'),
@@ -17,15 +18,13 @@ BEGIN
       ('instagram_revoke_connection', 'uuid')
     ) AS helpers(name,args)
   LOOP
-    SELECT r.rolname, p.prosecdef
-      INTO helper_owner, is_definer
+    SELECT r.rolname, p.prosecdef, pg_get_function_identity_arguments(p.oid)
+      INTO helper_owner, is_definer, helper_args
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid=p.pronamespace
     JOIN pg_roles r ON r.oid=p.proowner
     WHERE n.nspname='growth'
-      AND p.proname=helper_name
-      AND regexp_replace(pg_get_function_identity_arguments(p.oid), '\s+', '', 'g')
-          = regexp_replace(helper_args, '\s+', '', 'g');
+      AND p.proname=helper_name;
 
     IF helper_owner <> 'growth_migrator' OR is_definer IS DISTINCT FROM true THEN
       RAISE EXCEPTION '036 failed: % owner/SECURITY DEFINER boundary', helper_name;
