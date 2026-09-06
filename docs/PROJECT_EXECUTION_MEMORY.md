@@ -1619,3 +1619,54 @@ Esta seção registra todas as ações desta frente, inclusive correções inter
 16. Nenhum commit desta frente foi mergeado. Nenhuma migration foi aplicada em Railway. Nenhuma tabela, função ou linha de produção foi alterada.
 17. Limite operacional pendente: para cadastro real funcionar, o ambiente de produção precisará receber `RESEND_API_KEY` e `IDENTITY_EMAIL_FROM` por segredo Railway. Esses valores não devem ser enviados ao GitHub nem registrados nesta memória.
 18. Próximo gate obrigatório: CI no SHA final do branch, revisão adversarial independente do Claude do SHA exato, depois somente com PASS decidir merge/deploy.
+
+
+---
+
+## 56. CI do Identity v1 — falha reproduzida e correção
+
+**Data:** 06 de setembro de 2026
+
+1. O primeiro head documental do PR #40 foi `215542ab23766356fc43d6fd5218545f5effc726`.
+2. O CI run #185 executou no merge ref do PR e passou por:
+   - Test Integrity Gate;
+   - typecheck;
+   - build;
+   - provisionamento de roles;
+   - migrations 001–016;
+   - grant de schema;
+   - fixtures;
+   - SQL gate 033.
+3. O CI falhou exclusivamente no gate `034_identity_signup.sql`.
+4. A mensagem PostgreSQL foi:
+   `function growth.identity_signup_with_verification(text, unknown, integer, text, timestamp with time zone) does not exist`.
+5. A causa foi uma incompatibilidade de tipo no próprio teste: a função recebe `p_hash_version smallint`, mas o teste passou o literal `19` como `integer`.
+6. O teste foi corrigido para usar `19::smallint` no commit `77cf5f017353c0e81d9909673a759ee6b0d3bc14`.
+7. Não houve alteração de migration ou relaxamento de segurança; foi corrigida somente a chamada tipada do gate.
+
+## 57. CI final verde do Identity v1
+
+**Data:** 06 de setembro de 2026  
+**SHA exato:** `77cf5f017353c0e81d9909673a759ee6b0d3bc14`  
+**CI run:** #187  
+**Job:** `validate` / `101405522457`
+
+Resultado confirmado diretamente nos jobs do GitHub:
+
+- Test Integrity Gate: PASS;
+- typecheck: PASS;
+- build: PASS;
+- Provision isolated CI roles: PASS;
+- migrations 001–016: PASS;
+- Grant runtime schema usage: PASS;
+- test fixtures: PASS;
+- SQL gate 033: PASS;
+- Identity SQL gate 034: PASS;
+- Growth Intelligence integration: PASS;
+- idempotência: PASS dentro da integração;
+- `insufficient_signal` / no-op: PASS dentro da integração;
+- production same-origin web shell: PASS;
+- `npm test`: PASS;
+- produção não foi tocada.
+
+O PR #40 continua aberto e não mergeado. O próximo gate obrigatório é a revisão adversarial do Claude exclusivamente neste SHA.
