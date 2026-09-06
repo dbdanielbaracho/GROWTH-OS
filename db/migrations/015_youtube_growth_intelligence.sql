@@ -9,6 +9,16 @@
 BEGIN;
 SET search_path = growth, public;
 
+-- Existing deferred evidence triggers execute at transaction commit under the
+-- caller session. Keep app_runtime table privileges closed while allowing the
+-- trigger helper to inspect its parent rows through the migration owner.
+ALTER FUNCTION growth.assert_confirmed_insight_evidence_purity(uuid,uuid)
+  SECURITY DEFINER;
+ALTER FUNCTION growth.assert_confirmed_insight_evidence_purity(uuid,uuid)
+  OWNER TO growth_migrator;
+REVOKE ALL ON FUNCTION growth.assert_confirmed_insight_evidence_purity(uuid,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION growth.assert_confirmed_insight_evidence_purity(uuid,uuid) TO app_runtime;
+
 CREATE TABLE growth.factual_signals (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES growth.workspaces(id),
