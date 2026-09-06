@@ -273,3 +273,30 @@ PR #41 foi aprovado pelo Claude no SHA exato `55f2d879055baf949d5abb803da429088a
 A classificação correta é: Phase 3 — Instagram foundation **In Progress**, não Frozen. O código está publicado, mas a migration 017 ainda precisa de confirmação controlada no banco de produção; as credenciais Meta também não estão configuradas. Refresh/reconnect, sincronização, publicação, métricas, webhooks, UI completa e prova com conta real continuam pendentes.
 
 O histórico completo, incluindo a limitação operacional de acesso ao banco e o serviço temporário staged para remoção por 2FA, está em `docs/PROJECT_EXECUTION_MEMORY.md`.
+
+
+## 12. Instagram lifecycle block — implementation candidate
+
+**Status:** In progress; not validated, frozen or deployed.  
+**Branch:** `feat/growth-os-instagram-lifecycle-v1`
+
+The next Phase 3 slice adds the safe token lifecycle around the approved Instagram foundation:
+
+- long-lived token refresh through Meta's official `refresh_access_token` endpoint;
+- encrypted credential replacement with tenant-bound AAD;
+- reconnect that reuses revoked/disconnected connections and updates the existing social projection;
+- local revocation that removes provider credentials and marks the connection `revoked`;
+- explicit SQL gate 036 for helper ownership, `SECURITY DEFINER`, grants and least privilege;
+- unit coverage for the refresh URL contract and secret non-disclosure.
+
+This block does not enable publishing or insights, does not configure Meta credentials and does not prove migration 017 or 018 in the production database. It remains incomplete until exact-SHA CI, Claude adversarial review, merge/deploy controls, production migration evidence and real-account validation pass.
+
+
+### CI evidence for the lifecycle candidate
+
+The lifecycle candidate reached a complete green CI in run #250 at intermediate SHA `d07fbeea19edbce4c47e2fe73d3bbe4ef088b910`. Subsequent hardening changes reject invalid token expiry values, assert exact helper signatures in gate 036 and correct Markdown formatting; therefore the intermediate SHA is not the review SHA. The final candidate must rerun CI after these changes, then undergo Claude adversarial review before any merge or deploy.
+
+
+### Final code-candidate CI
+
+After the documented hardening, CI run #262 passed for code SHA `cf5b260d5a1c87cd05f5e0b34a3c39ccdf6910d6`, including migration 018 and gates 033–036. This roadmap update creates a new branch head; that new exact SHA must pass CI before Claude review. The lifecycle block remains In progress and not deployed.

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { resolvePrincipal } from "./auth.js";
 import {
@@ -12,8 +13,15 @@ import {
   InstagramConnectorError,
   beginInstagramAuthorization,
   completeInstagramAuthorizationFromCallback,
-  instagramConnectorConfigured
+  instagramConnectorConfigured,
+  refreshInstagramConnection,
+  revokeInstagramConnection
 } from "./instagram-connector.js";
+
+
+export const InstagramConnectionParamsSchema = z.object({
+  connectionId: z.string().uuid()
+});
 
 type InstagramStatusRow = {
   managed_account_id: string;
@@ -90,6 +98,47 @@ export async function registerInstagramRoutes(app: FastifyInstance): Promise<voi
   });
 
   app.post("/v1/integrations/instagram/authorize", async (request, reply) => {
+    const principal = await principalOrReply(request, reply);
+    if (!principal) return;
+    const parsed = InstagramAuthorizeSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const result = await withTenantTransaction(principal, (client) =>
+        beginInstagramAuthorization(client, principal, parsed.data.managedAccountId)
+      );
+      return { status: "ok", ...result };
+    } catch (error) {
+      return integrationError(app, reply, error);
+    }
+  });
+
+  app.post("/v1/integrations/instagram/:connectionId/refresh", async (request, reply) => {
+    const principal = await principalOrReply(request, reply);
+    if (!principal) return;
+    const parsed = InstagramConnectionParamsSchema.safeParse(request.params);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const result = await refreshInstagramConnection(principal, parsed.data.connectionId);
+      return { status: "ok", ...result };
+    } catch (error) {
+      return integrationError(app, reply, error);
+    }
+  });
+
+  app.post("/v1/integrations/instagram/:connectionId/revoke", async (request, reply) => {
+    const principal = await principalOrReply(request, reply);
+    if (!principal) return;
+    const parsed = InstagramConnectionParamsSchema.safeParse(request.params);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const result = await revokeInstagramConnection(principal, parsed.data.connectionId);
+      return { status: "ok", ...result };
+    } catch (error) {
+      return integrationError(app, reply, error);
+    }
+  });
+
+  app.post("/v1/integrations/instagram/reconnect", async (request, reply) => {
     const principal = await principalOrReply(request, reply);
     if (!principal) return;
     const parsed = InstagramAuthorizeSchema.safeParse(request.body);
