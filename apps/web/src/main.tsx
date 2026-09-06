@@ -274,7 +274,7 @@ function RadarApp({
     const refresh = () => setRadarRefreshToken((value) => value + 1);
     window.addEventListener("growth-os:radar-refresh", refresh);
     return () => window.removeEventListener("growth-os:radar-refresh", refresh);
-  }, [verificationToken]);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -709,7 +709,7 @@ function RootApp() {
         setState("signed_out");
       });
     return () => { active = false; };
-  }, []);
+  }, [verificationToken]);
 
   async function doSignOut() {
     try { await signOut(); } catch { /* local state still clears */ }
