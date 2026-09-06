@@ -83,7 +83,7 @@ jobs:
             END IF;
           END
           $$;
-          GRANT CONNECT, CREATE ON DATABASE "$CI_DATABASE_NAME" TO growth_migrator;
+          GRANT CONNECT, CREATE ON DATABASE growth_os_ci TO growth_migrator;
           CREATE EXTENSION IF NOT EXISTS pgcrypto;
           SQL
 
