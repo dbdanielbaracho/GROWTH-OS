@@ -151,6 +151,12 @@ jobs:
         run: |
           psql --host=127.0.0.1 --port=5432 --username=growth_test_harness --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/038_instagram_observation_idempotency.sql
 
+      - name: Run Instagram media schema repair gate
+        env:
+          PGPASSWORD: growth_migrator
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/039_instagram_media_schema_repair.sql
+
       - name: Run Growth Intelligence integration test
         env:
           DATABASE_URL: ${{ env.CI_APP_URL }}
