@@ -131,7 +131,7 @@ jobs:
         env:
           PGPASSWORD: app_runtime
         run: |
-          psql --host=127.0.0.1 --port=5432 --username=app_runtime --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/035_instagram_connector.sql
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/035_instagram_connector.sql
 
       - name: Run Growth Intelligence integration test
         env:
