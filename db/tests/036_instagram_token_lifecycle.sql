@@ -4,7 +4,6 @@ DO $$
 DECLARE
   helper_name text;
   expected_args text;
-  helper_args text;
   helper_oid oid;
   helper_owner text;
   is_definer boolean;
@@ -19,19 +18,15 @@ BEGIN
       ('instagram_revoke_connection', 'uuid')
     ) AS helpers(name,args)
   LOOP
-    SELECT r.rolname, p.prosecdef, pg_get_function_identity_arguments(p.oid), p.oid
-      INTO helper_owner, is_definer, helper_args, helper_oid
+    helper_oid := to_regprocedure(format('growth.%s(%s)', helper_name, expected_args));
+    SELECT r.rolname, p.prosecdef
+      INTO helper_owner, is_definer
     FROM pg_proc p
-    JOIN pg_namespace n ON n.oid=p.pronamespace
     JOIN pg_roles r ON r.oid=p.proowner
-    WHERE n.nspname='growth'
-      AND p.proname=helper_name;
+    WHERE p.oid=helper_oid;
 
     IF helper_owner <> 'growth_migrator' OR is_definer IS DISTINCT FROM true THEN
       RAISE EXCEPTION '036 failed: % owner/SECURITY DEFINER boundary', helper_name;
-    END IF;
-    IF replace(helper_args, ' ', '') <> replace(expected_args, ' ', '') THEN
-      RAISE EXCEPTION '036 failed: % signature mismatch', helper_name;
     END IF;
 
     SELECT has_function_privilege('app_runtime', helper_oid, 'EXECUTE')
