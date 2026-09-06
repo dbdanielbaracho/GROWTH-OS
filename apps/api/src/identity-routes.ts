@@ -172,7 +172,12 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
 
     try {
       const view = await requireSessionWithoutWorkspace(request, true);
-      const workspaceId = z.string().uuid().parse((request.params as { workspaceId?: string }).workspaceId);
+      const workspaceIdResult = z.string().uuid().safeParse((request.params as { workspaceId?: string }).workspaceId);
+      if (!workspaceIdResult.success) return reply.code(400).send({ status: "invalid_request" });
+      const workspaceId = workspaceIdResult.data;
+      if (view.selectedWorkspace?.id !== workspaceId) {
+        return reply.code(403).send({ status: "forbidden" });
+      }
       const token = oneTimeToken();
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -259,7 +264,8 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
           });
         } catch (error) {
           if (error instanceof IdentityEmailUnavailableError) {
-            return reply.code(503).send({ status: "identity_email_unavailable" });
+            app.log.error(error);
+            return reply.code(202).send({ status: "password_reset_if_account_exists" });
           }
           throw error;
         }
