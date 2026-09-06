@@ -1439,3 +1439,21 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 8. O novo head precisa de validação completa; nenhum SHA anterior deve ser reutilizado.
 
 **Resultado:** o ambiente isolado agora concede o privilégio de schema necessário ao runtime e o upsert de evidência da migration 015 deixa de depender de uma referência ambígua.
+
+
+## 48. Correção da ambiguidade de `opportunity_id` na migration 015
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução do novo head confirmou que a correção de `insight_id` funcionou e que o teste avançou até o segundo upsert de evidência.
+2. Foi encontrada a mesma ambiguidade entre a variável de saída `opportunity_id` da função e a coluna `opportunity_id` de `growth.opportunity_evidence`.
+3. O nome real da constraint foi confirmado diretamente no catálogo PostgreSQL:
+   `opportunity_evidence_opportunity_id_source_class_evidence_r_key`.
+4. A migration `015` foi corrigida para usar `ON CONFLICT ON CONSTRAINT opportunity_evidence_opportunity_id_source_class_evidence_r_key`.
+5. As demais ocorrências de `ON CONFLICT` da função foram revisadas e não colidem com os nomes de saída.
+6. Commit da correção: `d4e5e948ddf17a0ebf75ece414dc9a888d9ec40f`.
+7. Não houve merge, deploy ou alteração da produção.
+8. A correção é válida como iteração da migration `015` porque ela ainda está em PR draft e não foi aplicada em ambiente compartilhado.
+9. Todos os gates precisam ser repetidos no novo head.
+
+**Resultado:** as duas ambiguidades de nomes de saída e colunas de evidência na migration 015 agora usam constraints nomeadas, eliminando esses conflitos de PL/pgSQL.
