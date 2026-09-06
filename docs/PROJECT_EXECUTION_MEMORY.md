@@ -1482,3 +1482,17 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 9. O novo head precisa ser validado integralmente; nenhum SHA anterior deve ser reutilizado.
 
 **Resultado:** o trigger continua funcionando no commit sem abrir leitura direta das tabelas para `app_runtime`; a verificação passa por um helper estreito, com owner e execução controlados.
+
+
+## 50. Falha de serialização no bootstrap do CI e correção
+
+**Data:** 06 de setembro de 2026
+
+1. Após a integração da branch com `main`, o CI foi executado no commit `3d29dabb9791bfed20bcc0424adf7c8b0ad39a9d` (run #145, job `101399471757`).
+2. O job chegou ao gate real de provisionamento isolado e falhou antes das migrations, com PostgreSQL `42601`: `syntax error at or near "$"`.
+3. A causa foi confirmada no workflow versionado: o heredoc PL/pgSQL havia sido serializado como `DO $` e `$;`, em vez de `DO $$` e `$$;`. Isso era um defeito do workflow/serialização, não um defeito do produto.
+4. O workflow foi corrigido para usar o dollar-quoting completo. O commit da correção é `2eef82384edfe9c38b35244b05d9712469d31828`.
+5. Como o head mudou, a validação do Claude para o SHA anterior `04a40544eeb7489ce8696260f87c30604621250f` não é reutilizável; CI completo e revisão adversarial devem ser repetidos no novo SHA.
+6. Não houve merge, deploy ou alteração da produção.
+
+**Aprendizado operacional:** toda alteração de workflow que contenha heredoc, SQL ou regex deve ser relida no arquivo efetivamente versionado e executada no CI antes de ser considerada concluída; a intenção do texto gerado não substitui a verificação do conteúdo armazenado.
