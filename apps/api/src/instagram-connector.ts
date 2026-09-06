@@ -67,6 +67,7 @@ type StoredCredential = {
   tokenType: "Bearer";
   scopes: string[];
   expiresAt: string;
+  issuedAt: string;
 };
 
 type CredentialRow = {
@@ -185,6 +186,23 @@ function sealCredential(
   return Buffer.from(sealJson(credential, config.credentialKey, credentialAad(workspaceId, connectionId)), "utf8");
 }
 
+function openCredential(
+  ciphertext: Buffer,
+  workspaceId: string,
+  connectionId: string,
+  config: InstagramConfig
+): StoredCredential {
+  try {
+    return openJson<StoredCredential>(
+      ciphertext.toString("utf8"),
+      config.credentialKey,
+      credentialAad(workspaceId, connectionId)
+    );
+  } catch {
+    throw new InstagramConnectorError("instagram_credential_unreadable", 503);
+  }
+}
+
 async function metaJson<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -234,6 +252,24 @@ async function exchangeLongLivedToken(
     throw new InstagramConnectorError("instagram_long_lived_token_invalid", 502);
   }
   return { access_token: token.access_token, expires_in: token.expires_in, scopes: [...INSTAGRAM_SCOPES] };
+}
+
+export function instagramRefreshEndpointForTest(accessToken: string): string {
+  const url = new URL("https://graph.instagram.com/refresh_access_token");
+  url.searchParams.set("grant_type", "ig_refresh_token");
+  url.searchParams.set("access_token", accessToken);
+  return url.toString();
+}
+
+async function refreshLongLivedToken(accessToken: string): Promise<{ access_token: string; expires_in: number; token_type?: string }> {
+  const token = await metaJson<{ access_token?: string; expires_in?: number; token_type?: string }>(
+    instagramRefreshEndpointForTest(accessToken),
+    {}
+  );
+  if (!token.access_token || typeof token.expires_in !== "number") {
+    throw new InstagramConnectorError("instagram_refresh_response_invalid", 502);
+  }
+  return token as { access_token: string; expires_in: number; token_type?: string };
 }
 
 async function fetchProfile(accessToken: string, config: InstagramConfig): Promise<InstagramProfile> {
@@ -298,7 +334,8 @@ export async function completeInstagramAuthorizationFromCallback(
     refreshToken: null,
     tokenType: "Bearer",
     scopes: longLived.scopes,
-    expiresAt
+    expiresAt,
+    issuedAt: new Date().toISOString()
   };
   const ciphertext = sealCredential(credential, state.workspaceId, state.connectionId, config);
   const principal: AuthPrincipal = { userId: state.userId, workspaceId: state.workspaceId };
@@ -318,7 +355,7 @@ export async function completeInstagramAuthorizationFromCallback(
         CIPHER_VERSION,
         config.keyVersion,
         expiresAt,
-        false,
+        true,
         longLived.scopes
       ]
     );
@@ -333,6 +370,72 @@ export async function completeInstagramAuthorizationFromCallback(
     providerAccountId: profile.id,
     handle: profile.username ?? null
   };
+}
+
+async function loadCredential(client: PoolClient, connectionId: string): Promise<CredentialRow> {
+  const result = await client.query<CredentialRow>(
+    "select * from growth.instagram_get_connection_credential($1)",
+    [connectionId]
+  );
+  const row = result.rows[0];
+  if (!row) throw new InstagramConnectorError("instagram_connection_not_found", 404);
+  return row;
+}
+
+export async function refreshInstagramConnection(
+  principal: AuthPrincipal,
+  connectionId: string
+): Promise<{ connectionId: string; tokenExpiresAt: string }> {
+  const config = requireConfig();
+  const row = await withTenantTransaction(principal, (client) => loadCredential(client, connectionId));
+  const credential = openCredential(row.credential_ciphertext, principal.workspaceId, connectionId, config);
+  const refreshed = await refreshLongLivedToken(credential.accessToken);
+  const nextCredential: StoredCredential = {
+    ...credential,
+    accessToken: refreshed.access_token,
+    tokenType: refreshed.token_type === "Bearer" ? "Bearer" : credential.tokenType,
+    expiresAt: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+    issuedAt: new Date().toISOString()
+  };
+  const ciphertext = sealCredential(nextCredential, principal.workspaceId, connectionId, config);
+
+  await withTenantTransaction(principal, async (client) => {
+    const result = await client.query<{ updated: boolean }>(
+      `select growth.instagram_update_connection_credential(
+        $1,$2,$3,$4,$5,$6,$7::text[]
+      ) as updated`,
+      [
+        connectionId,
+        ciphertext,
+        CIPHER_VERSION,
+        config.keyVersion,
+        nextCredential.expiresAt,
+        true,
+        nextCredential.scopes
+      ]
+    );
+    if (result.rows[0]?.updated !== true) {
+      throw new InstagramConnectorError("instagram_credential_refresh_not_persisted", 500);
+    }
+  });
+
+  return { connectionId, tokenExpiresAt: nextCredential.expiresAt };
+}
+
+export async function revokeInstagramConnection(
+  principal: AuthPrincipal,
+  connectionId: string
+): Promise<{ connectionId: string; state: "revoked" }> {
+  const result = await withTenantTransaction(principal, (client) =>
+    client.query<{ revoked: boolean }>(
+      "select growth.instagram_revoke_connection($1) as revoked",
+      [connectionId]
+    )
+  );
+  if (result.rows[0]?.revoked !== true) {
+    throw new InstagramConnectorError("instagram_connection_not_found", 404);
+  }
+  return { connectionId, state: "revoked" };
 }
 
 export function sealInstagramStateForTest(state: InstagramState): string {
