@@ -1535,3 +1535,20 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 4. A produção Railway permaneceu no deploy do serviço `growth-os` baseado no commit main `17ee387477763921c0c4cbab326557142d4b26b3`, sem deploy deste PR.
 
 **Resultado:** a cadeia de validação isolada está verde; o próximo gate formal é a revisão independente do SHA final.
+
+
+## 54. Merge, deploy e Production Truth Gate concluídos
+
+**Data:** 06 de setembro de 2026
+
+1. Após aprovação adversarial do Claude no SHA exato `3a3a0b3a73a17dedc3a41d1834a81aa1abe35edb`, o PR #39 foi integrado por squash.
+2. Commit resultante no `main`: `596870e395baa69858b78fcefc40636a69ee5f65`.
+3. O deploy Railway do serviço `growth-os` foi concluído com `SUCCESS` no commit `596870e395baa69858b78fcefc40636a69ee5f65` (deployment `d1b7fb85-f32a-4e11-848e-5368fa1ec16e`).
+4. Production Truth Gate na URL pública `https://growth-os-production-d120.up.railway.app`:
+   - `GET /` → HTTP 200;
+   - `GET /health/ready` → HTTP 200, `status=ready`, `database=ok`;
+   - `GET /v1/system` → HTTP 200, `name=Growth OS`, `version=0.1.0`, `environment=production`.
+5. Nenhum dado sintético do teste foi enviado para produção; o `growth_test_harness` permaneceu exclusivo do CI descartável.
+6. O projeto saiu do estado de PR pendente e passou a estar publicado em produção com o baseline editorial e a infraestrutura de Growth Intelligence validados.
+
+**Resultado:** PR, CI, merge, deploy e verificação pública concluídos com evidência direta.
