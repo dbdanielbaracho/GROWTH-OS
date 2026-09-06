@@ -5,6 +5,7 @@ import { env } from "./config.js";
 import { db } from "./db.js";
 import {
   assertTrustedOrigin,
+  IdentityCsrfError,
   hashIdentityPassword,
   hashIdentityToken,
   resolveCookieSession,
@@ -53,6 +54,9 @@ function oneTimeToken(): { raw: string; hash: string } {
 }
 
 function errorStatus(error: unknown): { code: number; status: string } {
+  if (error instanceof IdentityCsrfError) {
+    return { code: 403, status: "forbidden" };
+  }
   if (error instanceof IdentityEmailUnavailableError) {
     return { code: 503, status: "identity_email_unavailable" };
   }
