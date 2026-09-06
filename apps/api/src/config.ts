@@ -10,6 +10,9 @@ const RawEnvSchema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   IDENTITY_EMAIL_FROM: z.string().min(3).optional(),
   IDENTITY_EMAIL_API_URL: z.string().url().default("https://api.resend.com/emails"),
+  INSTAGRAM_APP_ID: z.string().min(1).optional(),
+  INSTAGRAM_APP_SECRET: z.string().min(1).optional(),
+  INSTAGRAM_GRAPH_API_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v24.0"),
 
   SESSION_ABSOLUTE_TTL_SECONDS: z.coerce.number().int().min(3600).max(60 * 60 * 24 * 90).default(60 * 60 * 24 * 30),
   SESSION_IDLE_TTL_SECONDS: z.coerce.number().int().min(300).max(60 * 60 * 24 * 30).default(60 * 60 * 24),
