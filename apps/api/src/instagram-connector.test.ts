@@ -43,6 +43,15 @@ test("Instagram configuration rejects malformed Graph API versions", () => {
   }
 });
 
+test("Instagram refresh endpoint is fixed and carries only the access token", () => {
+  const url = new URL(connector.instagramRefreshEndpointForTest("token with spaces"));
+  assert.equal(url.origin, "https://graph.instagram.com");
+  assert.equal(url.pathname, "/refresh_access_token");
+  assert.equal(url.searchParams.get("grant_type"), "ig_refresh_token");
+  assert.equal(url.searchParams.get("access_token"), "token with spaces");
+  assert.equal(url.searchParams.has("client_secret"), false);
+});
+
 test("Instagram OAuth state round-trips without exposing tenant identifiers", () => {
   const input = state();
   const sealed = connector.sealInstagramStateForTest(input);
