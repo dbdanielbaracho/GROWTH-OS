@@ -8,6 +8,7 @@ process.env.APP_ORIGIN ??= "https://ci.growth-os.invalid";
 process.env.INSTAGRAM_APP_ID ??= "ci-instagram-app-id";
 process.env.INSTAGRAM_APP_SECRET ??= "ci-instagram-app-secret";
 process.env.PROVIDER_CREDENTIALS_KEY_B64URL ??= randomBytes(32).toString("base64url");
+process.env.INSTAGRAM_GRAPH_API_VERSION = "v24.0";
 
 const connector = await import("./instagram-connector.js");
 
@@ -22,6 +23,25 @@ function state() {
     expiresAt: Date.now() + 60_000
   };
 }
+
+test("Instagram configuration accepts the default dotted Graph API version", () => {
+  assert.equal(connector.instagramConnectorConfigured(), true);
+});
+
+test("Instagram configuration rejects malformed Graph API versions", () => {
+  const previous = process.env.INSTAGRAM_GRAPH_API_VERSION;
+  process.env.INSTAGRAM_GRAPH_API_VERSION = "v24";
+  try {
+    assert.throws(
+      () => connector.instagramConnectorConfigured(),
+      (error: unknown) =>
+        error instanceof connector.InstagramConnectorError
+        && error.code === "instagram_graph_api_version_invalid"
+    );
+  } finally {
+    process.env.INSTAGRAM_GRAPH_API_VERSION = previous;
+  }
+});
 
 test("Instagram OAuth state round-trips without exposing tenant identifiers", () => {
   const input = state();
