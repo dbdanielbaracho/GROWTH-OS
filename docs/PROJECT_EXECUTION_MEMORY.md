@@ -1509,3 +1509,17 @@ Continuar a implementação do baseline visual escolhido pelo usuário, converte
 5. Não houve merge, deploy ou alteração da produção.
 
 **Aprendizado operacional:** em scripts CI, variáveis de shell dentro de heredocs SQL devem ser verificadas pelo comportamento efetivo do shell; preferir parâmetros explícitos ou variáveis nativas do `psql` quando o heredoc estiver protegido contra expansão.
+
+
+## 52. Fixture de Growth Intelligence precisava do harness de testes
+
+**Data:** 06 de setembro de 2026
+
+1. O CI run #153, no commit `29e6c2903348807fd188b3e8218bf8245b977c40`, passou por bootstrap, integrity, typecheck, build, migrations 001–015, grant de schema e SQL gate 033.
+2. O teste Growth Intelligence falhou no primeiro insert em `growth.managed_accounts` com `new row violates row-level security policy`.
+3. A causa foi confirmada: o teste tentava semear fixtures pelo `growth_migrator`, mas as tabelas usam RLS/FORCE RLS e exigem membership ativa; o CI não havia carregado o harness/fixtures canônicos de `db/provisioning/test/01_test_roles.sql` a `03_test_fixtures.sql`.
+4. A correção preserva o least privilege de produção: o CI agora provisiona o papel exclusivamente de teste `growth_test_harness`, carrega os fixtures canônicos e o teste usa `HARNESS_DATABASE_URL` apenas para seed, contagem e limpeza; a chamada do engine continua sendo feita pelo `app_runtime`.
+5. A correção foi registrada nos commits `eb60bbf91e74a23868a100ad4b95942348c1c6ce` (teste) e `2f8c5c9350f2ccd6f51587448b3c1427398fc29f` (workflow).
+6. Não houve merge, deploy ou alteração da produção.
+
+**Aprendizado operacional:** testes de integração que exercitam RLS devem separar explicitamente a identidade de seed privilegiada, exclusiva do ambiente descartável, da identidade runtime sob teste; fixtures existentes no repositório devem ser carregados pelo CI, não apenas presumidos pelo teste.
