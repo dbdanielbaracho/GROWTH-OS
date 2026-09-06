@@ -11,11 +11,13 @@ import {
   InstagramAuthorizeSchema,
   InstagramCallbackQuerySchema,
   InstagramConnectorError,
+  InstagramSyncSchema,
   beginInstagramAuthorization,
   completeInstagramAuthorizationFromCallback,
   instagramConnectorConfigured,
   refreshInstagramConnection,
-  revokeInstagramConnection
+  revokeInstagramConnection,
+  syncInstagramMedia
 } from "./instagram-connector.js";
 
 
@@ -105,6 +107,24 @@ export async function registerInstagramRoutes(app: FastifyInstance): Promise<voi
     try {
       const result = await withTenantTransaction(principal, (client) =>
         beginInstagramAuthorization(client, principal, parsed.data.managedAccountId)
+      );
+      return { status: "ok", ...result };
+    } catch (error) {
+      return integrationError(app, reply, error);
+    }
+  });
+
+  app.post("/v1/integrations/instagram/sync", async (request, reply) => {
+    const principal = await principalOrReply(request, reply);
+    if (!principal) return;
+    const parsed = InstagramSyncSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const result = await syncInstagramMedia(
+        principal,
+        parsed.data.connectionId,
+        parsed.data.requestNonce,
+        parsed.data.lookbackDays
       );
       return { status: "ok", ...result };
     } catch (error) {
