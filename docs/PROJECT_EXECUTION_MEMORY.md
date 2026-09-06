@@ -1904,3 +1904,28 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 6. A documentação `docs/INSTAGRAM_CONNECTOR_LIFECYCLE_V0.1.md` também foi corrigida para remover escapes Markdown literais.
 7. As correções dos itens 5–6 criam novo SHA; portanto o run #250 não é o SHA final. O próximo passo é aguardar o CI do SHA final e só então enviar exatamente esse SHA ao Claude.
 8. Nenhum merge, deploy, alteração de produção ou configuração de credenciais foi realizado neste bloco.
+
+
+## 65. Instagram lifecycle — CI final do código candidato
+
+**Data:** 06 de setembro de 2026  
+**PR:** #42  
+**SHA validado:** `cf5b260d5a1c87cd05f5e0b34a3c39ccdf6910d6`  
+**CI run:** #262  
+**Job:** `validate` — success
+
+1. O gate 036 ainda falhou uma vez no SHA documental anterior porque a comparação de assinatura textual não era estável. Foi substituída por `to_regprocedure(...)`, resolvendo cada assinatura exata por nome e tipos.
+2. No SHA `cf5b260d5a1c87cd05f5e0b34a3c39ccdf6910d6`, o CI passou integralmente:
+   - Test Integrity Gate;
+   - typecheck;
+   - build;
+   - roles isoladas;
+   - migrations 001–018;
+   - schema usage do runtime;
+   - fixtures;
+   - gates SQL 033, 034, 035 e 036;
+   - Growth Intelligence integration;
+   - production web shell;
+   - testes unitários.
+3. O código do bloco não foi mergeado, deployado nem aplicado em produção. Nenhuma credencial Meta foi configurada.
+4. O próximo commit documental deve ser validado novamente antes de enviar o SHA final ao Claude.
