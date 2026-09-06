@@ -2267,3 +2267,68 @@ Essas falhas não foram ocultadas nem tratadas como sucesso parcial; cada uma ge
 - revisão Claude: precisa ser repetida no SHA exato atual, incluindo a migration 020 e o gate 038.
 
 Conclusão desta etapa: o bloqueio de idempotência encontrado pelo Claude foi corrigido e protegido por teste comportamental. A aprovação final ainda não foi emitida, pois o Claude deve revisar novamente o SHA final.
+
+
+---
+
+## Registro operacional — verificação final do Instagram após PR #44 (2026-09-06)
+
+### Fato observado
+
+Após o merge do PR #44 no commit `9c3740a1af6ade5bdbb80bb0f062e1b004880fee`, o serviço web foi publicado com sucesso em produção. Durante a tentativa de confirmar o estado das migrations 019/020, surgiu uma divergência entre leituras intermediárias do Railway e uma revisão independente do Claude.
+
+### Erros de processo identificados
+
+1. A variável `MIGRATOR_DATABASE_URL` apontou inicialmente para `growth_os_test`, embora a intenção fosse consultar/aplicar em produção.
+2. Houve implantações Railway usando snapshots de comando anteriores ao comando configurado mais recentemente.
+3. Uma inspeção atingiu o limite interno do agente e repetiu o histórico sem executar novamente todas as consultas.
+4. Uma saída agregada e incompleta foi interpretada como ausência de objetos sem evidência completa suficiente.
+5. Foi aberto o PR #45 para uma migration corretiva antes de explicar a causa raiz de um suposto drift de schema.
+
+### PR #45
+
+- Branch: `fix/production-instagram-schema-repair`
+- SHA: `309e052bec6881186758113998517ecc0170719b`
+- CI: passou todos os gates, incluindo o gate 039.
+- A migration 021 não foi aplicada em produção.
+- O PR #45 foi fechado sem merge em 2026-09-06 porque a verificação final mostrou que os objetos já existiam.
+
+### Verificação final somente leitura
+
+Deployment Railway usado para a leitura: `7f2bff71-5e50-47be-80d4-26d4643206c8`.
+
+Alvo confirmado diretamente:
+
+- banco: `growth_os_797f0a3`;
+- servidor: `10.130.48.97`;
+- tabela: `growth.instagram_media`;
+- RLS: `true`;
+- FORCE RLS: `true`;
+- policy: `instagram_media_workspace_isolation`, contagem 1;
+- `instagram_record_media`: contagem 1, owner `growth_migrator`, SECURITY DEFINER true, PUBLIC EXECUTE false, app_runtime EXECUTE true;
+- `instagram_record_metric_observation`: contagem 1, owner `growth_migrator`, SECURITY DEFINER true, PUBLIC EXECUTE false, app_runtime EXECUTE true;
+- função de observação contém a lógica endurecida `ROW(...) IS NOT DISTINCT FROM ROW(...)`;
+- privilégios diretos de `app_runtime` na tabela: SELECT/INSERT/UPDATE/DELETE = false;
+- linhas em `growth.instagram_media`: 0.
+
+A leitura independente do Claude confirmou a existência da policy e concordou que a produção estava completa. Nenhum dado, policy, função ou schema foi alterado pela migration 021.
+
+### Medida de segurança posterior
+
+O serviço Railway `migrator` foi configurado com:
+
+```
+startCommand: sh -c "echo 'migrator frozen: no automatic database operation'; sleep 3600"
+restartPolicyType: NEVER
+```
+
+A configuração atual não executa migrations automaticamente.
+
+### Decisão e regra aprendida
+
+- Não confiar em narrativa de execução sem saída bruta identificável.
+- Toda consulta de produção deve mostrar `current_database()`, servidor, timestamp, deployment ID e SHA.
+- Se uma ferramenta atingir limite ou repetir histórico, o resultado deve ser tratado como não executado.
+- Não criar migration corretiva enquanto o estado real e a causa raiz não estiverem comprovados.
+- Para mudanças de banco, ChatGPT executa e coleta evidências; Claude revisa adversarialmente; merge/deploy só ocorre após os dois resultados independentes serem coerentes.
+- A produção deve permanecer sem alteração quando houver divergência de evidências.
