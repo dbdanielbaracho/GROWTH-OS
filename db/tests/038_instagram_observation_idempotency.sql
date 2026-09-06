@@ -74,8 +74,8 @@ BEGIN
     RAISE EXCEPTION '038 failed: helper ownership/security boundary changed';
   END IF;
 
-  SELECT set_config('app.workspace_id',workspace_id::text,true);
-  SELECT set_config('app.user_id',user_id::text,true);
+  PERFORM set_config('app.workspace_id',workspace_id::text,true);
+  PERFORM set_config('app.user_id',user_id::text,true);
 
   INSERT INTO growth.managed_accounts(
     id,workspace_id,owner_type,authority_status,contribution_eligibility,authority_clause_ref
