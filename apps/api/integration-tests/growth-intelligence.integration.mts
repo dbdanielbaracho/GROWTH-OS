@@ -4,7 +4,7 @@ import pg, { type PoolClient } from "pg";
 import { db } from "../src/db.js";
 
 const { Pool } = pg;
-function requiredDatabaseUrl(name: "MIGRATOR_DATABASE_URL") {
+function requiredDatabaseUrl(name: "HARNESS_DATABASE_URL") {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is required for Growth Intelligence integration fixtures`);
   return value;
@@ -24,10 +24,10 @@ const noSignalSocialAccountId = randomUUID();
 const providerAccountId = `growth-intelligence-${socialAccountId}`;
 const noSignalProviderAccountId = `growth-intelligence-no-signal-${noSignalSocialAccountId}`;
 
-const migrator = new Pool({ connectionString: requiredDatabaseUrl("MIGRATOR_DATABASE_URL"), max: 1 });
+const harness = new Pool({ connectionString: requiredDatabaseUrl("HARNESS_DATABASE_URL"), max: 1 });
 
-async function withMigrator<T>(fn: (client: PoolClient) => Promise<T>) {
-  const client = await migrator.connect();
+async function withHarness<T>(fn: (client: PoolClient) => Promise<T>) {
+  const client = await harness.connect();
   try {
     await client.query("BEGIN");
     await client.query("SELECT set_config('app.workspace_id', $1, true)", [workspaceId]);
@@ -45,7 +45,7 @@ async function withMigrator<T>(fn: (client: PoolClient) => Promise<T>) {
 
 const appClient = await db.connect();
 try {
-  await withMigrator(async (client) => {
+  await withHarness(async (client) => {
     await client.query(
       `insert into growth.managed_accounts
         (id, workspace_id, owner_type, authority_status, contribution_eligibility, authority_clause_ref)
@@ -186,7 +186,7 @@ try {
 
   await appClient.query("COMMIT");
 
-  const counts = await withMigrator((client) =>
+  const counts = await withHarness((client) =>
     client.query<{ signals: string; insights: string; opportunities: string }>(
       `select
          (select count(*) from growth.factual_signals where workspace_id=$1 and social_account_id=$2) as signals,
@@ -202,7 +202,7 @@ try {
   } catch { /* no-op */ }
   appClient.release();
 
-  await withMigrator(async (client) => {
+  await withHarness(async (client) => {
     await client.query(
       `delete from growth.opportunity_evidence
         where workspace_id=$1 and opportunity_id in (
@@ -230,6 +230,6 @@ try {
     await client.query("delete from growth.authority_history where workspace_id=$1 and id=$2", [workspaceId, authorityHistoryId]);
     await client.query("delete from growth.managed_accounts where workspace_id=$1 and id=$2", [workspaceId, managedAccountId]);
   });
-  await migrator.end();
+  await harness.end();
   await db.end();
 }
