@@ -159,6 +159,19 @@ export type InstagramRefreshResponse = {
   tokenExpiresAt: string;
 };
 
+export type InstagramSyncResponse = {
+  status: "ok";
+  connectionId: string;
+  requestNonce: string;
+  collectionRunId: string;
+  socialAccountId: string;
+  requestedLookbackDays: number;
+  rowsReceived: number;
+  mediaProcessed: number;
+  observationsProcessed: number;
+  oldestMediaAt: string | null;
+};
+
 type OpportunityListResponse = {
   status: "ok";
   opportunities: OpportunitySummary[];
@@ -374,6 +387,17 @@ export async function reconnectInstagram(managedAccountId: string): Promise<Inst
   return requestJson<InstagramAuthorizeResponse>("/v1/integrations/instagram/reconnect", {
     method: "POST",
     body: { managedAccountId }
+  });
+}
+
+export async function syncInstagram(
+  connectionId: string,
+  requestNonce: string,
+  lookbackDays = 7
+): Promise<InstagramSyncResponse> {
+  return requestJson<InstagramSyncResponse>("/v1/integrations/instagram/sync", {
+    method: "POST",
+    body: { connectionId, requestNonce, lookbackDays }
   });
 }
 
