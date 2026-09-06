@@ -226,3 +226,12 @@ This does not mark Phase 1 or Phase 2 as complete. The exit gates still require:
 - remaining team administration, recovery and connector journeys.
 
 Instagram, publishing, analytics, experiments, Copilot/Autopilot, commercial/enterprise modules and final production hardening remain future phases. The project is not complete until Phase 11 is Frozen.
+
+
+## 8. Identity v1 status after merge
+
+**Status:** Validated and deployed, with one operational dependency pending.
+
+Identity v1 is now merged into `main` and deployed through Railway. The code and CI gates are complete. Production signup and email verification remain disabled operationally until `RESEND_API_KEY` and `IDENTITY_EMAIL_FROM` are configured as Railway secrets.
+
+The next implementation block is Phase 3 channel connectors, beginning with Instagram under the same tenant, provenance, consent, idempotency and adversarial-review rules. This does not change the full-product completion rule: Growth OS remains incomplete until all phases, including publishing, analytics, intelligence, experiments, automation, commercial controls and Phase 11 hardening, are frozen.
