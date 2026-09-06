@@ -30,6 +30,9 @@ BEGIN
     IF helper_owner <> 'growth_migrator' OR is_definer IS DISTINCT FROM true THEN
       RAISE EXCEPTION '036 failed: % owner/SECURITY DEFINER boundary', helper_name;
     END IF;
+    IF replace(helper_args, ' ', '') <> replace(expected_args, ' ', '') THEN
+      RAISE EXCEPTION '036 failed: % signature mismatch', helper_name;
+    END IF;
 
     SELECT has_function_privilege('app_runtime', helper_oid, 'EXECUTE')
       INTO app_execute;
