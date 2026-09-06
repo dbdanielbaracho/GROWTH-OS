@@ -12,11 +12,30 @@ const INSTAGRAM_SCOPES = [
 ] as const;
 const INSTAGRAM_CALLBACK_PATH = "/v1/integrations/instagram/callback";
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
-const ADAPTER_VERSION = "instagram-v0.1";
+const ADAPTER_VERSION = "instagram-v0.2";
 const CIPHER_VERSION = "aes-256-gcm.v1";
+const SOURCE_SCHEMA_VERSION = "instagram.media.v1";
+const INSTAGRAM_MEDIA_FIELDS = [
+  "id",
+  "media_type",
+  "media_product_type",
+  "permalink",
+  "caption",
+  "timestamp",
+  "media_url",
+  "thumbnail_url",
+  "like_count",
+  "comments_count"
+].join(",");
 
 export const InstagramAuthorizeSchema = z.object({
   managedAccountId: z.string().uuid()
+});
+
+export const InstagramSyncSchema = z.object({
+  connectionId: z.string().uuid(),
+  requestNonce: z.string().uuid(),
+  lookbackDays: z.coerce.number().int().min(1).max(30).default(7)
 });
 
 export const InstagramCallbackQuerySchema = z.object({
@@ -58,6 +77,27 @@ type InstagramProfile = {
   account_type?: string;
   media_count?: number;
   followers_count?: number;
+};
+
+type InstagramMedia = {
+  id: string;
+  media_type?: string;
+  media_product_type?: string;
+  permalink?: string;
+  caption?: string;
+  timestamp?: string;
+  media_url?: string;
+  thumbnail_url?: string;
+  like_count?: number;
+  comments_count?: number;
+};
+
+type InstagramMediaPage = {
+  data?: InstagramMedia[];
+  paging?: {
+    next?: string;
+    cursors?: { after?: string };
+  };
 };
 
 type StoredCredential = {
@@ -282,6 +322,52 @@ async function refreshLongLivedToken(accessToken: string): Promise<{ access_toke
   return token as { access_token: string; expires_in: number; token_type?: string };
 }
 
+export function instagramMediaRequestUrlForTest(
+  providerAccountId: string,
+  graphApiVersion = "v24.0",
+  after?: string
+): string {
+  const url = new URL(`https://graph.instagram.com/${graphApiVersion}/${encodeURIComponent(providerAccountId)}/media`);
+  url.searchParams.set("fields", INSTAGRAM_MEDIA_FIELDS);
+  url.searchParams.set("limit", "100");
+  if (after) url.searchParams.set("after", after);
+  return url.toString();
+}
+
+async function fetchMediaPage(
+  accessToken: string,
+  providerAccountId: string,
+  config: InstagramConfig,
+  after?: string
+): Promise<InstagramMediaPage> {
+  const url = new URL(instagramMediaRequestUrlForTest(providerAccountId, config.graphApiVersion));
+  if (after) url.searchParams.set("after", after);
+  return metaJson<InstagramMediaPage>(url.toString(), {
+    headers: { authorization: `Bearer ${accessToken}` }
+  });
+}
+
+function parseMediaTimestamp(value: string | undefined): Date {
+  if (!value) throw new InstagramConnectorError("instagram_media_timestamp_invalid", 502);
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new InstagramConnectorError("instagram_media_timestamp_invalid", 502);
+  }
+  return parsed;
+}
+
+function metricValue(value: number | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function metricSemanticVersion(metricName: string): string {
+  return `instagram.media.${metricName}.v1`;
+}
+
+function mediaPayloadRef(media: InstagramMedia): string {
+  return `sha256:${createHash("sha256").update(JSON.stringify(media), "utf8").digest("hex")}`;
+}
+
 async function fetchProfile(accessToken: string, config: InstagramConfig): Promise<InstagramProfile> {
   const url = new URL(`https://graph.instagram.com/${config.graphApiVersion}/me`);
   url.searchParams.set("fields", "id,username,name,account_type,media_count,followers_count");
@@ -295,6 +381,163 @@ async function fetchProfile(accessToken: string, config: InstagramConfig): Promi
     throw new InstagramConnectorError("instagram_professional_account_required", 409);
   }
   return profile;
+}
+
+async function usableInstagramCredential(
+  principal: AuthPrincipal,
+  connectionId: string
+): Promise<{ config: InstagramConfig; row: CredentialRow; credential: StoredCredential }> {
+  const config = requireConfig();
+  let row = await withTenantTransaction(principal, (client) => loadCredential(client, connectionId));
+  let credential = openCredential(row.credential_ciphertext, principal.workspaceId, connectionId, config);
+  if (new Date(credential.expiresAt).getTime() <= Date.now() + 60_000) {
+    await refreshInstagramConnection(principal, connectionId);
+    row = await withTenantTransaction(principal, (client) => loadCredential(client, connectionId));
+    credential = openCredential(row.credential_ciphertext, principal.workspaceId, connectionId, config);
+  }
+  return { config, row, credential };
+}
+
+export async function syncInstagramMedia(
+  principal: AuthPrincipal,
+  connectionId: string,
+  requestNonce: string,
+  lookbackDays: number
+): Promise<{
+  connectionId: string;
+  requestNonce: string;
+  collectionRunId: string;
+  socialAccountId: string;
+  requestedLookbackDays: number;
+  rowsReceived: number;
+  mediaProcessed: number;
+  observationsProcessed: number;
+  oldestMediaAt: string | null;
+}> {
+  const { config, row, credential } = await usableInstagramCredential(principal, connectionId);
+  const collectedAt = new Date();
+  const cutoff = collectedAt.getTime() - lookbackDays * 24 * 60 * 60 * 1000;
+  const pages: InstagramMedia[] = [];
+  let after: string | undefined;
+  let pageCount = 0;
+  let oldestFetchedAt: Date | null = null;
+
+  while (true) {
+    pageCount += 1;
+    if (pageCount > 20) {
+      throw new InstagramConnectorError("instagram_media_pagination_limit", 503);
+    }
+    const page = await fetchMediaPage(credential.accessToken, row.provider_account_id, config, after);
+    const media = page.data ?? [];
+    for (const item of media) {
+      if (!item.id || !item.media_type) {
+        throw new InstagramConnectorError("instagram_media_response_invalid", 502);
+      }
+      const postedAt = parseMediaTimestamp(item.timestamp);
+      if (!oldestFetchedAt || postedAt < oldestFetchedAt) oldestFetchedAt = postedAt;
+      if (postedAt.getTime() >= cutoff) pages.push(item);
+    }
+
+    const last = media.at(-1);
+    const hasOlderMedia = last ? parseMediaTimestamp(last.timestamp).getTime() < cutoff : true;
+    const next = page.paging?.cursors?.after;
+    if (media.length === 0 || hasOlderMedia || !next) break;
+    after = next;
+  }
+
+  let observationsProcessed = 0;
+  await withTenantTransaction(principal, async (client) => {
+    for (const media of pages) {
+      const postedAt = parseMediaTimestamp(media.timestamp);
+      const payloadRef = mediaPayloadRef(media);
+      await client.query(
+        `select growth.instagram_record_media(
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+        )`,
+        [
+          row.social_account_id,
+          media.id,
+          media.media_type,
+          media.media_product_type ?? null,
+          media.permalink ?? null,
+          media.caption ?? null,
+          postedAt.toISOString(),
+          media.media_url ?? null,
+          media.thumbnail_url ?? null,
+          collectedAt.toISOString(),
+          payloadRef,
+          ADAPTER_VERSION
+        ]
+      );
+
+      const metrics: Array<[string, number | null]> = [
+        ["like_count", metricValue(media.like_count)],
+        ["comments_count", metricValue(media.comments_count)]
+      ];
+      for (const [metricName, value] of metrics) {
+        if (value === null) continue;
+        const semanticVersion = metricSemanticVersion(metricName);
+        const idempotencyKey = createHash("sha256").update([
+          "instagram",
+          requestNonce,
+          row.provider_account_id,
+          media.id,
+          metricName,
+          semanticVersion,
+          SOURCE_SCHEMA_VERSION
+        ].join("|"), "utf8").digest("hex");
+        await client.query(
+          `select growth.instagram_record_metric_observation(
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+            $15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
+          )`,
+          [
+            row.social_account_id,
+            media.id,
+            metricName,
+            value,
+            "count",
+            collectedAt.toISOString(),
+            postedAt.toISOString(),
+            "UTC",
+            config.graphApiVersion,
+            SOURCE_SCHEMA_VERSION,
+            "instagram_graph",
+            "instagram_media",
+            semanticVersion,
+            null,
+            null,
+            postedAt.toISOString(),
+            postedAt.toISOString(),
+            collectedAt.toISOString(),
+            "authorized_account",
+            new Date(collectedAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            new Date(collectedAt.getTime() + 29 * 24 * 60 * 60 * 1000).toISOString(),
+            "complete",
+            "fresh",
+            requestNonce,
+            idempotencyKey,
+            payloadRef,
+            ADAPTER_VERSION,
+            "polling"
+          ]
+        );
+        observationsProcessed += 1;
+      }
+    }
+  });
+
+  return {
+    connectionId,
+    requestNonce,
+    collectionRunId: requestNonce,
+    socialAccountId: row.social_account_id,
+    requestedLookbackDays: lookbackDays,
+    rowsReceived: pages.length,
+    mediaProcessed: pages.length,
+    observationsProcessed,
+    oldestMediaAt: oldestFetchedAt?.toISOString() ?? null
+  };
 }
 
 export async function beginInstagramAuthorization(
