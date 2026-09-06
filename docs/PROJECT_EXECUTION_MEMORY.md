@@ -2188,3 +2188,82 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 - A fundação de ingestão Instagram está implementada e validada em CI isolado.
 - O fluxo ainda não está aprovado para merge/deploy: falta a revisão final adversarial do Claude no SHA exato.
 - O projeto não está concluído: faltam insights avançados, publicação real, webhooks, comentários/moderação, reconciliação, testes com conta Instagram real, observabilidade operacional, rollout e fases posteriores do produto.
+
+
+---
+
+## Registro operacional — correção de idempotência Instagram após revisão Claude — 2026-09-06
+
+### 1. Bloqueio encontrado pelo Claude
+
+O Claude revisou adversarialmente o PR #44 no SHA '4ce7529b9b9ac703b76deea3e8d5ace9fa8df433' e rejeitou a aprovação com CHANGES_REQUIRED.
+
+O bloqueio foi reproduzido na função growth.instagram_record_metric_observation, na migration 019_instagram_media_metrics_sync.sql: a comparação para uma mesma idempotency_key verificava somente sete campos (social_account_id, provider_content_id, metric_name, raw_value, observed_at, metric_semantic_version e authorization_class). Campos materiais como unit, completeness_status, freshness_status, raw_payload_ref e collection_run_id eram ignorados.
+
+Cenário reproduzido pelo Claude:
+
+- primeira chamada: raw_value=120, unit='seconds';
+- segunda chamada: mesma chave, raw_value=120, unit='minutes';
+- resultado anterior: mesma UUID retornada, sem exceção, e o fato de 120 minutos foi silenciosamente descartado.
+
+A comparação estava atrás do padrão já corrigido para YouTube na migration 013. O gate 037 original passou porque era apenas estrutural e não exercitava o comportamento.
+
+### 2. Decisão de correção
+
+Para preservar a migration 019 imutável depois de sua validação no branch e aplicar a disciplina forward-only, foi criada:
+
+- db/migrations/020_instagram_observation_idempotency_hardening.sql;
+- db/tests/038_instagram_observation_idempotency.sql.
+
+A migration 020 usa CREATE OR REPLACE FUNCTION e replica o contrato comprovado da migration 013 do YouTube:
+
+- comparação ROW(...) IS NOT DISTINCT FROM ROW(...);
+- todos os campos factuais/de proveniência estáveis são comparados;
+- collected_at, retention_deadline e refresh_required_by continuam excluídos por serem metadados de retry/política;
+- retry idêntico retorna a mesma UUID;
+- mudança material sob a mesma chave lança instagram observation idempotency conflict;
+- owner growth_migrator, SECURITY DEFINER, PUBLIC sem EXECUTE e app_runtime com EXECUTE foram preservados.
+
+O gate 038 verifica tanto a definição no catálogo quanto o comportamento real em PostgreSQL isolado:
+
+- cria fixture temporária de workspace, managed account, authority history, conexão Instagram e social account;
+- executa duas chamadas idênticas;
+- confirma a mesma UUID;
+- executa a mesma chave com unit='minutes' em vez de unit='seconds';
+- exige o erro de conflito;
+- termina com ROLLBACK, sem persistência.
+
+### 3. Falhas intermediárias e correções
+
+A sequência foi registrada integralmente:
+
+1. CI run 304 — SHA '2a3b62af51f9043bede91274c2e148f954737c92' — FAILURE. A pré-condição da migration 020 usava uma assinatura regprocedure com quatro, em vez de cinco, parâmetros consecutivos timestamptz. A função real estava correta, mas a referência de catálogo não correspondia à assinatura. Corrigidos regprocedure, ALTER FUNCTION, REVOKE e GRANT na migration 020.
+
+2. CI run 307 — SHA 'd8fd0270c12149eab4700f23aa3d3b0d6c039888' — FAILURE. O novo gate 038 avançou até o teste comportamental, mas usava SELECT set_config(...) dentro de um bloco PL/pgSQL sem consumir o retorno. PostgreSQL retornou query has no destination for result data. Substituído por PERFORM set_config(...).
+
+3. CI run 309 — SHA 'f0136c15253f00def2fdbd73ae72127d83b9ce2d' — SUCCESS. O pipeline completo passou no SHA exato, incluindo Test Integrity Gate, typecheck, build, aplicação das migrations 001–020, gates SQL existentes, gate 037, gate 038 comportamental, Growth Intelligence integration, production web shell e testes unitários.
+
+Essas falhas não foram ocultadas nem tratadas como sucesso parcial; cada uma gerou correção rastreável, novo commit, novo SHA e nova execução.
+
+### 4. Commits desta correção
+
+- 9171f035d77c65f86e535c8fcf713db694f12f2f — criação da migration 020;
+- db3d49de5834ed79f702fd88d4c0a6190bff17e9 — criação do gate 038;
+- 2c559f7fa7652e11c9b117cf31a8aa504525457e — inclusão do gate 038 no CI;
+- 2a3b62af51f9043bede91274c2e148f954737c92 — correção do SET LOCAL ROLE do gate;
+- df60f4bedf6804230bddc451abbaa1daa2885691 — correção das assinaturas SQL da migration 020;
+- d8fd0270c12149eab4700f23aa3d3b0d6c039888 — correção da assinatura SQL do gate 038;
+- f0136c15253f00def2fdbd73ae72127d83b9ce2d — correção de SELECT set_config para PERFORM.
+
+### 5. Estado atual e próximo passo
+
+- PR: #44 — feat: Instagram media and direct metrics sync v0.1;
+- branch: feat/growth-os-instagram-sync-v0-1;
+- SHA candidato atual: f0136c15253f00def2fdbd73ae72127d83b9ce2d;
+- CI run #309: success;
+- produção: não alterada;
+- merge: não executado;
+- deploy: não executado;
+- revisão Claude: precisa ser repetida no SHA exato atual, incluindo a migration 020 e o gate 038.
+
+Conclusão desta etapa: o bloqueio de idempotência encontrado pelo Claude foi corrigido e protegido por teste comportamental. A aprovação final ainda não foi emitida, pois o Claude deve revisar novamente o SHA final.
