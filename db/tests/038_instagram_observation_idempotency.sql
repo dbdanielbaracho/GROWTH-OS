@@ -105,7 +105,7 @@ BEGIN
     'instagram-idempotency-gate','@idempotency-gate','business','US','UTC'
   );
 
-  SET LOCAL ROLE app_runtime;
+  EXECUTE 'SET LOCAL ROLE app_runtime';
 
   SELECT growth.instagram_record_metric_observation(
     social_id,'media:idempotency-gate','like_count',120,'seconds',
