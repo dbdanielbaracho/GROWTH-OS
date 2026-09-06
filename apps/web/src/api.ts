@@ -231,6 +231,46 @@ export async function fetchAuthSession(): Promise<AuthSessionResponse> {
   }));
 }
 
+export type IdentitySignupResponse = {
+  status: "verification_required";
+};
+
+export type WorkspaceCreateResponse = {
+  status: "created";
+  workspace_id: string;
+};
+
+export async function signUp(email: string, password: string): Promise<IdentitySignupResponse> {
+  csrfToken = null;
+  return requestJson<IdentitySignupResponse>("/v1/auth/signup", {
+    method: "POST",
+    body: { email, password },
+    useDevelopmentIdentity: false
+  });
+}
+
+export async function verifyEmail(token: string): Promise<{ status: "verified"; user_id?: string }> {
+  csrfToken = null;
+  return requestJson<{ status: "verified"; user_id?: string }>("/v1/auth/verify-email", {
+    method: "POST",
+    body: { token },
+    useDevelopmentIdentity: false
+  });
+}
+
+export async function createWorkspace(input: {
+  name: string;
+  defaultMarket: string;
+  defaultLanguage: string;
+  defaultTimezone: string;
+}): Promise<WorkspaceCreateResponse> {
+  return requestJson<WorkspaceCreateResponse>("/v1/workspaces", {
+    method: "POST",
+    body: input,
+    useDevelopmentIdentity: false
+  });
+}
+
 export async function signIn(email: string, password: string): Promise<AuthSessionResponse> {
   csrfToken = null;
   return captureSession(await requestJson<AuthSessionResponse>("/v1/auth/signin", {
