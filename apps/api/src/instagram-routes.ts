@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { resolvePrincipal } from "./auth.js";
 import {
