@@ -1855,3 +1855,24 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 3. Verificação posterior confirmou que o serviço não aparece mais no projeto; o ambiente voltou de 23 para 22 serviços.
 4. O serviço `migrator` permanece `SUCCESS` e está com `preDeployCommand=[]`; nenhuma ação temporária de migration ficou configurada para o próximo deploy.
 5. A conclusão sobre a migration 017 permanece pendente por falta de consulta SQL de produção executada com evidência. O código web está publicado e saudável, mas Instagram não deve ser declarado operacionalmente ativado até esse gate.
+
+
+## 63. Instagram lifecycle — implementação candidata iniciada
+
+**Data:** 06 de setembro de 2026  
+**Branch:** `feat/growth-os-instagram-lifecycle-v1`  
+**Base:** `d7d3fe89512548128f9655a3d1a830e8c09cbecf`
+
+1. Após concluir a remoção do serviço temporário `m017-verify-readonly`, foi iniciado o próximo bloco de produto: ciclo de vida da integração Instagram.
+2. Antes de editar, foram comparados os padrões do conector YouTube, a migration 017, os grants de `provider_credentials`, os estados de `platform_connections` e o gate 035. A decisão foi não editar a migration 017, pois ela já representa a fundação aprovada; o próximo bloco usa migration forward-only 018.
+3. A documentação oficial atual da Meta foi consultada para confirmar o endpoint de refresh de long-lived token: `GET https://graph.instagram.com/refresh_access_token` com `grant_type=ig_refresh_token` e `access_token`. Referências registradas em `docs/INSTAGRAM_CONNECTOR_LIFECYCLE_V0.1.md`.
+4. Alterações de código aplicadas no branch:
+   - `apps/api/src/instagram-connector.ts`: leitura segura da credencial cifrada, refresh oficial, atualização cifrada, endpoint de teste, rota de revogação e metadado `issuedAt`;
+   - `apps/api/src/instagram-routes.ts`: endpoints de refresh, reconnect e revoke; correção da importação de `zod` necessária pelo schema de parâmetros;
+   - `db/migrations/018_instagram_token_lifecycle.sql`: reuso de conexões revogadas/desconectadas, callback de reconexão idempotente para a mesma conexão e helper de revogação local;
+   - `db/tests/036_instagram_token_lifecycle.sql`: gate de owner, `SECURITY DEFINER`, grants e ausência de acesso direto do `app_runtime`;
+   - `.github/workflows/ci.yml`: execução do gate 036; a aplicação da migration 018 já é coberta pelo loop canônico de migrations;
+   - `apps/api/src/instagram-connector.test.ts`: teste do endpoint oficial de refresh, ausência de `client_secret` e preservação do token na query.
+5. Registro documental criado: `docs/INSTAGRAM_CONNECTOR_LIFECYCLE_V0.1.md`.
+6. Ainda não há aprovação, merge, deploy ou aplicação em produção desta mudança. O próximo passo obrigatório é abrir a PR, executar CI no SHA exato, corrigir qualquer falha reproduzida, depois enviar somente o SHA final ao Claude.
+7. A pendência anterior permanece: a aplicação da migration 017 no banco de produção ainda não foi comprovada; portanto o Instagram continua classificado como código publicado, mas não operacionalmente ativado.
