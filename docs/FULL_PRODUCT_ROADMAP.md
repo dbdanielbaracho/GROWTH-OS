@@ -300,3 +300,48 @@ The lifecycle candidate reached a complete green CI in run #250 at intermediate 
 ### Final code-candidate CI
 
 After the documented hardening, CI run #262 passed for code SHA `cf5b260d5a1c87cd05f5e0b34a3c39ccdf6910d6`, including migration 018 and gates 033–036. This roadmap update creates a new branch head; that new exact SHA must pass CI before Claude review. The lifecycle block remains In progress and not deployed.
+
+
+## 13. PR #42 integrado — lifecycle Instagram e migrations de produção
+
+**Data:** 06 de setembro de 2026
+
+O PR #42 foi aprovado pelo Claude no SHA exato `faeb19b89c38c77ac912b19ef23cbd4a6440783a`, mergeado por squash no commit `08f10e046b8e0b6e708a5dfd262fc34daeec3ae8` e publicado pelo Railway no serviço `growth-os` com deployment SUCCESS `ea1275fc-48ab-4846-95c6-3231fd3183d3`.
+
+A aplicação das migrations não foi inferida do deploy web. Após corrigir problemas de snapshot do Railway, quoting de shell, execução explícita com `sh -c` e normalização de whitespace no precheck, o deployment `34ee4800-3550-4e1f-adb3-e2097a39ee81` confirmou diretamente em produção:
+
+- migration 017 aplicada;
+- migration 018 aplicada;
+- `instagram_integration_status` presente;
+- `instagram_revoke_connection` presente;
+- 3 capabilities Instagram presentes;
+- nenhum erro SQL;
+- operação idempotente e com `ON_ERROR_STOP=1`.
+
+O comando temporário do migrator foi removido. O comando original foi restaurado e confirmado pelo deployment SUCCESS `dd14e33f-c5b6-450e-9f76-a97ebd08903a`, com função Instagram presente e CI do SHA aprovado em estado success.
+
+### Estado atualizado da Phase 3
+
+**Phase 3 — In Progress, não Frozen.**
+
+Concluído neste bloco:
+
+- fundação segura do Instagram;
+- lifecycle de token;
+- refresh/reconnect/revoke no código;
+- migrations 017–018 aplicadas em produção;
+- grants, helpers e capabilities registradas;
+- CI, gates SQL e revisão adversarial do Claude;
+- código mergeado e publicado.
+
+Ainda falta para congelar Phase 3:
+
+- configurar credenciais Meta reais;
+- conectar e validar uma conta profissional real;
+- comprovar refresh, reconnect e revoke contra comportamento real do provedor;
+- sincronização de mídia e métricas;
+- publicação real, reconciliação e webhooks;
+- UI completa, estados degradados e recuperação;
+- evidência operacional e revisão final do conector.
+
+O projeto completo continua incompleto. Fases 4–11 — conteúdo completo, publicação/orquestração, analytics, inteligência, experimentos, Copilot/Autopilot, comercial/enterprise e hardening/launch — permanecem pendentes conforme a definição de completude da seção 2.
