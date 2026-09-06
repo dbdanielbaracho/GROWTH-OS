@@ -10,7 +10,6 @@ import { withTenantTransaction } from "./tenant-db.js";
 import {
   InstagramAuthorizeSchema,
   InstagramCallbackQuerySchema,
-  InstagramConnectionParamsSchema,
   InstagramConnectorError,
   beginInstagramAuthorization,
   completeInstagramAuthorizationFromCallback,
