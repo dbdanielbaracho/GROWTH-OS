@@ -197,6 +197,7 @@ function InstagramIntegrationPanel() {
             const connected = row.connection_state === "connected" && Boolean(row.connection_id);
             const busy = busyId === row.managed_account_id || busyId === row.connection_id;
             const expiresAt = row.connection_id ? lastRefresh[row.connection_id] : undefined;
+            const sync = row.connection_id ? lastSync[row.connection_id] : undefined;
 
             return (
               <section className="instagram-account" key={row.managed_account_id}>
@@ -217,8 +218,8 @@ function InstagramIntegrationPanel() {
                       <dt>Publishing</dt><dd>Protected until enabled</dd>
                       <dt>Insights</dt><dd>Protected until enabled</dd>
                       {expiresAt && <><dt>Token until</dt><dd>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(expiresAt))}</dd></>}
-                      {row.connection_id && lastSync[row.connection_id] && (
-                        <><dt>Last sync</dt><dd>{lastSync[row.connection_id].media} media / {lastSync[row.connection_id].observations} metrics</dd></>
+                      {sync && (
+                        <><dt>Last sync</dt><dd>{sync.media} media / {sync.observations} metrics</dd></>
                       )}
                     </dl>
                     <div className="instagram-actions">
