@@ -1844,3 +1844,14 @@ O registro documental desta seção altera o head do branch. Portanto, o SHA fin
 10. Próximo gate operacional obrigatório: concluir a remoção do serviço temporário no dashboard Railway e executar uma verificação controlada do banco; se a migration 017 estiver ausente, aplicar exatamente o SQL aprovado e validar catálogo/grants antes de considerar Instagram publicado.
 
 **Conclusão desta etapa:** PR #41 está integrado no código e o serviço web está saudável em produção, mas o conector Instagram ainda não deve ser considerado operacionalmente ativado até o gate de banco e configuração externa.
+
+
+## 62. Limpeza operacional concluída após o deploy do Instagram
+
+**Data:** 06 de setembro de 2026
+
+1. O usuário confirmou no Railway a remoção do serviço temporário `m017-verify-readonly`.
+2. A confirmação destrutiva exigiu digitar exatamente `m017-verify-readonly` e clicar em `Commit`.
+3. Verificação posterior confirmou que o serviço não aparece mais no projeto; o ambiente voltou de 23 para 22 serviços.
+4. O serviço `migrator` permanece `SUCCESS` e está com `preDeployCommand=[]`; nenhuma ação temporária de migration ficou configurada para o próximo deploy.
+5. A conclusão sobre a migration 017 permanece pendente por falta de consulta SQL de produção executada com evidência. O código web está publicado e saudável, mas Instagram não deve ser declarado operacionalmente ativado até esse gate.
