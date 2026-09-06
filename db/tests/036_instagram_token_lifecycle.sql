@@ -5,6 +5,7 @@ DECLARE
   helper_name text;
   expected_args text;
   helper_args text;
+  helper_oid oid;
   helper_owner text;
   is_definer boolean;
   app_execute boolean;
@@ -18,8 +19,8 @@ BEGIN
       ('instagram_revoke_connection', 'uuid')
     ) AS helpers(name,args)
   LOOP
-    SELECT r.rolname, p.prosecdef, pg_get_function_identity_arguments(p.oid)
-      INTO helper_owner, is_definer, helper_args
+    SELECT r.rolname, p.prosecdef, pg_get_function_identity_arguments(p.oid), p.oid
+      INTO helper_owner, is_definer, helper_args, helper_oid
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid=p.pronamespace
     JOIN pg_roles r ON r.oid=p.proowner
@@ -30,14 +31,10 @@ BEGIN
       RAISE EXCEPTION '036 failed: % owner/SECURITY DEFINER boundary', helper_name;
     END IF;
 
-    EXECUTE format(
-      'SELECT has_function_privilege(''app_runtime'',''growth.%s(%s)'',''EXECUTE'')',
-      helper_name, helper_args
-    ) INTO app_execute;
-    EXECUTE format(
-      'SELECT has_function_privilege(''public'',''growth.%s(%s)'',''EXECUTE'')',
-      helper_name, helper_args
-    ) INTO public_execute;
+    SELECT has_function_privilege('app_runtime', helper_oid, 'EXECUTE')
+      INTO app_execute;
+    SELECT has_function_privilege('public', helper_oid, 'EXECUTE')
+      INTO public_execute;
 
     IF app_execute IS DISTINCT FROM true OR public_execute IS DISTINCT FROM false THEN
       RAISE EXCEPTION '036 failed: % grants', helper_name;
