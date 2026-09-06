@@ -5,6 +5,7 @@
 DO $$
 DECLARE
   signal_fn regprocedure := 'growth.recompute_youtube_growth_intelligence(uuid)'::regprocedure;
+  evidence_purity_fn regprocedure := 'growth.assert_confirmed_insight_evidence_purity(uuid,uuid)'::regprocedure;
 BEGIN
   IF to_regclass('growth.factual_signals') IS NULL THEN
     RAISE EXCEPTION '033 failed: factual_signals table is missing';
@@ -60,6 +61,20 @@ BEGIN
 
   IF has_function_privilege('public', signal_fn::text, 'EXECUTE') THEN
     RAISE EXCEPTION '033 failed: PUBLIC unexpectedly has EXECUTE on recompute helper';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+      FROM pg_proc p
+      WHERE p.oid = evidence_purity_fn
+        AND p.prosecdef
+        AND pg_get_userbyid(p.proowner) = 'growth_migrator'
+  ) THEN
+    RAISE EXCEPTION '033 failed: deferred insight evidence helper must be SECURITY DEFINER owned by growth_migrator';
+  END IF;
+
+  IF has_table_privilege('app_runtime', 'growth.insights', 'SELECT') THEN
+    RAISE EXCEPTION '033 failed: app_runtime must not read insights directly';
   END IF;
 
   IF NOT has_function_privilege('app_runtime', signal_fn::text, 'EXECUTE') THEN
