@@ -6,7 +6,7 @@ BEGIN;
 
 DO $$
 DECLARE
-  fn regprocedure := 'growth.instagram_record_metric_observation(uuid,text,text,numeric,text,timestamp with time zone,timestamp with time zone,text,text,text,text,text,text,timestamp with time zone,timestamp with time zone,timestamp with time zone,timestamp with time zone,text,timestamp with time zone,timestamp with time zone,text,text,uuid,text,text,text,text)'::regprocedure;
+  fn regprocedure := 'growth.instagram_record_metric_observation(uuid,text,text,numeric,text,timestamp with time zone,timestamp with time zone,text,text,text,text,text,text,timestamp with time zone,timestamp with time zone,timestamp with time zone,timestamp with time zone,timestamp with time zone,text,timestamp with time zone,timestamp with time zone,text,text,uuid,text,text,text,text)'::regprocedure;
   def text;
   required_fragment text;
   workspace_id uuid := 'b0000000-0000-4000-8000-000000000001';
