@@ -248,7 +248,12 @@ async function exchangeLongLivedToken(
   url.searchParams.set("client_secret", config.appSecret);
   url.searchParams.set("access_token", shortLivedToken);
   const token = await metaJson<{ access_token?: string; expires_in?: number }>(url.toString(), {});
-  if (!token.access_token || typeof token.expires_in !== "number") {
+  if (
+    !token.access_token
+    || typeof token.expires_in !== "number"
+    || !Number.isFinite(token.expires_in)
+    || token.expires_in <= 0
+  ) {
     throw new InstagramConnectorError("instagram_long_lived_token_invalid", 502);
   }
   return { access_token: token.access_token, expires_in: token.expires_in, scopes: [...INSTAGRAM_SCOPES] };
@@ -266,7 +271,12 @@ async function refreshLongLivedToken(accessToken: string): Promise<{ access_toke
     instagramRefreshEndpointForTest(accessToken),
     {}
   );
-  if (!token.access_token || typeof token.expires_in !== "number") {
+  if (
+    !token.access_token
+    || typeof token.expires_in !== "number"
+    || !Number.isFinite(token.expires_in)
+    || token.expires_in <= 0
+  ) {
     throw new InstagramConnectorError("instagram_refresh_response_invalid", 502);
   }
   return token as { access_token: string; expires_in: number; token_type?: string };
