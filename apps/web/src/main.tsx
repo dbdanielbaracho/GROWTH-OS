@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   fetchAuthSession,
@@ -265,6 +265,13 @@ function RadarApp({
   const [detailLoading, setDetailLoading] = useState(false);
   const [listMessage, setListMessage] = useState<string | null>(null);
   const [detailMessage, setDetailMessage] = useState<string | null>(null);
+  const [radarRefreshToken, setRadarRefreshToken] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setRadarRefreshToken((value) => value + 1);
+    window.addEventListener("growth-os:radar-refresh", refresh);
+    return () => window.removeEventListener("growth-os:radar-refresh", refresh);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -285,7 +292,7 @@ function RadarApp({
         setListState("error");
       });
     return () => { active = false; };
-  }, [onUnauthorized]);
+  }, [onUnauthorized, radarRefreshToken]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -316,11 +323,6 @@ function RadarApp({
     return () => { active = false; };
   }, [selectedId, onUnauthorized]);
 
-  const evidenceTotal = useMemo(
-    () => opportunities.reduce((sum, opportunity) => sum + opportunity.evidence_count, 0),
-    [opportunities]
-  );
-
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -339,17 +341,32 @@ function RadarApp({
         </div>
       </header>
 
-      <section className="hero">
-        <div>
-          <p className="eyebrow">Organic growth intelligence</p>
-          <h1>See the opportunity before it becomes obvious.</h1>
+      <section className="hero editorial-hero">
+        <div className="hero-copy">
+          <p className="eyebrow">Signal feed · this week</p>
+          <h1>See what is beginning to move.</h1>
           <p className="lede">
-            Ranked opportunities from your workspace, with the evidence and confidence that actually exist behind them.
+            Growth OS turns stored observations into ranked opportunities, so the next move starts with evidence—not noise.
           </p>
+          <div className="hero-actions">
+            <a className="hero-text-link" href="#radar-feed">Open opportunity feed ↓</a>
+            <span className="hero-note">Evidence first · no synthetic signals</span>
+          </div>
         </div>
-        <div className="hero-proof" aria-label="Current Radar data">
-          <div><strong>{opportunities.length}</strong><span>available opportunities</span></div>
-          <div><strong>{evidenceTotal}</strong><span>evidence items</span></div>
+        <div className="signal-stage" aria-label="Current signal summary">
+          <div className="signal-orbit" aria-hidden="true">
+            <span className="signal-ring ring-outer" />
+            <span className="signal-ring ring-inner" />
+            <span className="signal-point point-one" />
+            <span className="signal-point point-two" />
+            <span className="signal-point point-three" />
+            <span className="signal-core" />
+          </div>
+          <div className="signal-readout">
+            <span className="signal-kicker">Primary signal</span>
+            <strong>{opportunities[0] ? `${titleCase(opportunities[0].market)} opportunity` : "Waiting for a real signal"}</strong>
+            <span>{opportunities[0] ? `${formatConfidence(opportunities[0].confidence)} confidence · ${opportunities[0].evidence_count} evidence items` : "No synthetic signal is displayed."}</span>
+          </div>
         </div>
       </section>
 
@@ -363,7 +380,7 @@ function RadarApp({
       )}
 
       {listState !== "error" && (
-        <section className="radar-layout">
+        <section id="radar-feed" className="radar-layout">
           <aside className="opportunity-list" aria-label="Ranked opportunities">
             <div className="list-heading">
               <div>

@@ -784,3 +784,754 @@ Este diagnóstico não autoriza merge ou deploy. Ele serve para impedir que um s
 5. As notas dos concorrentes foram marcadas como benchmark preliminar, sujeitas a auditoria funcional completa.
 6. A matriz também mantém separada a lista de concorrentes do Creator Commerce OS.
 7. Nenhum código, banco ou produção foi alterado.
+
+
+## 23. Implementação do baseline visual editorial
+
+**Data:** 05 de setembro de 2026
+
+1. O usuário decidiu continuar o desenvolvimento do Growth OS usando a direção visual editorial inspirada nos princípios do Doxa Viral, sem copiar marca, textos ou interface.
+2. Foi criada a branch `feat/growth-os-editorial-ui-v0-1` a partir do SHA técnico `05bc516df3479b0ab338efe0ad991877d80812dd`.
+3. Foi aberto o PR #39: `feat: apply editorial visual baseline to Growth OS shell`.
+4. A alteração aplica ao shell web um baseline de alto contraste, fundo grafite/preto, tipografia editorial, acento dourado de oportunidade, hierarquia reforçada, superfícies orientadas a evidência e estados verdadeiros.
+5. A alteração está concentrada no estilo visual; não altera API, banco, lógica de provedor, dados de produção ou deploy.
+6. O PR #39 permanece draft e requer CI, revisão responsiva/acessibilidade, comparação competitiva, revisão independente e Claude antes de merge/freeze.
+7. O SHA inicial do PR #39 é `a923f7981169c3c2bd8baf15a8d52bb74acf91ea`.
+8. A direção visual anterior do assistente não foi reutilizada como baseline; o baseline adotado é o conceito editorial aprovado pelo usuário nesta conversa.
+9. Próximo passo: confirmar CI do SHA exato, inspecionar o build real em desktop/mobile e registrar achados/correções sem alterar produção.
+
+
+## 24. Validação do baseline visual e estado do SHA final
+
+**Data:** 05 de setembro de 2026
+
+1. O CI run #117 terminou SUCCESS para o SHA de código visual `a923f7981169c3c2bd8baf15a8d52bb74acf91ea`.
+2. Depois do run #117, foi adicionada a memória operacional ao branch e um marcador neutro de validação exata no stylesheet, produzindo o SHA atual `c44f3e4395c030c0ce684297f64e59d91c10981b`.
+3. O GitHub não publicou novo workflow para o SHA `c44f3e4395c030c0ce684297f64e59d91c10981b` durante esta execução; portanto, o run #117 não é tratado como prova do SHA atual.
+4. A prova válida registrada é: código visual do baseline passou no run #117; o SHA final do branch ainda requer CI específico antes de qualquer merge.
+5. PR #39 continua aberto e draft. Nenhum merge ou deploy foi executado.
+6. Produção permaneceu intocada.
+7. Próximo gate: obter CI do SHA atual, fazer inspeção visual real em desktop/mobile, registrar achados de acessibilidade/responsividade e enviar o SHA final para revisão adversarial do Claude.
+
+
+## 25. Evolução executada: Radar editorial orientado por sinais
+
+**Data:** 05 de setembro de 2026
+
+### 25.1 Objetivo
+
+Continuar a implementação do baseline visual escolhido pelo usuário, convertendo o shell do Opportunity Radar em uma experiência de produto mais editorial e orientada por sinais, sem inventar dados e sem alterar produção.
+
+### 25.2 Alterações realizadas
+
+1. O arquivo `apps/web/src/main.tsx` foi atualizado no branch `feat/growth-os-editorial-ui-v0-1`.
+2. A seção inicial do Radar foi substituída por uma composição editorial com:
+   - rótulo `Signal feed · this week`;
+   - promessa centrada em detectar movimento inicial;
+   - explicação explícita de que oportunidades dependem de observações armazenadas;
+   - link de navegação para o feed de oportunidades;
+   - aviso `Evidence first · no synthetic signals`;
+   - leitura do primeiro sinal real disponível no workspace;
+   - fallback factual `Waiting for a real signal` quando não houver oportunidade;
+   - contagem real de confiança e evidências quando existir oportunidade.
+3. O feed recebeu o identificador `radar-feed` para permitir navegação direta a partir do hero.
+4. O arquivo `apps/web/src/styles.css` recebeu o bloco `Editorial signal stage v0.1`.
+5. O bloco visual adiciona:
+   - composição orbital decorativa;
+   - leitura textual do sinal primário;
+   - CTA textual com affordance de navegação;
+   - contraste e hierarquia editorial;
+   - adaptação para largura intermediária;
+   - composição empilhada em telas estreitas.
+6. Nenhuma chamada de API, regra de tenant, persistência, migration, credencial, provider, banco ou configuração de produção foi alterada.
+
+### 25.3 Evidência dos commits
+
+- Commit da composição editorial em `main.tsx`: `0710bebc8f98b5da28dabe83a51ef34124e81527`.
+- Commit do CSS responsivo do signal stage: `50de62a6cc72316c54542c2b453019ef8edb900f`.
+- SHA atual do branch antes desta atualização documental: `50de62a6cc72316c54542c2b453019ef8edb900f`.
+- Ainda não existe CI publicado para esse SHA exato nesta execução; nenhuma prova anterior de outro SHA será reutilizada como se fosse prova do atual.
+- PR #39 continua OPEN e DRAFT.
+- Nenhum merge foi executado.
+- Nenhum deploy foi executado.
+- Produção permaneceu intocada.
+
+### 25.4 Critérios ainda obrigatórios
+
+1. CI para o SHA exato após o commit documental ou após o próximo head estável.
+2. Inspeção visual real em desktop e mobile.
+3. Verificação de foco, contraste, navegação por teclado, estados loading/empty/error e comportamento sem dados.
+4. Verificação de que o painel YouTube e demais superfícies do shell não quebram a coerência visual.
+5. Revisão competitiva baseada em critérios documentados, sem tratar intenção como capacidade comprovada.
+6. Revisão adversarial formal do Claude.
+7. Somente depois dos gates: decisão de sair de draft, merge e eventual deploy controlado.
+
+**Resultado desta execução:** evolução visual aplicada ao produto e registrada na memória oficial; PR #39 ainda não está aprovado para merge; produção intocada.
+
+
+## 26. Correção preventiva de compilação após a evolução visual
+
+**Data:** 05 de setembro de 2026
+
+1. Depois da mudança do hero, a métrica antiga `evidenceTotal` deixou de ser renderizada.
+2. A variável e a importação `useMemo` que existia apenas para essa métrica foram removidas de `apps/web/src/main.tsx`.
+3. A correção evita variável/importação sem uso no TypeScript e não altera a lógica de carregamento, seleção, tenant, evidência ou API.
+4. Commit da correção: `e4ee5ae4f881142e863c01ec323724f03012acf5`.
+5. O head do PR #39 passou a ser `e4ee5ae4f881142e863c01ec323724f03012acf5` antes desta atualização documental.
+6. O CI do SHA exato ainda precisa ser confirmado; nenhuma execução de SHA anterior é considerada prova deste head.
+7. PR #39 permanece OPEN e DRAFT; não houve merge, deploy ou alteração de produção.
+
+**Resultado:** correção preventiva aplicada e registrada; próximo gate continua sendo CI/inspeção visual/revisão adversarial no SHA exato.
+
+
+## 27. Coerência visual do painel de integração YouTube
+
+**Data:** 05 de setembro de 2026
+
+1. A revisão da superfície visual identificou que `apps/web/src/youtube-integration.css` ainda usava o tema claro legado, enquanto o shell do Radar já usava o baseline editorial grafite/preto.
+2. O arquivo recebeu o bloco `Editorial integration surface v0.1`.
+3. O painel foi alinhado ao shell com:
+   - fundo escuro e bordas grafite;
+   - tipografia e texto compatíveis com o contraste editorial;
+   - estados de sucesso, erro, vazio e sync com cores semânticas preservadas;
+   - botão primário dourado coerente com a ação de oportunidade;
+   - bordas menos arredondadas e superfícies mais editoriais;
+   - comportamento mobile existente preservado.
+4. A lógica de OAuth, sincronização, estados de provedor, autorização, dados, API e segurança não foi alterada.
+5. Commit: `32859fabf0d8814f87c83fc84e9bc9d535bba6d5`.
+6. O head do PR #39 passou a ser `32859fabf0d8814f87c83fc84e9bc9d535bba6d5` antes desta atualização documental.
+7. Não há CI publicado para o SHA exato nesta execução; nenhuma prova anterior foi reutilizada.
+8. PR #39 continua OPEN e DRAFT.
+9. Nenhum merge ou deploy foi executado.
+10. Produção permaneceu intocada.
+
+**Resultado:** integração visual coerente com o shell; ainda pendentes CI do SHA exato, inspeção real, revisão de acessibilidade e revisão adversarial do Claude.
+
+
+## 28. Acessibilidade: foco de teclado no baseline editorial
+
+**Data:** 05 de setembro de 2026
+
+1. Foi adicionado um baseline global de `:focus-visible` em `apps/web/src/styles.css`.
+2. Links, botões, inputs, selects e textareas agora recebem contorno visível em dourado editorial com espaçamento suficiente contra a superfície escura.
+3. O CTA textual do hero recebe espaçamento de foco específico para não confundir o sublinhado de navegação com o estado de foco.
+4. A mudança não altera dados, API, autenticação, regras de tenant ou produção.
+5. Commit: `334092e85f6076700c2288a968f1abaa9b830f3e`.
+6. O head do PR #39 passou a ser `334092e85f6076700c2288a968f1abaa9b830f3e` antes desta atualização documental.
+7. CI do SHA exato, inspeção em navegador e revisão adversarial do Claude continuam pendentes.
+8. PR #39 continua OPEN e DRAFT; nenhum merge ou deploy foi executado; produção intocada.
+
+**Resultado:** requisito básico de navegação por teclado registrado e aplicado; gates externos continuam obrigatórios.
+
+
+## 29. Gate de consistência do head visual atual
+
+**Data:** 05 de setembro de 2026
+
+1. Foram buscados novamente no GitHub os arquivos finais do branch `feat/growth-os-editorial-ui-v0-1`.
+2. `apps/web/src/main.tsx` confirmou:
+   - hero com `Signal feed · this week`;
+   - âncora `radar-feed`;
+   - fallback `Waiting for a real signal`;
+   - ausência de `evidenceTotal`;
+   - ausência de `useMemo` após a remoção da métrica obsoleta.
+3. `apps/web/src/styles.css` confirmou o bloco `Keyboard focus baseline v0.1`.
+4. `apps/web/src/youtube-integration.css` confirmou o bloco `Editorial integration surface v0.1`.
+5. SHAs de blob verificados:
+   - `main.tsx`: `c33fb7b5302c9eda16c7ef7f1a0040b7a947d25a`;
+   - `styles.css`: `b03cfdbaa0664c83a67152f13c2aab427914c38f`;
+   - `youtube-integration.css`: `4ce0f901309008dc28f8c6cb5de444cef9d8d0c6`.
+6. O head do PR #39 confirmado antes desta atualização documental foi `57d0d31ff0d3004be2fa156ba1cf122f5d4b023a`.
+7. O PR #39 continua OPEN, DRAFT e não mergeado.
+8. Não há review, thread ou comentário registrado no PR #39 nesta verificação.
+9. Não há workflow run publicado para o SHA exato `57d0d31ff0d3004be2fa156ba1cf122f5d4b023a`.
+10. O CI #117 do SHA anterior não é reutilizado como prova do head atual.
+11. Nenhum deploy foi executado e a produção permaneceu intocada.
+12. A revisão adversarial formal do Claude continua sendo um bloqueio externo obrigatório; sem ela, não há autorização para sair de draft, fazer merge ou fazer deploy.
+
+**Resultado:** consistência estrutural e documental verificada; gates externos permanecem corretamente abertos.
+
+
+## 30. Production Truth Gate parcial: superfície pública canônica
+
+**Data:** 05 de setembro de 2026
+
+1. O ambiente consultado foi exclusivamente o canônico: Railway `successful-embrace`, serviço `growth-os`, domínio `https://growth-os-production-d120.up.railway.app`.
+2. `GET /health/ready` retornou HTTP 200 com:
+   `{"status":"ready","database":"ok"}`.
+3. `GET /` retornou HTTP 200 e entregou o shell HTML do Growth OS.
+4. `GET /v1/system` retornou HTTP 200 com:
+   `{"name":"Growth OS","version":"0.1.0","environment":"production"}`.
+5. Esses checks confirmam disponibilidade pública, serving do shell, identificação do serviço e conectividade do banco no healthcheck.
+6. Esses checks não comprovam autenticação, workspace, OAuth YouTube, sync real, observação, sinal, insight, oportunidade ou Radar com dados reais.
+7. Não foi feito deploy, alteração de variável, migration ou mudança no banco nesta etapa.
+8. Produção permaneceu somente em leitura.
+9. O próximo gate é provar signup/signin/sessão/workspace no banco canônico e, depois, autorização e sync real do YouTube.
+
+**Resultado:** superfície pública canônica saudável; Production Truth Gate completo ainda pendente.
+
+
+## 31. Production Truth Gate parcial: proteção dos endpoints autenticados
+
+**Data:** 05 de setembro de 2026
+
+1. Sem sessão autenticada, `GET /v1/auth/session` retornou HTTP 401 `{"status":"unauthorized"}`.
+2. Sem sessão autenticada, `GET /v1/opportunities` retornou HTTP 401 `{"status":"unauthorized"}`.
+3. Sem sessão autenticada, `GET /v1/integrations/youtube/status` retornou HTTP 401 `{"status":"unauthorized"}`.
+4. Isso confirma que os endpoints de sessão protegida, Opportunity Radar e status do YouTube não expõem dados sem autenticação.
+5. Esses checks são apenas negativos/unauthenticated; não comprovam que um usuário válido consiga entrar, selecionar workspace ou acessar dados autorizados.
+6. Não houve tentativa de signup, criação de usuário, migration, alteração de banco, alteração de variável ou deploy.
+7. O próximo passo operacional depende de provisionamento/autorização segura de uma conta de teste no banco canônico; nenhuma conta ou credencial foi inventada.
+
+**Resultado:** proteção sem sessão confirmada; autenticação positiva e jornada completa ainda pendentes.
+
+
+## 32. Implementação do Growth Intelligence Engine determinístico
+
+**Data:** 05 de setembro de 2026
+
+### 32.1 Banco e contrato
+
+1. Foi criada a migration forward-only `db/migrations/015_youtube_growth_intelligence.sql`.
+2. Foi criada a tabela `growth.factual_signals`.
+3. A tabela registra:
+   - workspace e conta social;
+   - tipo de sinal;
+   - métrica;
+   - estado;
+   - observações de origem;
+   - valor atual;
+   - baseline;
+   - delta;
+   - tamanho da amostra;
+   - confiança;
+   - versão da lógica;
+   - janela de origem;
+   - expiração.
+4. `growth.insights` recebeu `source_signal_id`.
+5. `growth.opportunities` recebeu `source_signal_id`.
+6. As relações garantem que insight e oportunidade possam ser rastreados até o sinal factual.
+7. A função `growth.recompute_youtube_growth_intelligence(uuid)` foi criada como:
+   - `SECURITY DEFINER`;
+   - proprietária de `growth_migrator`;
+   - sem EXECUTE para `PUBLIC`;
+   - executável por `app_runtime`;
+   - validada por contexto de tenant.
+8. `growth.factual_signals` usa RLS e FORCE RLS.
+9. `app_runtime` não recebe INSERT direto em `factual_signals`, `insights` ou `opportunities`.
+
+### 32.2 Regra determinística
+
+1. O engine considera somente observações YouTube da métrica `views`.
+2. Exige conta YouTube conectada.
+3. Exige `authority_status=contractually_granted`.
+4. Exige `authorization_class=authorized_account`.
+5. Exige `completeness_status=complete`.
+6. Exige `freshness_status=fresh`.
+7. Exige no mínimo três observações.
+8. Calcula a média das observações anteriores e compara com a observação mais recente.
+9. Só cria sinal quando o valor mais recente está pelo menos 25% acima da média anterior.
+10. Se a amostra for insuficiente ou o delta não atingir o limiar, retorna `insufficient_signal` e não cria oportunidade.
+11. A confiança é determinística e inclui o método e `causal_claim=false`.
+12. O score da oportunidade é determinístico, limitado entre 0 e 100, e não é apresentado como causalidade ou previsão garantida.
+
+### 32.3 Evidência e idempotência
+
+1. O sinal guarda os IDs das observações usadas.
+2. O insight recebe evidências `metric_observation:<id>` da classe `owned`.
+3. A oportunidade recebe as mesmas referências de evidência.
+4. A chave natural usa workspace, conta, tipo de sinal, métrica, fim da janela e versão da lógica.
+5. Reprocessar o mesmo período atualiza o mesmo sinal, insight e oportunidade.
+6. Foi criado o teste `apps/api/integration-tests/growth-intelligence.integration.mts`.
+7. O teste cria três observações determinísticas, executa o helper duas vezes pelo caminho de runtime e comprova:
+   - oportunidade criada;
+   - IDs estáveis entre execuções;
+   - uma única linha de sinal;
+   - uma única linha de insight;
+   - uma única linha de oportunidade.
+8. Foi criado o gate SQL `db/tests/033_youtube_growth_intelligence.sql`.
+
+### 32.4 Integração com o sync e interface
+
+1. `apps/api/src/youtube-connector.ts` chama o engine depois de persistir as observações do sync.
+2. O retorno do sync agora informa:
+   - `intelligenceStatus`;
+   - `signalId`;
+   - `insightId`;
+   - `opportunityId`;
+   - quantidade de observações usadas;
+   - delta determinístico.
+3. `apps/web/src/api.ts` tipa o novo contrato.
+4. `apps/web/src/youtube-integration.tsx` informa se o Opportunity Radar foi atualizado ou se ainda não há amostra suficiente.
+5. Após sync concluído, a interface dispara `growth-os:radar-refresh`.
+6. `apps/web/src/main.tsx` escuta o evento e recarrega o Radar sem exigir refresh manual da página.
+7. O fallback de ausência de evidência permanece explícito.
+
+### 32.5 Evidências dos commits
+
+- Migration 015: `de338973bd111f52188a1351fa3e8c0d03fd85a8`.
+- Gate SQL 033: `6f0a7035c25a3b662db3dcbd7ca970093d39e8e8`.
+- Engine no sync: `b19101b3baa93b9019bba47dc0507e416869b555`.
+- Contrato web do sync: `3ab68f5262644d71e1cc60eaf17830187e22daae`.
+- Refresh do Radar e feedback do sync: `16fe22d11e17944f0c78ac4a2a11159ee4390b19`, `62339414651a989b0e19b7f2d7b94c96ca623760`.
+- CSS do resultado do engine: `84c8c950f40cc68bb0f6f89747c7a6b9a47ced8b`.
+- Documento técnico: `ca32cb0d4ff00a44fbfa61ae45bcd94a59a2cc08`.
+- Teste de integração corrigido: `46e7ac651747938d4fe494aaf786b703c9cce9c0`.
+- Head do branch antes desta atualização documental: `46e7ac651747938d4fe494aaf786b703c9cce9c0`.
+
+### 32.6 Estado e limites
+
+1. Nenhuma migration 015 foi aplicada na produção.
+2. Nenhum provider real foi chamado nesta execução.
+3. Nenhuma oportunidade sintética foi criada.
+4. Nenhum deploy foi executado.
+5. Produção permaneceu intocada.
+6. CI e validação Railway do SHA exato ainda são necessários.
+7. O Production Truth Gate real continua dependendo de conta autorizada, OAuth YouTube e sync real.
+8. Claude ainda deve revisar adversarialmente este bloco antes de merge/freeze/deploy.
+
+**Resultado:** a cadeia implementável `observação -> sinal factual -> insight/evidence -> oportunidade -> Radar` foi codificada para YouTube, com no-op e idempotência; a prova física exata ainda está pendente.
+
+
+## 33. Correção do teste de integração e validação isolada interrompida
+
+**Data:** 05 de setembro de 2026
+
+### 33.1 Correção aplicada
+
+1. A primeira versão do teste de integração do Growth Intelligence Engine fazia a leitura final das contagens usando `app_runtime`.
+2. Isso estava incorreto por desenho de segurança: `app_runtime` pode executar a função SECURITY DEFINER, mas não recebe SELECT direto em `growth.factual_signals`.
+3. O teste foi corrigido para:
+   - executar a recomputação duas vezes pelo caminho `app_runtime`;
+   - confirmar a persistência final usando uma conexão `MIGRATOR_DATABASE_URL`;
+   - manter a verificação de idempotência e limpeza dos fixtures.
+4. Commit da correção: `7a3283d94e17fb926944579cafaa89691c71e271`.
+5. O head atual da PR #39 é exatamente `7a3283d94e17fb926944579cafaa89691c71e271`.
+6. O CI retornado pelo GitHub para esse SHA é uma lista vazia; portanto, não há workflow publicado para o head exato e nenhum CI de SHA anterior é reutilizado como prova.
+
+### 33.2 Validação Railway tentada
+
+1. Foi solicitado um validator isolado para o candidato `6a0bc99f31966359b6d1aab6ed0cdb46c0cc3abc`, que era o head imediatamente anterior à correção do teste.
+2. O validator executou em Railway no serviço `pr33-sha-6a0bc99-validator-ephemeral`, deployment `660977eb-cbb6-4d4e-a506-cf0b08b02ed1`.
+3. O próprio resultado declarou `status=fail`, `target_database=growth_os_test`, `migration_015_applied=false`, `gate_033_result=PENDING` e `production_safe=false`.
+4. A falha aconteceu antes da validação SQL: o container não possui o binário `psql` (`/bin/sh: 1: psql: not found`).
+5. Essa execução não prova falha da migration 015 nem da lógica do engine; prova apenas que o validator escolhido não tinha a ferramenta de cliente necessária.
+6. A tentativa anterior com o Railway Agent para um validator do mesmo escopo terminou em timeout HTTP 504. Depois do timeout, não apareceu novo deploy da aplicação canônica nem mudança na produção.
+7. O serviço canônico `growth-os` continua no deployment SUCCESS `23629579-551e-456b-85d1-29b29a53a050`, commit `17ee387477763921c0c4cbab326557142d4b26b3`.
+8. O serviço `pr33-sha-6a0bc99-validator-ephemeral` também permanece sem prova válida do código atual, pois validou SHA anterior e falhou no preflight.
+
+### 33.3 Estado de segurança e próximo gate
+
+1. Nenhuma migration 015 foi aplicada na produção.
+2. Nenhum dado, variável, credencial ou deployment do serviço canônico foi alterado.
+3. A validação correta precisa executar no banco `growth_os_test`, confirmar `current_database()='growth_os_test'`, aplicar o candidato atual `7a3283d94e17fb926944579cafaa89691c71e271`, rodar o gate SQL 033 e o teste de integração, e registrar o resultado completo.
+4. O próximo passo é corrigir o executor do validator para usar um cliente PostgreSQL disponível, ou usar um caminho equivalente que não dependa de `psql`, sem tocar em `growth-os`/produção.
+5. Claude continua obrigatório para revisão adversarial do SHA final; ainda não há aprovação externa registrada.
+6. Não é permitido sair de draft, fazer merge ou fazer deploy antes de CI do SHA atual, validação isolada aprovada, revisão do Claude e Production Truth Gate final.
+
+**Resultado:** a falha foi localizada no ambiente do validator, o teste do produto foi corrigido e a produção continua protegida; a prova física do SHA atual segue pendente.
+
+
+## 34. Tentativas adicionais de tornar a validação observável
+
+**Data:** 05 de setembro de 2026
+
+1. O head atual da PR #39 foi reconfirmado como `8c6be7c9bdf956b81e2c6a9b64d160c6c121b05c`.
+2. A PR #39 continua OPEN, DRAFT e não mergeada; o base SHA continua `17ee387477763921c0c4cbab326557142d4b26b3).
+3. O GitHub continua sem workflow publicado para o SHA atual; a lista de runs associada ao SHA é vazia.
+
+### 34.1 Executor Bun
+
+1. O serviço anterior `pr33-sha-6a0bc99-validator-ephemeral` falhou no preflight porque o container não tinha `psql`.
+2. O serviço foi atualizado para um script Bun com cliente PostgreSQL, mas seus redeploys continuaram reutilizando snapshot antigo; nenhum resultado do SHA atual foi aceito.
+3. Foi criado `pr39-growth-intelligence-validator` com o SHA atual e referências ao banco de teste.
+4. A configuração foi confirmada pelo Railway, mas o runtime one-shot não expôs stdout nos logs.
+5. A tentativa de transformá-lo em HTTP produziu HTTP 502 `connection refused`; o serviço reiniciou e não forneceu resultado de validação.
+6. Um diagnóstico independente do Railway confirmou que esse tipo de wrapper Bun não oferece stdout observável de forma confiável.
+
+### 34.2 Executor PostgreSQL
+
+1. Foi criado `pr39-growth-intelligence-psql-validator` com a imagem `postgres:16-alpine`.
+2. O container iniciou o próprio Postgres local por causa do entrypoint da imagem e não executou o comando `psql` contra o banco de validação; portanto, também não é prova.
+3. O script SQL completo preparado continha preflight `growth_os_test`, migration 015, gate 033, fixtures autorizados, execução como `app_runtime`, idempotência, contagens e limpeza.
+4. Nenhum dado de produção foi usado ou alterado por essa tentativa.
+
+### 34.3 Executor Node isolado
+
+1. Foi criado `pr39-growth-intelligence-node-validator` com a imagem `node:20-alpine`.
+2. As variáveis foram referenciadas do serviço de integração existente, mantendo os bancos de teste separados.
+3. Deployment: `acd69e2c-2329-4e49-9a24-5277874f7feb`.
+4. O start command foi confirmado contendo:
+   - download do repositório no SHA `8c6be7c9bdf956b81e2c6a9b64d160c6c121b05c`;
+   - instalação das dependências da API;
+   - execução de `npx tsx integration-tests/growth-intelligence.integration.mts`.
+5. O deployment terminou SUCCESS, mas os logs capturados contêm apenas `Starting Container`; não há `PASS`, `FAIL`, `EXIT` ou resultado JSON do teste.
+6. SUCCESS do container não é tratado como SUCCESS do teste. O resultado do teste permanece `UNKNOWN/PENDING`.
+7. A execução anterior do serviço `node-integration-tests` mostrou apenas a suíte antiga de confirmação; ela não é reutilizada como prova do SHA atual.
+
+### 34.4 Decisão e proteção
+
+1. Não foi feito merge.
+2. Não foi feito deploy do SHA da PR #39.
+3. O serviço canônico `growth-os` continua no deployment de produção `23629579-551e-456b-85d1-29b29a53a050`, commit `17ee387477763921c0c4cbab326557142d4b26b3`.
+4. A production database continua intocada.
+5. A validação física do SHA atual segue pendente porque o Railway não forneceu uma saída observável do teste.
+6. O próximo caminho seguro é executar o teste em um executor já conhecido por publicar logs de runtime, ou registrar o resultado em um canal persistente de teste e lê-lo sem expor segredos.
+7. Depois da validação, ainda são obrigatórios: CI do SHA atual, revisão adversarial do Claude, confirmação de credenciais OAuth reais, Production Truth Gate completo e somente então merge/deploy controlado.
+
+**Resultado:** todos os bloqueios e tentativas foram registrados; nenhum resultado não observado foi promovido a aprovação.
+
+
+## 35. Fechamento da tentativa de validação observável
+
+**Data:** 05 de setembro de 2026
+
+1. Claude não foi chamado, conforme a regra do projeto: ele será acionado somente após desenvolvimento, validações internas e documentação concluídos.
+2. O executor Node isolado foi configurado para:
+   - baixar o SHA `8c6be7c9bdf956b81e2c6a9b64d160c6c121b05c`;
+   - instalar dependências;
+   - executar `growth-intelligence.integration.mts`;
+   - publicar o resultado em um endpoint HTTP temporário.
+3. Deployment `2f5b5845-d352-4a2c-ac49-9acc87bcc828` confirmou o comando e o SHA, mas o endpoint retornou HTTP 502 por `connection refused`; o teste não produziu resultado observável.
+4. O comando foi então alterado para capturar `PASS/FAIL`, código de saída e logs em JSON mesmo em caso de falha. Deployment `ac2ed8a7-5838-4af9-9eb8-a4d4882523b7` também não forneceu resposta observável.
+5. Foi feita uma última checagem com um servidor Node mínimo no mesmo serviço, deployment `56c6d819-b88d-4ac7-9911-6db647abfe10`; o Railway registrou apenas `Starting Container`, sem resposta HTTP capturada pelo canal disponível.
+6. Essa sequência não prova aprovação nem reprovação do engine. O resultado correto permanece `UNKNOWN/PENDING`.
+7. O código do produto, a PR #39, a branch, o banco canônico e o deployment de produção não foram alterados por essas tentativas.
+8. Os serviços criados são apenas executores efêmeros de validação no projeto Railway `successful-embrace`; não são fonte de verdade do produto.
+9. Não foi feito merge, deploy da PR ou migration em produção.
+10. Próximo gate interno: obter uma execução observável em um executor de CI/validator que publique stdout ou artefato persistente; somente depois considerar a validação aprovada.
+11. Após esse gate, ainda faltam revisão final do Claude, confirmação de credenciais OAuth reais e Production Truth Gate completo.
+
+**Resultado:** desenvolvimento continua protegido; a validação permanece explicitamente pendente e Claude permanece reservado para o final.
+
+
+## 36. Encerramento dos executores temporários
+
+**Data:** 05 de setembro de 2026
+
+1. Após as tentativas de validação, os três serviços temporários foram reconfigurados para `sleep 1`, `restartPolicy=NEVER` e modo de sono:
+   - `pr39-growth-intelligence-validator`;
+   - `pr39-growth-intelligence-psql-validator`;
+   - `pr39-growth-intelligence-node-validator`.
+2. Foram disparados redeploys de encerramento:
+   - `f7d8b4a5-7f29-444e-b992-46f3a0d74d40`;
+   - `9d67818a-46e6-4c1b-95f9-cc6ea9849963`;
+   - `ee086eb2-6fa6-49f0-aeb6-0fcf44a9a788`.
+3. Os três deployments terminaram SUCCESS.
+4. O serviço canônico `growth-os` não foi alterado e permanece no deployment de produção `23629579-551e-456b-85d1-29b29a53a050`.
+5. Nenhum executor temporário foi tratado como fonte de verdade do projeto.
+6. A validação do SHA atual continua PENDING/UNKNOWN; Claude não foi chamado.
+
+
+## 37. Cobertura adicional do no-op factual
+
+**Data:** 05 de setembro de 2026
+
+1. Foi identificada uma lacuna no teste do Growth Intelligence Engine: ele comprovava criação e idempotência, mas ainda não executava explicitamente o caminho `insufficient_signal`.
+2. O teste `apps/api/integration-tests/growth-intelligence.integration.mts` foi ampliado.
+3. O fixture adicional cria uma conta YouTube conectada e autorizada sem observações.
+4. O teste chama o helper pelo caminho `app_runtime` e exige:
+   - `result_status=insufficient_signal`;
+   - `signal_id=null`;
+   - `insight_id=null`;
+   - `opportunity_id=null`;
+   - `observations_used=0`;
+   - `delta_ratio=null`.
+5. A limpeza do fixture adicional também foi incluída.
+6. Commit do teste: `649e183e777fcf0e2de9687d2ab8422b68199652`.
+7. O contrato foi documentado em `docs/GROWTH_INTELLIGENCE_ENGINE_V0.1.md`, commit `7c76ca196425830ff9f0c9636931b51926d75acc`.
+8. Essa mudança ainda invalida qualquer validação anterior específica de SHA; o novo head precisa de CI e validação isolada próprios.
+9. Não houve alteração de produção, migration em produção, merge ou chamada ao Claude.
+
+**Resultado:** o comportamento de no-op verdadeiro agora está coberto por teste executável e documentado; os gates físicos continuam pendentes.
+
+
+
+## 38. Correção do gate de CI e validação PostgreSQL isolada
+
+**Data:** 05 de setembro de 2026
+
+1. Foi confirmado que o SHA anterior da PR #39 não possuía status nem workflow run publicado no GitHub.
+2. A causa operacional não foi tratada como aprovação implícita: o CI existente fazia apenas integrity gate, typecheck, build, web-shell e testes unitários; ele não inicializava PostgreSQL nem executava o teste de integração do Growth Intelligence Engine.
+3. O arquivo `.github/workflows/ci.yml` foi corrigido no branch `feat/growth-os-editorial-ui-v0-1`.
+4. O workflow agora possui:
+   - `workflow_dispatch` para execução manual;
+   - evento `pull_request` para abertura, sincronização, reabertura e saída de draft;
+   - evento `push` para `main` e branches `feat/**`;
+   - serviço PostgreSQL 16 isolado, com healthcheck;
+   - banco de CI separado chamado `growth_os_ci`;
+   - roles efêmeras `growth_migrator` e `app_runtime`, somente no banco de CI;
+   - aplicação sequencial de todas as migrations canônicas `001` a `015`;
+   - execução do gate SQL `db/tests/033_youtube_growth_intelligence.sql`;
+   - execução de `apps/api/integration-tests/growth-intelligence.integration.mts`;
+   - manutenção dos gates de integrity, typecheck, build, web shell e testes unitários.
+5. A integração usa `app_runtime` para chamar a função SECURITY DEFINER e `growth_migrator` para fixtures, contagens e limpeza, preservando o limite de privilégios testado no código.
+6. Nenhuma variável, migration, banco ou deployment de produção foi alterado.
+7. Commit da correção do workflow: `b1238e520a3cfb1079a076541b6a095993cdfb7c`.
+8. A atualização desta memória gera um novo head; portanto, o SHA candidato precisa ser reconfirmado depois deste registro.
+9. Ainda não foi atribuído um resultado de CI ao novo SHA. O resultado só será aceito quando o GitHub publicar a execução e ela terminar com sucesso.
+10. A revisão final do Claude continua reservada para depois de:
+    - confirmar o novo SHA vivo;
+    - CI verde no SHA exato;
+    - validação PostgreSQL isolada verde;
+    - revisão do diff final;
+    - confirmação de que produção continua intocada.
+11. Não houve merge, deploy ou chamada ao Claude nesta etapa.
+
+**Resultado:** o CI agora contém o caminho automatizado necessário para provar migrations, segurança estrutural, gate 033, idempotência e no-op em PostgreSQL isolado; o resultado físico ainda depende da execução do workflow no novo SHA.
+
+
+## 39. Ajuste de bootstrap do PostgreSQL no CI
+
+**Data:** 05 de setembro de 2026
+
+1. Durante a revisão do workflow corrigido, foi identificado que o role `growth_migrator` poderia não conseguir criar o schema inicial no banco efêmero, porque a permissão de criação no database não era explícita.
+2. O workflow foi corrigido para conceder `CONNECT, CREATE` em `growth_os_ci` ao role `growth_migrator` antes da aplicação das migrations.
+3. Essa permissão existe somente no PostgreSQL descartável do job do GitHub Actions; não altera qualquer banco Railway.
+4. Commit do ajuste: `652ea0610d8f5ee5a0c732f76849b060a404801a`.
+5. O novo commit tornou inválidas as referências de validação específicas do head anterior; o head vivo deve ser consultado novamente antes de aceitar CI ou chamar Claude.
+6. Ainda não há status ou workflow run publicado pelo conector para este novo head.
+7. Não houve merge, deploy ou alteração da produção.
+
+**Resultado:** o bootstrap do banco isolado foi endurecido para permitir que a validação realmente execute as migrations canônicas, sem ampliar permissões fora do ambiente efêmero de CI.
+
+
+## 40. Correção do executor Node para meta-comandos psql
+
+**Data:** 05 de setembro de 2026
+
+1. A revisão adversarial do Claude encontrou uma falha reproduzível no SHA anterior: `db/scripts/apply-migration.mjs` usava o driver Node `pg` para executar migrations que continham o meta-comando `\\set ON_ERROR_STOP on`, exclusivo do cliente `psql`.
+2. A falha foi reproduzida conceitualmente no primeiro arquivo afetado: o driver retornava erro PostgreSQL `42601` ao encontrar a barra invertida.
+3. A inspeção de todas as migrations confirmou o mesmo comando em `002` até `012` e em `014`; as migrations `001`, `013` e `015` não continham esse meta-comando.
+4. O executor `db/scripts/apply-migration.mjs` foi corrigido para:
+   - ler o SQL original;
+   - remover somente linhas reconhecidas como `\\set ON_ERROR_STOP on/off`;
+   - rejeitar qualquer outro meta-comando `psql` não suportado, em vez de ignorá-lo silenciosamente;
+   - executar o SQL normalizado pelo driver `pg`.
+5. Commit da correção: `6bb860b28725c51a8f6bb4dfa9b5f9993fe86902`.
+6. Como houve alteração do executor, o SHA anterior deixa de ser candidato final. CI, validação PostgreSQL e revisão do Claude devem ser repetidos no novo head.
+7. Nenhuma migration foi aplicada em produção. Não houve merge, deploy ou alteração de banco de produção.
+
+**Resultado:** o bloqueio técnico identificado pelo Claude foi corrigido no executor comum usado pelo CI e pelos validators; a correção ainda precisa ser executada e revisada no SHA novo.
+
+
+## 41. Correção do segundo bug no regex do executor de migrations
+
+**Data:** 05 de setembro de 2026
+
+1. A revisão adversarial do Claude reproduziu a correção do executor no SHA `f93b9e9407f4e7ba83a57d1d519cc81a3e6b58e5`.
+2. Foi confirmado que o padrão publicado continha barras em excesso em `\\s+` e `\\s*`, impedindo o reconhecimento de espaços em branco.
+3. O comportamento incorreto foi reproduzido com Node: a linha `\\set ON_ERROR_STOP on` não correspondia ao caso especial e caía no erro de meta-comando não suportado.
+4. O regex foi corrigido para:
+   - manter `\\\\set` no início, para reconhecer a barra literal de `\\set`;
+   - usar `\\s+` e `\\s*` no código-fonte do regex, para reconhecer whitespace.
+5. A verificação direta do arquivo agora confirma que o regex corresponde a `\\set ON_ERROR_STOP on`.
+6. Commit da correção: `ad4bff618d2819c070ac448eb96cbdfe2b402ac1`.
+7. O head vivo da PR #39 passou a ser `ad4bff618d2819c070ac448eb96cbdfe2b402ac1`.
+8. Como a correção altera o executor, todos os gates precisam ser repetidos nesse novo SHA.
+9. Não houve merge, deploy, alteração da produção ou chamada de CI publicada até este registro.
+
+**Resultado:** o segundo defeito encontrado pelo Claude foi corrigido e o reconhecimento do meta-comando foi verificado diretamente no conteúdo do novo head; a execução completa das migrations e a revisão final ainda são obrigatórias.
+
+
+## 42. Correção do provisionamento de roles e identidade de migrations no CI
+
+**Data:** 05 de setembro de 2026
+
+1. A revisão do Claude reproduziu no SHA anterior a falha `role "growth_rls_helper" does not exist` durante a migration `002_rc9_security_policy_fix.sql`.
+2. A inspeção das migrations e do provisionamento canônico confirmou quatro roles relevantes:
+   - `growth_migrator`: LOGIN, sem SUPERUSER, sem CREATEDB, sem CREATEROLE e sem BYPASSRLS;
+   - `app_runtime`: LOGIN, sem SUPERUSER, sem CREATEDB, sem CREATEROLE e sem BYPASSRLS;
+   - `growth_rls_helper`: NOLOGIN, sem SUPERUSER, sem CREATEDB, sem CREATEROLE e com BYPASSRLS;
+   - `growth_identity_helper`: NOLOGIN, sem SUPERUSER, sem CREATEDB, sem CREATEROLE e com BYPASSRLS.
+3. A migration `002` transfere funções para `growth_rls_helper` e precisa de identidade administrativa para executar a transferência.
+4. A migration `006` transfere funções para `growth_identity_helper` e também precisa de identidade administrativa.
+5. O workflow `.github/workflows/ci.yml` foi corrigido para:
+   - criar ou ajustar as quatro roles no PostgreSQL isolado;
+   - manter `growth_migrator` com `CONNECT, CREATE` no banco efêmero;
+   - aplicar `002` e `006` como `postgres` administrativo;
+   - aplicar as demais migrations como `growth_migrator`;
+   - manter o teste de aplicação, gate 033 e integração no banco isolado.
+6. Commit da correção: `54ddb5ac9d2114eb39fa606e176bdd829fae30d4`.
+7. O novo commit invalida qualquer validação específica de SHA anterior.
+8. Produção não foi alterada; não houve merge, deploy ou migration em produção.
+
+**Resultado:** o CI agora reproduz a separação de identidades prevista no provisionamento canônico e cria as roles necessárias antes das migrations privilegiadas.
+
+
+## 43. Inclusão da migration 009 no grupo administrativo do CI
+
+**Data:** 05 de setembro de 2026
+
+1. A inspeção posterior das migrations confirmou que `009_production_identity_adapter_support.sql` também executa `ALTER FUNCTION ... OWNER TO growth_identity_helper`.
+2. Portanto, executar `009` como `growth_migrator` violaria a separação de identidade e poderia falhar por ausência de capacidade de transferência de ownership.
+3. O workflow foi corrigido para executar como `postgres` administrativo as migrations `002`, `006` e `009`.
+4. As demais migrations continuam executadas como `growth_migrator`.
+5. Commit do ajuste: `2d407fac3a5c393cc98adc5e374d52ed45a00487`.
+6. A produção permanece intocada e nenhum deploy ou merge foi feito.
+7. O head candidato precisa ser reconfirmado depois desta atualização; nenhuma validação anterior pode ser reutilizada automaticamente.
+
+**Resultado:** todas as migrations identificadas que transferem ownership para roles auxiliares agora estão no grupo administrativo correto do CI.
+
+
+## 44. Inclusão da migration 012 no grupo administrativo do CI
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução adversarial do Claude confirmou que as migrations `001–011` passaram no bootstrap corrigido.
+2. A migration `012_youtube_rls_helper_execute.sql` falhou quando executada como `growth_migrator`, com `permission denied for function workspace_row_visible` (`42501`).
+3. A causa é estrutural: `workspace_row_visible` pertence a `growth_rls_helper`, e `012` concede `EXECUTE` nessa função; `growth_migrator` não possui a capacidade administrativa necessária para conceder esse privilégio.
+4. O workflow foi corrigido para executar `012` também usando `CI_ADMIN_URL`, junto com `002`, `006` e `009`.
+5. Commit da correção: `c00c60eb531d027e2d52fed2e933dfaf4b11db00`.
+6. A produção permanece intocada. Não houve merge, deploy ou alteração de banco de produção.
+7. O novo commit invalida a validação do SHA anterior; o novo head deverá ser validado integralmente.
+
+**Resultado:** todas as migrations que exigem criação, transferência de ownership ou concessão administrativa identificadas até agora estão agrupadas no caminho administrativo do CI.
+
+
+## 45. Correção do fixture de autoridade do teste de Growth Intelligence
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução do Claude confirmou que as roles, as migrations `001–015` e o gate SQL 033 passaram no bootstrap corrigido.
+2. O teste de integração falhou no commit do fixture porque o trigger deferido `check_managed_account_projection_consistency()` exige uma linha aberta em `growth.authority_history` para cada `managed_account`.
+3. O fixture de `apps/api/integration-tests/growth-intelligence.integration.mts` inseria `managed_accounts`, mas não inseria `authority_history`.
+4. O teste foi corrigido para criar uma linha de autoridade aberta para:
+   - o fixture com observações e oportunidade;
+   - o fixture no-op sem observações.
+5. A limpeza foi corrigida para remover as respectivas linhas de `authority_history` antes de remover os `managed_accounts`.
+6. As linhas usam `authority_status='contractually_granted'`, `contribution_eligibility='eligible'`, `effective_to=NULL` e referência explícita `test-fixture`.
+7. Commit da correção: `f4be1acb09fb62c50ffd5cbc938ec038f5763a29`.
+8. A produção permanece intocada; não houve merge, deploy ou migration em produção.
+9. O novo commit invalida validações anteriores; o teste completo precisa ser repetido no novo head.
+
+**Resultado:** o fixture agora respeita a invariável de projeção de autoridade exigida pelo schema real, sem relaxar trigger, RLS ou regra de produção.
+
+
+## 46. Correção da projeção completa de autoridade no fixture
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução seguinte confirmou que a linha aberta em `authority_history` já existia, mas o trigger de integridade ainda rejeitava o fixture.
+2. A causa era a divergência em `authority_clause_ref`: `authority_history` usava `test-fixture`, enquanto `managed_accounts` permanecia com `NULL`.
+3. O trigger exige igualdade entre `managed_accounts` e a autoridade aberta em `owner_type`, `authority_status`, `contribution_eligibility` e `authority_clause_ref`.
+4. Os dois inserts de `managed_accounts` no teste foram corrigidos para incluir `authority_clause_ref='test-fixture'`.
+5. Commit da correção: `b173c99401806e3793c7bdb55b267160d3cb382e`.
+6. A produção permanece intocada; não houve merge, deploy ou alteração de banco de produção.
+7. A alteração invalida a validação do SHA anterior; o teste completo deve ser repetido no novo head.
+
+**Resultado:** os campos projetados de autoridade do fixture agora são idênticos aos da linha aberta de `authority_history`, respeitando o trigger real do schema.
+
+
+## 47. Correção de USAGE do schema e ambiguidade SQL na migration 015
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução seguinte confirmou que as migrations, roles, gate 033 e fixture de autoridade passaram.
+2. O teste do engine revelou dois bloqueios independentes:
+   - `app_runtime` não possuía `USAGE` no schema `growth` no banco efêmero do CI;
+   - a função da migration `015` tinha ambiguidade entre a variável de saída `insight_id` e a coluna usada no upsert de `growth.insight_evidence`.
+3. O workflow foi corrigido para executar, depois das migrations, `GRANT USAGE ON SCHEMA growth TO app_runtime` exclusivamente no banco isolado do CI.
+4. A migration `015` foi corrigida para usar a constraint nomeada `insight_evidence_insight_id_evidence_type_evidence_ref_key` no `ON CONFLICT`, eliminando a resolução ambígua de `insight_id`.
+5. Commit da migration: `8f62f1ae23f4b9cbc240f2fb627dec00024113db`.
+6. Commit do CI: `58610b7671ad23d2020582a825eaade70aa1e175`.
+7. Nenhuma migration foi aplicada em produção. Não houve merge ou deploy.
+8. O novo head precisa de validação completa; nenhum SHA anterior deve ser reutilizado.
+
+**Resultado:** o ambiente isolado agora concede o privilégio de schema necessário ao runtime e o upsert de evidência da migration 015 deixa de depender de uma referência ambígua.
+
+
+## 48. Correção da ambiguidade de `opportunity_id` na migration 015
+
+**Data:** 05 de setembro de 2026
+
+1. A reprodução do novo head confirmou que a correção de `insight_id` funcionou e que o teste avançou até o segundo upsert de evidência.
+2. Foi encontrada a mesma ambiguidade entre a variável de saída `opportunity_id` da função e a coluna `opportunity_id` de `growth.opportunity_evidence`.
+3. O nome real da constraint foi confirmado diretamente no catálogo PostgreSQL:
+   `opportunity_evidence_opportunity_id_source_class_evidence_r_key`.
+4. A migration `015` foi corrigida para usar `ON CONFLICT ON CONSTRAINT opportunity_evidence_opportunity_id_source_class_evidence_r_key`.
+5. As demais ocorrências de `ON CONFLICT` da função foram revisadas e não colidem com os nomes de saída.
+6. Commit da correção: `d4e5e948ddf17a0ebf75ece414dc9a888d9ec40f`.
+7. Não houve merge, deploy ou alteração da produção.
+8. A correção é válida como iteração da migration `015` porque ela ainda está em PR draft e não foi aplicada em ambiente compartilhado.
+9. Todos os gates precisam ser repetidos no novo head.
+
+**Resultado:** as duas ambiguidades de nomes de saída e colunas de evidência na migration 015 agora usam constraints nomeadas, eliminando esses conflitos de PL/pgSQL.
+
+
+## 49. Correção do trigger deferido de evidência sob app_runtime
+
+**Data:** 06 de setembro de 2026
+
+1. A reprodução do Claude confirmou que os bugs de ambiguidade da migration `015` estavam resolvidos e que o engine avançava até o commit da transação.
+2. No commit, o trigger deferido `check_insight_state_evidence_purity()` chamava `assert_confirmed_insight_evidence_purity()` no contexto da sessão `app_runtime`.
+3. O helper tentava ler `growth.insights`, mas `app_runtime` não possui SELECT direto nessa tabela por desenho de least privilege.
+4. A migration `015` foi ampliada para:
+   - tornar `growth.assert_confirmed_insight_evidence_purity(uuid,uuid)` `SECURITY DEFINER`;
+   - manter o owner em `growth_migrator`;
+   - revogar EXECUTE de `PUBLIC`;
+   - conceder apenas EXECUTE a `app_runtime`, necessário para o trigger chamar o helper;
+   - manter fechado o SELECT direto de `app_runtime` nas tabelas.
+5. O gate SQL 033 foi ampliado para exigir:
+   - helper de evidência como `SECURITY DEFINER`;
+   - owner `growth_migrator`;
+   - ausência de SELECT direto de `app_runtime` em `growth.insights`.
+6. Commit da migration: `06711cc68fc5d06ecc4dcded8153ea00888f8852`.
+7. Commit do gate: `a60c0e91a4d4db23bcf57f9964ea9950ae049b13`.
+8. Não houve merge, deploy ou alteração da produção.
+9. O novo head precisa ser validado integralmente; nenhum SHA anterior deve ser reutilizado.
+
+**Resultado:** o trigger continua funcionando no commit sem abrir leitura direta das tabelas para `app_runtime`; a verificação passa por um helper estreito, com owner e execução controlados.
+
+
+## 50. Falha de serialização no bootstrap do CI e correção
+
+**Data:** 06 de setembro de 2026
+
+1. Após a integração da branch com `main`, o CI foi executado no commit `3d29dabb9791bfed20bcc0424adf7c8b0ad39a9d` (run #145, job `101399471757`).
+2. O job chegou ao gate real de provisionamento isolado e falhou antes das migrations, com PostgreSQL `42601`: `syntax error at or near "$"`.
+3. A causa foi confirmada no workflow versionado: o heredoc PL/pgSQL havia sido serializado como `DO $` e `$;`, em vez de `DO $$` e `$$;`. Isso era um defeito do workflow/serialização, não um defeito do produto.
+4. O workflow foi corrigido para usar o dollar-quoting completo. O commit da correção é `2eef82384edfe9c38b35244b05d9712469d31828`.
+5. Como o head mudou, a validação do Claude para o SHA anterior `04a40544eeb7489ce8696260f87c30604621250f` não é reutilizável; CI completo e revisão adversarial devem ser repetidos no novo SHA.
+6. Não houve merge, deploy ou alteração da produção.
+
+**Aprendizado operacional:** toda alteração de workflow que contenha heredoc, SQL ou regex deve ser relida no arquivo efetivamente versionado e executada no CI antes de ser considerada concluída; a intenção do texto gerado não substitui a verificação do conteúdo armazenado.
+
+
+## 51. Falha de interpolação no SQL do bootstrap do CI
+
+**Data:** 06 de setembro de 2026
+
+1. O CI run #149, no commit `f3096434884081aaf4841e7b97c30f7db2790589`, passou por integrity gate, typecheck e build.
+2. O provisionamento falhou ao executar `GRANT CONNECT, CREATE ON DATABASE "$CI_DATABASE_NAME"`.
+3. A causa foi o heredoc `<<'SQL'`: por ser protegido por aspas simples, o shell não expande `$CI_DATABASE_NAME`; o PostgreSQL recebeu literalmente o nome `$CI_DATABASE_NAME`.
+4. O workflow foi corrigido para usar explicitamente `growth_os_ci`, o banco isolado declarado no serviço PostgreSQL. O commit da correção é `13f296607c7941c9a507a61d006f6d8eb82cfc2a`.
+5. Não houve merge, deploy ou alteração da produção.
+
+**Aprendizado operacional:** em scripts CI, variáveis de shell dentro de heredocs SQL devem ser verificadas pelo comportamento efetivo do shell; preferir parâmetros explícitos ou variáveis nativas do `psql` quando o heredoc estiver protegido contra expansão.
+
+
+## 52. Fixture de Growth Intelligence precisava do harness de testes
+
+**Data:** 06 de setembro de 2026
+
+1. O CI run #153, no commit `29e6c2903348807fd188b3e8218bf8245b977c40`, passou por bootstrap, integrity, typecheck, build, migrations 001–015, grant de schema e SQL gate 033.
+2. O teste Growth Intelligence falhou no primeiro insert em `growth.managed_accounts` com `new row violates row-level security policy`.
+3. A causa foi confirmada: o teste tentava semear fixtures pelo `growth_migrator`, mas as tabelas usam RLS/FORCE RLS e exigem membership ativa; o CI não havia carregado o harness/fixtures canônicos de `db/provisioning/test/01_test_roles.sql` a `03_test_fixtures.sql`.
+4. A correção preserva o least privilege de produção: o CI agora provisiona o papel exclusivamente de teste `growth_test_harness`, carrega os fixtures canônicos e o teste usa `HARNESS_DATABASE_URL` apenas para seed, contagem e limpeza; a chamada do engine continua sendo feita pelo `app_runtime`.
+5. A correção foi registrada nos commits `eb60bbf91e74a23868a100ad4b95942348c1c6ce` (teste) e `2f8c5c9350f2ccd6f51587448b3c1427398fc29f` (workflow).
+6. Não houve merge, deploy ou alteração da produção.
+
+**Aprendizado operacional:** testes de integração que exercitam RLS devem separar explicitamente a identidade de seed privilegiada, exclusiva do ambiente descartável, da identidade runtime sob teste; fixtures existentes no repositório devem ser carregados pelo CI, não apenas presumidos pelo teste.
+
+
+## 53. CI completo verde após correção dos fixtures RLS
+
+**Data:** 06 de setembro de 2026
+
+1. O CI run #159 (job `101400483833`) validou o commit `274c81dc222ac4d4cd79eb481b5f0ef1f16ab49f` com conclusão `success`.
+2. Passaram: Test Integrity Gate, typecheck, build, provisionamento das roles, migrations 001–015, grant de schema, provisionamento do test harness, SQL gate 033, Growth Intelligence ponta a ponta, idempotência, `insufficient_signal`/no-op, production web shell e `npm test`.
+3. O PR continua aberto e sem merge. A revisão adversarial do Claude ainda precisa ser executada no novo head após este registro; aprovações de SHAs anteriores não são reutilizadas.
+4. A produção Railway permaneceu no deploy do serviço `growth-os` baseado no commit main `17ee387477763921c0c4cbab326557142d4b26b3`, sem deploy deste PR.
+
+**Resultado:** a cadeia de validação isolada está verde; o próximo gate formal é a revisão independente do SHA final.

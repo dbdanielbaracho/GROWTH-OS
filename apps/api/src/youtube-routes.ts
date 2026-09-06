@@ -17,6 +17,22 @@ import {
   youtubeConnectorConfigured
 } from "./youtube-connector.js";
 
+type YoutubeIntegrationStatusRow = {
+  managed_account_id: string;
+  owner_type: string;
+  authority_status: string;
+  contribution_eligibility: string;
+  connection_id: string | null;
+  connection_state: string | null;
+  connection_updated_at: string | null;
+  social_account_id: string | null;
+  provider_account_id: string | null;
+  handle: string | null;
+  account_type: string | null;
+  market: string | null;
+  source_timezone: string | null;
+};
+
 function pgCode(error: unknown): string {
   return error && typeof error === "object" && "code" in error
     ? String((error as { code?: unknown }).code ?? "")
@@ -62,11 +78,25 @@ export async function registerYoutubeRoutes(app: FastifyInstance): Promise<void>
   app.get("/v1/integrations/youtube/status", async (request, reply) => {
     const principal = await principalOrReply(request, reply);
     if (!principal) return;
-    return {
-      status: "ok",
-      configured: youtubeConnectorConfigured(),
-      derived_analytics_policy_accepted: process.env.YOUTUBE_DERIVED_ANALYTICS_POLICY_ACCEPTED === "true"
-    };
+
+    try {
+      const integrations = await withTenantTransaction(principal, async (client) => {
+        const result = await client.query<YoutubeIntegrationStatusRow>(
+          "select * from growth.youtube_integration_status()"
+        );
+        return result.rows;
+      });
+
+      reply.header("cache-control", "no-store");
+      return {
+        status: "ok",
+        configured: youtubeConnectorConfigured(),
+        derived_analytics_policy_accepted: process.env.YOUTUBE_DERIVED_ANALYTICS_POLICY_ACCEPTED === "true",
+        integrations
+      };
+    } catch (error) {
+      return integrationError(app, reply, error);
+    }
   });
 
   app.post("/v1/integrations/youtube/authorize", async (request, reply) => {
@@ -89,21 +119,15 @@ export async function registerYoutubeRoutes(app: FastifyInstance): Promise<void>
     const parsed = YoutubeCallbackQuerySchema.safeParse(request.query);
     if (!parsed.success) return reply.code(400).send({ status: "youtube_callback_invalid" });
     if (parsed.data.error) {
-      return reply.code(400).send({ status: "youtube_authorization_denied" });
+      return reply.redirect("/?youtube=denied", 303);
     }
     if (!parsed.data.code) {
       return reply.code(400).send({ status: "youtube_authorization_code_missing" });
     }
 
     try {
-      const result = await completeYoutubeAuthorizationFromCallback(parsed.data.state, parsed.data.code);
-      return {
-        status: "connected",
-        connection_id: result.connectionId,
-        social_account_id: result.socialAccountId,
-        channel_id: result.channelId,
-        channel_title: result.channelTitle
-      };
+      await completeYoutubeAuthorizationFromCallback(parsed.data.state, parsed.data.code);
+      return reply.redirect("/?youtube=connected", 303);
     } catch (error) {
       return integrationError(app, reply, error);
     }

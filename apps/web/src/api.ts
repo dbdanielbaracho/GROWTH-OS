@@ -76,6 +76,54 @@ export type AuthSessionResponse = {
   csrf_token: string;
 };
 
+export type YoutubeIntegration = {
+  managed_account_id: string;
+  owner_type: string;
+  authority_status: string;
+  contribution_eligibility: string;
+  connection_id: string | null;
+  connection_state: string | null;
+  connection_updated_at: string | null;
+  social_account_id: string | null;
+  provider_account_id: string | null;
+  handle: string | null;
+  account_type: string | null;
+  market: string | null;
+  source_timezone: string | null;
+};
+
+export type YoutubeStatusResponse = {
+  status: "ok";
+  configured: boolean;
+  derived_analytics_policy_accepted: boolean;
+  integrations: YoutubeIntegration[];
+};
+
+export type YoutubeAuthorizeResponse = {
+  status: "ok";
+  connectionId: string;
+  authorizationUrl: string;
+};
+
+export type YoutubeSyncResponse = {
+  status: "ok";
+  connectionId: string;
+  requestNonce: string;
+  socialAccountId: string;
+  requestedStartDate: string;
+  requestedEndDate: string;
+  returnedThroughDate: string | null;
+  observationsProcessed: number;
+  rowsReceived: number;
+  derivedAnalyticsPolicyAccepted: boolean;
+  intelligenceStatus: "opportunity_created" | "insufficient_signal";
+  signalId: string | null;
+  insightId: string | null;
+  opportunityId: string | null;
+  intelligenceObservationsUsed: number;
+  intelligenceDeltaRatio: number | null;
+};
+
 type OpportunityListResponse = {
   status: "ok";
   opportunities: OpportunitySummary[];
@@ -212,4 +260,26 @@ export async function fetchOpportunities(): Promise<OpportunitySummary[]> {
 
 export async function fetchOpportunityDetail(id: string): Promise<OpportunityDetail> {
   return requestJson<OpportunityDetail>(`/v1/opportunities/${encodeURIComponent(id)}`);
+}
+
+export async function fetchYoutubeStatus(): Promise<YoutubeStatusResponse> {
+  return requestJson<YoutubeStatusResponse>("/v1/integrations/youtube/status");
+}
+
+export async function authorizeYoutube(managedAccountId: string): Promise<YoutubeAuthorizeResponse> {
+  return requestJson<YoutubeAuthorizeResponse>("/v1/integrations/youtube/authorize", {
+    method: "POST",
+    body: { managedAccountId }
+  });
+}
+
+export async function syncYoutube(
+  connectionId: string,
+  requestNonce: string,
+  lookbackDays = 7
+): Promise<YoutubeSyncResponse> {
+  return requestJson<YoutubeSyncResponse>("/v1/integrations/youtube/sync", {
+    method: "POST",
+    body: { connectionId, requestNonce, lookbackDays }
+  });
 }
