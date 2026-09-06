@@ -59,7 +59,7 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 <<'SQL'
-          DO $
+          DO $$
           BEGIN
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_migrator') THEN
               CREATE ROLE growth_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'growth_migrator';
@@ -82,7 +82,7 @@ jobs:
               ALTER ROLE growth_identity_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
             END IF;
           END
-          $;
+          $$;
           GRANT CONNECT, CREATE ON DATABASE "$CI_DATABASE_NAME" TO growth_migrator;
           CREATE EXTENSION IF NOT EXISTS pgcrypto;
           SQL
