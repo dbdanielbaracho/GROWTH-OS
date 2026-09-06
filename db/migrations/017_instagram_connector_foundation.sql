@@ -289,7 +289,7 @@ BEGIN
   RETURN FOUND;
 END;
 $$;
-ALTER FUNCTION growth.instagram_update_connection_credential(uuid,bytea,text,text,text,boolean,text[]) OWNER TO growth_migrator;
+ALTER FUNCTION growth.instagram_update_connection_credential(uuid,bytea,text,text,timestamptz,boolean,text[]) OWNER TO growth_migrator;
 REVOKE ALL ON FUNCTION growth.instagram_update_connection_credential(uuid,bytea,text,text,text,boolean,text[]) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION growth.instagram_update_connection_credential(uuid,bytea,text,text,text,boolean,text[]) TO app_runtime;
 
