@@ -353,3 +353,35 @@ O PR #43 adiciona a primeira superfície web utilizável para o ciclo Instagram:
 
 Isso avança a usabilidade da integração, mas não congela a Phase 3. Continuam pendentes: credenciais Meta e conta profissional real, prova do OAuth real, sync de mídia/métricas, publicação, reconciliação, webhooks, insights autorizados, testes de jornada real e as fases 4–11.
 
+
+
+---
+
+## Addendum 15 — Instagram media and direct metrics sync v0.1 — 2026-09-06
+
+### Concluído neste bloco
+
+- Migration forward-only 019 criada e aplicada no CI isolado.
+- Tabela `growth.instagram_media` com RLS + FORCE RLS, sem acesso direto do `app_runtime`.
+- Helpers `SECURITY DEFINER` para persistência de mídia e observações métricas, com owner/grants auditáveis.
+- Endpoint autenticado `POST /v1/integrations/instagram/sync`.
+- Paginação limitada, janela de lookback de 1–30 dias, rejeição de timestamp inválido e digest SHA-256 de payload.
+- Métricas diretas implementadas: `like_count` e `comments_count`.
+- Idempotência por workspace/request nonce/media/metric/semantic version.
+- UI com ação “Sync media & metrics” e retorno da contagem processada.
+- Gate SQL 037 e testes de contrato adicionados.
+- CI run 294: SHA `2a34b96d5136cac7fc55d794b433252295982341`, conclusão `success`, todos os gates existentes e o gate 037 aprovados.
+
+### Aprendizados incorporados
+
+- Typecheck de frontend é executado antes de qualquer migration gate; o primeiro CI encontrou e corrigiu o narrowing opcional da UI.
+- Assinaturas SQL de criação, alteração, REVOKE, GRANT e gates devem ser mantidas como uma única lista verificável; o segundo CI encontrou a divergência de um parâmetro `timestamptz`.
+- O CI oficial isolado permanece a autoridade para o conjunto completo; testes locais continuam úteis, mas limitações do ambiente local devem ser registradas separadamente.
+
+### Limites explícitos
+
+Este bloco não habilita publicação, insights avançados, comentários/moderação, webhooks, reconciliação, nem validação com conta Instagram real. O SHA aguarda revisão final adversarial do Claude antes de merge/deploy.
+
+### Próximo bloco
+
+Após aprovação: integrar/deployar com smoke test sem dados sintéticos; depois implementar insights avançados com contrato de métricas por tipo de mídia, seguido de publicação e reconciliação em blocos independentes.
