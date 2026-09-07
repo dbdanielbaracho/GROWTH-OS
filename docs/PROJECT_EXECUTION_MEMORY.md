@@ -2421,3 +2421,14 @@ Resposta técnica baseada nas evidências disponíveis:
 - Portanto, o bug de **estado preso indefinidamente em “Opening”** foi tratado no código publicado.
 - Porém, ainda não existe prova de navegador autenticado confirmando que o OAuth do Instagram abre corretamente. A alteração trata o travamento da interface, mas não comprova que a causa original da requisição não responder foi eliminada.
 - Status correto: **correção do travamento “Opening” publicada; confirmação do fluxo OAuth real ainda pendente**.
+
+
+---
+
+## Link de teste do problema “Opening” — 2026-09-07
+
+Foi indicado ao usuário o endereço público canônico para testar o fluxo de autenticação/autorização do Instagram:
+
+`https://growth-os-production-d120.up.railway.app/`
+
+O teste deve ser feito após entrar na conta e acessar o painel de integração do Instagram. O objetivo é verificar se o botão deixa de permanecer indefinidamente em `Opening` e se a janela/fluxo OAuth abre corretamente.
