@@ -2577,3 +2577,16 @@ Ainda falta:
 5. repetir o teste visual/interativo em `https://growos.predibeacon.com/`, confirmando que o botão inicial aparece como “Connect Instagram”, fica ocupado somente após o clique e retorna ao estado acionável em erro/timeout.
 
 Nenhum segredo foi exposto ou alterado. Nenhuma migration, tabela, configuração OAuth ou permissão externa foi modificada nesta correção.
+
+
+### Resultado do PR e do CI
+
+- PR aberto: #50, URL https://github.com/dbdanielbaracho/GROWTH-OS/pull/50;
+- estado do PR: aberto como draft, sem merge e sem deploy;
+- SHA final verificado antes deste registro: `824a647d313fb56026cf32cab0df0d95e9179306`;
+- CI run #337, ID `34141401245`: `success`;
+- job `validate`: `success`;
+- passos confirmados: Test Integrity Gate, Typecheck, Build, migrations 001–020 no banco isolado, gates SQL, gates Instagram, gate de idempotência, integração Growth Intelligence, Production same-origin web shell gate e Test.
+
+Como este resultado foi acrescentado ao documento, o arquivo terá um novo commit e o CI deverá ser conferido novamente no SHA produzido por esse commit. A revisão adversarial formal do Claude continua pendente e é obrigatória antes de qualquer merge/deploy.
+
