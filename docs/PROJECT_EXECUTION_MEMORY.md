@@ -2666,3 +2666,14 @@ A causa raiz está corrigida no branch e coberta pelo build/typecheck e pela rev
 - próximo passo: corrigir/verificar o DNS ou proxy do domínio `growos.predibeacon.com`, depois repetir o smoke test autenticado e confirmar visualmente `Connect Instagram` antes do clique.
 
 Nenhum DNS, segredo, credencial ou permissão externa foi alterado nesta execução.
+
+
+### Rechecagem final do domínio personalizado
+
+Após o deployment `8bd0ce53-a15f-42bc-be7f-d4bd7075fe05` terminar `SUCCESS`, o navegador reabriu `https://growos.predibeacon.com/` e recebeu novamente:
+
+- título: `502 Bad Gateway`;
+- mensagem: `[Errno 111] Connection refused`.
+
+O domínio Railway canônico continuou acessível e servindo a aplicação. O domínio personalizado permanece o bloqueio independente para o smoke test autenticado pela URL mostrada na imagem. A configuração Railway mostra o domínio anexado ao serviço `growth-os` na porta 8080, mas não há ferramenta/conector de DNS ou proxy de domínio disponível nesta sessão para corrigir o apontamento externo.
+
