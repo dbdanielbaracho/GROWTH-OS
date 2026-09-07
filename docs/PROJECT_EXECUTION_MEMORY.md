@@ -2888,3 +2888,71 @@ Resultado: primeira leitura de dados reais do Instagram confirmada. Nenhuma alte
 ### Ponto exato de retomada
 
 O próximo trabalho técnico é corrigir a duplicidade de autorizações Instagram com rastreabilidade completa. Depois, validar novamente a sincronização e evoluir os dados sincronizados para sinais, insights e oportunidades do Growth OS. Nenhuma alteração de código ou banco foi feita neste checkpoint.
+
+
+---
+
+## Registro operacional — PR #51: deduplicação das autorizações Instagram — 2026-09-07
+
+### Solicitação e objetivo
+
+O usuário autorizou a continuidade até o final do projeto e reafirmou que toda conversa e execução deve ser documentada no GitHub. O objetivo deste bloco é eliminar os dois cartões/botões Instagram que apareceram após tentativas anteriores de OAuth, preservando a conexão atualmente funcional.
+
+### Causa raiz confirmada
+
+A UI renderiza um cartão por linha retornada por `status.integrations`. As tentativas anteriores de OAuth que terminaram antes do callback deixaram conexões Instagram em estado `authorizing`. A consulta anterior de status fazia join com todas as conexões e, por isso, exibiu mais de um cartão para a mesma conta gerenciada.
+
+### Correção implementada no branch de código
+
+- Branch: `fix/instagram-duplicate-authorizations`.
+- PR: #51 — `fix: deduplicate Instagram authorization cards`.
+- Base: `main` no SHA `6f5fbf2b0444c8fd92448fe38d5a9ac4af8786b9`.
+- SHA atual do código: `c8d2186391e2baf379c8386e55b68c7d685bb774`.
+- Migration criada: `db/migrations/021_instagram_authorization_deduplication.sql`.
+- Teste criado: `db/tests/039_instagram_authorization_deduplication.sql`.
+
+A migration:
+
+1. projeta somente uma conexão por managed account, priorizando uma conexão `connected` e depois os estados de recuperação;
+2. marca autorizações antigas ainda `authorizing` como `failed` com a causa `instagram_authorization_superseded`, sem apagar dados;
+3. reutiliza a conexão mais recente em estado terminal (`revoked`, `disconnected`, `reauth_required` ou `failed`) antes de criar uma nova;
+4. bloqueia a conta gerenciada durante a decisão para evitar corrida de autorização;
+5. mantém helpers `SECURITY DEFINER`, owner `growth_migrator`, `PUBLIC EXECUTE` revogado e execução somente pelo `app_runtime`;
+6. não altera credenciais conectadas ao projetar o status; a aplicação ainda não foi feita em produção.
+
+O gate 039 verifica a existência das funções, a priorização lateral, o tratamento de autorizações superseded, a reutilização terminal, o bloqueio `FOR UPDATE`, owner/SECURITY DEFINER/grants e ausência de privilégios diretos do runtime.
+
+### Falhas e correções do CI
+
+1. Os runs #354 e #355 falharam na aplicação da migration porque o arquivo continha `\\echo`, um meta-comando do psql rejeitado pelo executor Node `db/scripts/apply-migration.mjs`.
+2. A falha foi localizada no executor da migration, não na lógica de deduplicação.
+3. O comando `\\echo` foi removido da migration no commit `c8d2186391e2baf379c8386e55b68c7d685bb774`.
+4. O teste SQL mantém seu `\\echo` porque é executado pelo cliente psql no gate.
+
+### CI final confirmado
+
+- Run: #356, ID `34170591722`.
+- SHA exato: `c8d2186391e2baf379c8386e55b68c7d685bb774`.
+- Job `validate`: SUCCESS.
+- Passaram: integrity, typecheck, build, migrations 001–021, schema usage, fixtures, gates SQL 033/034/035/036/037/038/039, Growth Intelligence integration, production same-origin web shell e testes unitários.
+- Diff contra a base: somente os dois arquivos da correção, com 169 linhas adicionadas em cada arquivo.
+
+### Estado de revisão e produção
+
+- PR #51 continua aberto e draft.
+- Nenhuma revisão formal independente foi registrada ainda para o SHA `c8d2186391e2baf379c8386e55b68c7d685bb774`.
+- O pacote de revisão adversarial foi publicado no PR #51, com cinco pontos obrigatórios.
+- Não houve merge, deploy ou aplicação da migration 021 em produção.
+- Produção continua no deployment anterior `963549bb-5fbe-4617-af6f-fd98f3083a02`.
+- Nos logs desse deployment, Instagram status permanece HTTP 200 e YouTube status permanece HTTP 500 com `growth.youtube_integration_status() does not exist`.
+
+### Próximo ponto exato
+
+1. Obter revisão adversarial independente do Claude para o SHA `c8d2186391e2baf379c8386e55b68c7d685bb774`.
+2. Se aprovado, retirar o draft, fazer merge e deploy controlado.
+3. Confirmar no domínio usado pelo usuário que aparece apenas um cartão Instagram conectado e que a reconexão não cria duplicados.
+4. Verificar/aplicar de forma controlada a migration YouTube 014 no banco de produção, pois a função ausente continua causando HTTP 500.
+5. Executar novo sync real e avançar a cadeia de dados para sinais, insights, oportunidades e Radar.
+6. Registrar cada resultado e cada falha neste documento antes de encerrar a etapa.
+
+**Resultado:** a correção dos cartões duplicados está implementada e validada no CI do SHA exato; merge, deploy, prova visual pós-deploy, correção do YouTube e conclusão do projeto permanecem pendentes.
