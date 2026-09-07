@@ -297,6 +297,24 @@ export async function signUp(email: string, password: string): Promise<IdentityS
   });
 }
 
+export async function requestPasswordReset(email: string): Promise<{ status: "password_reset_if_account_exists" }> {
+  csrfToken = null;
+  return requestJson<{ status: "password_reset_if_account_exists" }>("/v1/auth/password-reset/request", {
+    method: "POST",
+    body: { email },
+    useDevelopmentIdentity: false
+  });
+}
+
+export async function completePasswordReset(token: string, password: string): Promise<{ status: "password_reset_completed"; user_id?: string }> {
+  csrfToken = null;
+  return requestJson<{ status: "password_reset_completed"; user_id?: string }>("/v1/auth/password-reset/complete", {
+    method: "POST",
+    body: { token, password },
+    useDevelopmentIdentity: false
+  });
+}
+
 export async function verifyEmail(token: string): Promise<{ status: "verified"; user_id?: string }> {
   csrfToken = null;
   return requestJson<{ status: "verified"; user_id?: string }>("/v1/auth/verify-email", {
