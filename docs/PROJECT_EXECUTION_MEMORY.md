@@ -2864,3 +2864,27 @@ Interpretação:
 - o resultado não significa que a conta tenha somente duas mídias no total, apenas que duas foram processadas nesta sincronização/janela.
 
 Resultado: primeira leitura de dados reais do Instagram confirmada. Nenhuma alteração de código, banco ou permissão foi feita nesta etapa.
+
+
+## Checkpoint atual do projeto — após primeira sincronização Instagram — 2026-09-07
+
+### Concluído e confirmado
+
+- correção do botão preso em `Opening`: mergeada e publicada;
+- configuração do Redirect URL do Instagram business login: concluída;
+- OAuth real do Instagram: callback alcançado e retorno ao Growth OS confirmado;
+- conta Instagram: `connected / Live / BUSINESS`;
+- primeira sincronização real: `2 media / 4 metrics`;
+- dados: armazenados como base para sinais e análises futuras.
+
+### Ainda pendente
+
+- dois cartões/botões Instagram: provavelmente registros antigos em `authorizing`; não apagar manualmente nesta etapa;
+- correção definitiva da duplicidade: selecionar somente a conexão vigente e expirar autorizações antigas, com novo PR, CI e revisão adversarial do Claude antes de merge/deploy;
+- publicação e Insights avançados: continuam protegidos por gates separados;
+- relatório visual e recomendações: ainda não implementados nesta tela;
+- YouTube: falha independente `growth.youtube_integration_status() does not exist`, ainda pendente.
+
+### Ponto exato de retomada
+
+O próximo trabalho técnico é corrigir a duplicidade de autorizações Instagram com rastreabilidade completa. Depois, validar novamente a sincronização e evoluir os dados sincronizados para sinais, insights e oportunidades do Growth OS. Nenhuma alteração de código ou banco foi feita neste checkpoint.
