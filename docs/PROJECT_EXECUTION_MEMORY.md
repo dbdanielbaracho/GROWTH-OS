@@ -2706,3 +2706,44 @@ Estado posterior confirmado:
 - o único comportamento anômalo observado depois foi a resposta 502 intermitente/específica do navegador Cloud no domínio personalizado, enquanto requisições HTTP diretas ao mesmo domínio retornaram 200;
 - essa divergência foi registrada como questão de edge/cache/rota do navegador, não como falha da correção `busyId`.
 
+
+
+## Registro operacional — erro real após teste do botão: `Invalid redirect_uri` — 2026-09-07
+
+### Evidência do usuário
+
+Após o merge/deploy da correção do estado `Opening`, o usuário clicou no botão e o Instagram abriu a tela de erro:
+
+`Solicitação inválida: Solicitação de parâmetros inválida: Invalid redirect_uri`.
+
+Isso confirma que o bug do botão foi superado: a ação agora inicia o fluxo OAuth e chega ao Instagram.
+
+### Evidência no Railway
+
+Nos logs do deployment canônico, para o domínio `growos.predibeacon.com`, foram confirmados:
+
+- `POST /v1/integrations/instagram/authorize → 200`;
+- `POST /v1/integrations/instagram/reconnect → 200`;
+- `GET /v1/integrations/instagram/status → 200`.
+
+Logo, o backend criou e devolveu a URL de autorização; a rejeição ocorreu no Instagram/Meta ao validar o parâmetro `redirect_uri`.
+
+### Diagnóstico
+
+O código constrói o callback como:
+
+`new URL("/v1/integrations/instagram/callback", env.APP_ORIGIN).toString()`.
+
+A configuração Railway já contém o domínio personalizado anexado ao serviço. Além disso, o POST originado pelo domínio personalizado foi aceito com HTTP 200, o que é compatível com `APP_ORIGIN` já alinhado ao domínio usado. Portanto, não há evidência para alterar DNS ou código neste momento.
+
+O bloqueio atual é a ausência ou divergência da URL exata na configuração do aplicativo Meta/Instagram. A URL que deve estar registrada, sem alteração de protocolo, host, caminho ou barra final, é:
+
+`https://growos.predibeacon.com/v1/integrations/instagram/callback`
+
+A documentação oficial da Meta exige correspondência exata entre o `redirect_uri` enviado e uma URI válida cadastrada no App Dashboard.
+
+### Próxima ação
+
+No Meta Developers, adicionar a URI acima em **Instagram → API setup with Instagram Login → Business login settings → Valid OAuth Redirect URIs**. Se o app também tiver configuração **Facebook Login for Business**, conferir a mesma URI em **Settings → Client OAuth Settings → Valid OAuth Redirect URIs**. Depois repetir o botão.
+
+Nenhuma credencial, token ou segredo foi registrado neste documento.
