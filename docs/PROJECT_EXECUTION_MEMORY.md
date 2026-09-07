@@ -2588,5 +2588,19 @@ Nenhum segredo foi exposto ou alterado. Nenhuma migration, tabela, configuraçã
 - job `validate`: `success`;
 - passos confirmados: Test Integrity Gate, Typecheck, Build, migrations 001–020 no banco isolado, gates SQL, gates Instagram, gate de idempotência, integração Growth Intelligence, Production same-origin web shell gate e Test.
 
-Como este resultado foi acrescentado ao documento, o arquivo terá um novo commit e o CI deverá ser conferido novamente no SHA produzido por esse commit. A revisão adversarial formal do Claude continua pendente e é obrigatória antes de qualquer merge/deploy.
+O registro acima foi validado no CI do SHA `4e47d759f2ab6fc4eabad7ffb049101ec571577a` pelo run #338 (ID `34141561250`), concluído com `success`. A revisão adversarial formal do Claude continua pendente e é obrigatória antes de qualquer merge/deploy.
 
+
+
+### Estado após a confirmação documental
+
+- commit deste fechamento documental: pendente até o retorno desta operação;
+- PR #50: aberto como draft;
+- último SHA de código e documentação validado antes deste fechamento: `4e47d759f2ab6fc4eabad7ffb049101ec571577a`;
+- CI #338: SUCCESS;
+- merge: não executado;
+- deploy: não executado;
+- revisão Claude: pendente;
+- teste autenticado pós-deploy: pendente.
+
+A causa raiz está corrigida no branch e coberta pelo build/typecheck e pela revisão do diff. A conclusão de produção permanece condicionada à revisão adversarial do Claude, ao merge, ao deploy e ao smoke test autenticado.
