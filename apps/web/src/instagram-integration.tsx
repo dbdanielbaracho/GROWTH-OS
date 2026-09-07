@@ -106,7 +106,11 @@ function InstagramIntegrationPanel() {
     setBusyId(row.managed_account_id);
     setMessage(null);
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    const timeout = window.setTimeout(() => {
+      controller.abort();
+      setBusyId((current) => current === row.managed_account_id ? null : current);
+      setMessage("Instagram authorization did not respond. Try again.");
+    }, 15000);
     try {
       const result = row.connection_state
         ? await reconnectInstagram(row.managed_account_id, controller.signal)
