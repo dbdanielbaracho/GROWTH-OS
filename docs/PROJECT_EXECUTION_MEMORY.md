@@ -2604,3 +2604,13 @@ O registro acima foi validado no CI do SHA `4e47d759f2ab6fc4eabad7ffb049101ec571
 - teste autenticado pós-deploy: pendente.
 
 A causa raiz está corrigida no branch e coberta pelo build/typecheck e pela revisão do diff. A conclusão de produção permanece condicionada à revisão adversarial do Claude, ao merge, ao deploy e ao smoke test autenticado.
+
+
+### Encaminhamento para revisão adversarial
+
+- PR #50 foi marcado como pronto para revisão em 2026-09-07;
+- foi publicado no PR o pacote de revisão adversarial ancorado no SHA `5cba9db1463fda08af96de22c9269da90ea9a5f8`;
+- checklist: testar a comparação com `null`, duplo clique, timeout/AbortController, `pageshow`, ocorrências equivalentes, escopo de segurança e smoke test pós-deploy;
+- o PR continua sem merge e sem deploy;
+- não existe conexão Claude disponível nesta sessão para executar a aprovação em nome dele.
+
