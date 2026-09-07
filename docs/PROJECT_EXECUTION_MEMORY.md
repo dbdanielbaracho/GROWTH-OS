@@ -2518,3 +2518,111 @@ Essa correção deve ser aplicada nos dois painéis, acompanhada de teste de UI/
 - integração conectada: ações de sync/refresh/revoke sem regressão.
 
 **Estado:** causa raiz confirmada; código ainda não alterado nesta etapa de diagnóstico. Novo PR e novo CI serão necessários para corrigir o problema com rastreabilidade.
+
+
+## Registro operacional — correção definitiva do estado inicial “Opening” — 2026-09-07
+
+### Solicitação do usuário
+
+O usuário autorizou a alteração para resolver definitivamente o problema observado na imagem: o botão do Instagram aparece como “Abrindo o Instagram…”/“Opening Instagram…” já no carregamento, permanece desabilitado e não inicia o fluxo OAuth. Foi mantida a regra de documentar continuamente toda a execução neste arquivo do GitHub.
+
+### Causa raiz confirmada
+
+A causa foi uma comparação incorreta entre valores anuláveis no frontend:
+
+```ts
+const busy = busyId === row.managed_account_id || busyId === row.connection_id;
+```
+
+O estado `busyId` começa como `null` e uma integração não conectada também possui `connection_id = null`. Assim, `null === null` resultava em `true` durante o primeiro render. O botão era exibido como “Opening Instagram…” e desabilitado antes de qualquer clique; por isso `beginAuthorization`, o timeout de 15 segundos e o POST `/v1/integrations/instagram/authorize` nunca eram executados.
+
+O mesmo defeito existia no painel YouTube e foi corrigido no mesmo bloco para impedir a repetição do problema.
+
+### Alteração executada
+
+Branch criada a partir do SHA exato de `main`:
+
+- branch: `fix/integration-opening-null-state`;
+- base SHA: `8e499068255a9414035af3128ecff054d4bbf4e8`;
+- repositório: `dbdanielbaracho/GROWTH-OS`.
+
+A condição passou a exigir que exista um identificador ocupado antes de comparar os IDs:
+
+```ts
+const busy = busyId !== null && (busyId === row.managed_account_id || busyId === row.connection_id);
+```
+
+Arquivos alterados:
+
+- `apps/web/src/instagram-integration.tsx`;
+- `apps/web/src/youtube-integration.tsx`.
+
+Commits produzidos:
+
+- Instagram: `743193a7723d8481699b4504e710f31cb5ef1412`;
+- YouTube: `2c596d8ce6dc5963ab7ad8e507fe9e361276e38a`.
+
+### Evidência que motivou a correção
+
+A reprodução foi feita em sessão autenticada e em nova aba, sem novo clique: o botão já aparecia como “Opening Instagram…” após o carregamento e continuava assim depois de aguardar e recarregar. Os logs mostraram consultas de status do Instagram, mas não um POST de autorização concluído. Isso confirmou que o travamento acontecia no render inicial, antes da chamada API.
+
+### Validação pendente nesta etapa
+
+Ainda falta:
+
+1. abrir o PR com o SHA final;
+2. aguardar e conferir o CI no mesmo SHA;
+3. enviar o diff final para revisão adversarial do Claude;
+4. somente após aprovação, fazer merge/deploy;
+5. repetir o teste visual/interativo em `https://growos.predibeacon.com/`, confirmando que o botão inicial aparece como “Connect Instagram”, fica ocupado somente após o clique e retorna ao estado acionável em erro/timeout.
+
+Nenhum segredo foi exposto ou alterado. Nenhuma migration, tabela, configuração OAuth ou permissão externa foi modificada nesta correção.
+
+
+### Resultado do PR e do CI
+
+- PR aberto: #50, URL https://github.com/dbdanielbaracho/GROWTH-OS/pull/50;
+- estado do PR: aberto como draft, sem merge e sem deploy;
+- SHA final verificado antes deste registro: `824a647d313fb56026cf32cab0df0d95e9179306`;
+- CI run #337, ID `34141401245`: `success`;
+- job `validate`: `success`;
+- passos confirmados: Test Integrity Gate, Typecheck, Build, migrations 001–020 no banco isolado, gates SQL, gates Instagram, gate de idempotência, integração Growth Intelligence, Production same-origin web shell gate e Test.
+
+O registro acima foi validado no CI do SHA `4e47d759f2ab6fc4eabad7ffb049101ec571577a` pelo run #338 (ID `34141561250`), concluído com `success`. A revisão adversarial formal do Claude continua pendente e é obrigatória antes de qualquer merge/deploy.
+
+
+
+### Estado após a confirmação documental
+
+- commit deste fechamento documental: pendente até o retorno desta operação;
+- PR #50: aberto como draft;
+- último SHA de código e documentação validado antes deste fechamento: `4e47d759f2ab6fc4eabad7ffb049101ec571577a`;
+- CI #338: SUCCESS;
+- merge: não executado;
+- deploy: não executado;
+- revisão Claude: pendente;
+- teste autenticado pós-deploy: pendente.
+
+A causa raiz está corrigida no branch e coberta pelo build/typecheck e pela revisão do diff. A conclusão de produção permanece condicionada à revisão adversarial do Claude, ao merge, ao deploy e ao smoke test autenticado.
+
+
+### Encaminhamento para revisão adversarial
+
+- PR #50 foi marcado como pronto para revisão em 2026-09-07;
+- foi publicado no PR o pacote de revisão adversarial ancorado no SHA `5cba9db1463fda08af96de22c9269da90ea9a5f8`;
+- checklist: testar a comparação com `null`, duplo clique, timeout/AbortController, `pageshow`, ocorrências equivalentes, escopo de segurança e smoke test pós-deploy;
+- o PR continua sem merge e sem deploy;
+- não existe conexão Claude disponível nesta sessão para executar a aprovação em nome dele.
+
+
+
+### Continuação da revisão — verificação do branch final
+
+- consulta realizada no branch `fix/integration-opening-null-state`;
+- `apps/web/src/instagram-integration.tsx`: condição nova presente; ocorrência da condição antiga: 0;
+- `apps/web/src/youtube-integration.tsx`: condição nova presente; ocorrência da condição antiga: 0;
+- reviews formais no PR #50: nenhuma;
+- o comentário de encaminhamento para o Claude permanece publicado;
+- PR #50 continua aberto, sem merge e sem deploy;
+- conclusão desta verificação: a correção está íntegra no branch, mas a aprovação adversarial do Claude e o teste autenticado pós-deploy continuam pendentes.
+

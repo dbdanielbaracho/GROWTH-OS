@@ -209,7 +209,7 @@ function InstagramIntegrationPanel() {
 
           {status?.integrations.map((row) => {
             const connected = row.connection_state === "connected" && Boolean(row.connection_id);
-            const busy = busyId === row.managed_account_id || busyId === row.connection_id;
+            const busy = busyId !== null && (busyId === row.managed_account_id || busyId === row.connection_id);
             const expiresAt = row.connection_id ? lastRefresh[row.connection_id] : undefined;
             const sync = row.connection_id ? lastSync[row.connection_id] : undefined;
 
