@@ -4,6 +4,8 @@ import {
   fetchAuthSession,
   createWorkspace,
   signUp,
+  requestPasswordReset,
+  completePasswordReset,
   verifyEmail,
   fetchOpportunities,
   fetchOpportunityDetail,
@@ -447,19 +449,22 @@ function AuthLoading() {
   );
 }
 
-function SignInScreen({ onSignedIn, onCreateAccount }: {
+function SignInScreen({ onSignedIn, onCreateAccount, onForgotPassword }: {
   onSignedIn: (session: AuthSessionResponse) => void;
   onCreateAccount: () => void;
+  onForgotPassword: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [duplicateEmail, setDuplicateEmail] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setSubmitting(true);
     setMessage(null);
+    setDuplicateEmail(false);
     try {
       onSignedIn(await signIn(email, password));
     } catch (error) {
@@ -499,13 +504,14 @@ function SignInScreen({ onSignedIn, onCreateAccount }: {
             {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
+        <button className="auth-secondary" type="button" onClick={onForgotPassword}>Forgot password?</button>
         <button className="auth-secondary" type="button" onClick={onCreateAccount}>Create a new account</button>
       </section>
     </main>
   );
 }
 
-function SignupScreen({ onBack }: { onBack: () => void }) {
+function SignupScreen({ onBack, onResetPassword }: { onBack: () => void; onResetPassword: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -526,6 +532,9 @@ function SignupScreen({ onBack }: { onBack: () => void }) {
     } catch (error) {
       if (error instanceof RadarApiError && error.apiStatus === "identity_email_unavailable") {
         setMessage("Account email delivery is not configured yet. Please contact the workspace administrator.");
+      } else if (error instanceof RadarApiError && error.apiStatus === "email_already_registered") {
+        setDuplicateEmail(true);
+        setMessage("This email is already registered. Sign in or reset your password.");
       } else if (error instanceof RadarApiError && error.httpStatus === 409) {
         setMessage("This account cannot be created with the submitted details.");
       } else {
@@ -550,7 +559,119 @@ function SignupScreen({ onBack }: { onBack: () => void }) {
           {message && <p className="auth-error" role="alert">{message}</p>}
           <button className="auth-primary" type="submit" disabled={submitting}>{submitting ? "Creating…" : "Create account"}</button>
         </form>
+        {duplicateEmail && (
+          <button className="auth-secondary" type="button" onClick={onResetPassword}>Reset password</button>
+        )}
         <button className="auth-secondary" type="button" onClick={onBack}>Back to sign in</button>
+      </section>
+    </main>
+  );
+}
+
+function PasswordResetRequestScreen({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await requestPasswordReset(email);
+      setSubmitted(true);
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 400) {
+        setMessage("Enter a valid email address.");
+      } else {
+        setMessage("Growth OS could not send the reset request right now. Try again later.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-brand"><span className="brand-mark">G</span><strong>Growth OS</strong></div>
+        <p className="eyebrow">Password recovery</p>
+        {submitted ? (
+          <>
+            <h1 className="auth-title">Check your email.</h1>
+            <p className="auth-copy">If an account exists for that address, we sent a password-reset link. Check your inbox and spam folder.</p>
+            <button className="auth-primary" type="button" onClick={onBack}>Back to sign in</button>
+          </>
+        ) : (
+          <>
+            <h1 className="auth-title">Reset your password.</h1>
+            <p className="auth-copy">Enter your email and we’ll send a one-time reset link if an account exists.</p>
+            <form className="auth-form" onSubmit={submit}>
+              <label><span>Email</span><input autoComplete="email" inputMode="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+              {message && <p className="auth-error" role="alert">{message}</p>}
+              <button className="auth-primary" type="submit" disabled={submitting}>{submitting ? "Sending…" : "Send reset link"}</button>
+            </form>
+            <button className="auth-secondary" type="button" onClick={onBack}>Back to sign in</button>
+          </>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function PasswordResetCompleteScreen({ token, onDone }: { token: string; onDone: () => void }) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [completed, setCompleted] = useState(false);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (password !== confirmation) {
+      setMessage("Passwords do not match.");
+      return;
+    }
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await completePasswordReset(token, password);
+      setCompleted(true);
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 400) {
+        setMessage("Use a password with at least 12 characters.");
+      } else {
+        setMessage("This reset link is invalid or expired. Request a new one.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-brand"><span className="brand-mark">G</span><strong>Growth OS</strong></div>
+        <p className="eyebrow">Password recovery</p>
+        {completed ? (
+          <>
+            <h1 className="auth-title">Password updated.</h1>
+            <p className="auth-copy">Your password was changed successfully. You can sign in now.</p>
+            <button className="auth-primary" type="button" onClick={onDone}>Continue to sign in</button>
+          </>
+        ) : (
+          <>
+            <h1 className="auth-title">Choose a new password.</h1>
+            <p className="auth-copy">Use at least 12 characters. This one-time link expires after one hour.</p>
+            <form className="auth-form" onSubmit={submit}>
+              <label><span>New password</span><input autoComplete="new-password" type="password" minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+              <label><span>Confirm password</span><input autoComplete="new-password" type="password" minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required /></label>
+              {message && <p className="auth-error" role="alert">{message}</p>}
+              <button className="auth-primary" type="submit" disabled={submitting}>{submitting ? "Updating…" : "Update password"}</button>
+            </form>
+          </>
+        )}
       </section>
     </main>
   );
@@ -682,11 +803,16 @@ function WorkspaceScreen({
 }
 
 function RootApp() {
-  const [state, setState] = useState<"loading" | "signed_out" | "signup" | "verify" | "workspace" | "onboarding" | "ready" | "dev">("loading");
+  const [state, setState] = useState<"loading" | "signed_out" | "signup" | "reset_request" | "reset_complete" | "verify" | "workspace" | "onboarding" | "ready" | "dev">("loading");
   const verificationToken = new URLSearchParams(window.location.search).get("token");
+  const resetToken = new URLSearchParams(window.location.search).get("token");
   const [session, setSession] = useState<AuthSessionResponse | null>(null);
 
   useEffect(() => {
+    if (window.location.pathname === "/reset-password" && resetToken) {
+      setState("reset_complete");
+      return;
+    }
     if (window.location.pathname === "/verify-email" && verificationToken) {
       setState("verify");
       return;
@@ -709,7 +835,7 @@ function RootApp() {
         setState("signed_out");
       });
     return () => { active = false; };
-  }, [verificationToken]);
+  }, [verificationToken, resetToken]);
 
   async function doSignOut() {
     try { await signOut(); } catch { /* local state still clears */ }
@@ -723,8 +849,15 @@ function RootApp() {
   }
 
   if (state === "loading") return <AuthLoading />;
-  if (state === "signed_out") return <SignInScreen onSignedIn={acceptSession} onCreateAccount={() => setState("signup")} />;
-  if (state === "signup") return <SignupScreen onBack={() => setState("signed_out")} />;
+  if (state === "signed_out") return <SignInScreen onSignedIn={acceptSession} onCreateAccount={() => setState("signup")} onForgotPassword={() => setState("reset_request")} />;
+  if (state === "signup") return <SignupScreen onBack={() => setState("signed_out")} onResetPassword={() => setState("reset_request")} />;
+  if (state === "reset_request") return <PasswordResetRequestScreen onBack={() => setState("signed_out")} />;
+  if (state === "reset_complete" && resetToken) {
+    return <PasswordResetCompleteScreen token={resetToken} onDone={() => {
+      window.history.replaceState({}, "", "/");
+      setState("signed_out");
+    }} />;
+  }
   if (state === "verify" && verificationToken) {
     return <EmailVerificationScreen token={verificationToken} onDone={() => {
       window.history.replaceState({}, "", "/");
