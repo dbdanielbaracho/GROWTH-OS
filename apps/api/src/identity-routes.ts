@@ -60,7 +60,10 @@ function errorStatus(error: unknown): { code: number; status: string } {
   if (error instanceof IdentityEmailUnavailableError) {
     return { code: 503, status: "identity_email_unavailable" };
   }
-  if (error instanceof Error && /already|duplicate|invalid|expired|denied|required|verified/.test(error.message)) {
+  if (error instanceof Error && /users_email_lower_uq|duplicate key value.*users_email_lower_uq|already exists/i.test(error.message)) {
+    return { code: 409, status: "email_already_registered" };
+  }
+  if (error instanceof Error && /already|duplicate|invalid|expired|denied|required|verified/i.test(error.message)) {
     return { code: 409, status: "identity_request_rejected" };
   }
   return { code: 500, status: "internal_error" };
