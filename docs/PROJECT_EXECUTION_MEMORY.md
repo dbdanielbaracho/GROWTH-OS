@@ -2626,3 +2626,43 @@ A causa raiz está corrigida no branch e coberta pelo build/typecheck e pela rev
 - PR #50 continua aberto, sem merge e sem deploy;
 - conclusão desta verificação: a correção está íntegra no branch, mas a aprovação adversarial do Claude e o teste autenticado pós-deploy continuam pendentes.
 
+
+
+## Registro operacional — merge, deploy e smoke pós-Claude — 2026-09-07
+
+### Aprovação e merge
+
+- Claude revisou adversarialmente o PR #50 no SHA `1bb3f9b52dca366bb7839f13d43ec818e999c244`;
+- veredito recebido: `APPROVE`;
+- CI correspondente: run #342, `success`;
+- PR #50 mergeado com sucesso;
+- commit de merge em `main`: `8fb3bf66756d75f0ceaca6a255f42ee2ff2f27f1`.
+
+### Deploy Railway
+
+- projeto canônico: `successful-embrace`;
+- ambiente: `production`;
+- serviço: `growth-os`;
+- deployment: `1907243f-0aa1-49ec-bf92-2f71484d484a`;
+- commit implantado: `8fb3bf66756d75f0ceaca6a255f42ee2ff2f27f1`;
+- status Railway: `SUCCESS`;
+- container iniciou em `8080`;
+- healthcheck Railway `/health/ready`: HTTP 200 durante o deploy.
+
+### Smoke test
+
+- domínio Railway canônico `https://growth-os-production-d120.up.railway.app/`: acessível e servindo a tela Growth OS;
+- domínio personalizado usado na imagem `https://growos.predibeacon.com/`: retornou HTTP 502 com `[Errno 111] Connection refused`;
+- a configuração Railway confirma o domínio personalizado anexado ao serviço `growth-os`, porta 8080;
+- os logs HTTP do deployment registraram requisições bem-sucedidas no domínio Railway, mas nenhuma requisição do domínio personalizado;
+- conclusão: o código está publicado e saudável no Railway; o teste pelo domínio personalizado está bloqueado por conectividade/apontamento do domínio, não por falha identificada no código do botão.
+
+### Estado final desta etapa
+
+- correção do estado inicial `Opening`: mergeada e publicada;
+- revisão adversarial Claude: APPROVE;
+- CI e deploy: SUCCESS;
+- teste autenticado no domínio personalizado: não concluído devido ao 502;
+- próximo passo: corrigir/verificar o DNS ou proxy do domínio `growos.predibeacon.com`, depois repetir o smoke test autenticado e confirmar visualmente `Connect Instagram` antes do clique.
+
+Nenhum DNS, segredo, credencial ou permissão externa foi alterado nesta execução.
