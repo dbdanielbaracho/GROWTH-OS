@@ -32,6 +32,8 @@ export async function registerProductionWeb(app: FastifyInstance): Promise<void>
 
   await app.register(async function productionWebScope(scope) {
     scope.addHook("onSend", async (request, reply, payload) => {
+      const pathname = new URL(request.url, "http://localhost").pathname;
+
       reply.header("Content-Security-Policy", CSP);
       reply.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
       reply.header("X-Content-Type-Options", "nosniff");
@@ -41,9 +43,13 @@ export async function registerProductionWeb(app: FastifyInstance): Promise<void>
       reply.header("Cross-Origin-Opener-Policy", "same-origin");
       reply.header("Cross-Origin-Resource-Policy", "same-origin");
 
-      if (request.url === "/" || request.url.endsWith(".html")) {
+      if (
+        pathname === "/" ||
+        pathname.endsWith(".html") ||
+        ["/verify-email", "/reset-password"].includes(pathname)
+      ) {
         reply.header("Cache-Control", "no-store");
-      } else if (request.url.startsWith("/assets/")) {
+      } else if (pathname.startsWith("/assets/")) {
         reply.header("Cache-Control", "public, max-age=31536000, immutable");
       }
 
