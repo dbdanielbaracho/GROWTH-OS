@@ -2677,3 +2677,16 @@ Após o deployment `8bd0ce53-a15f-42bc-be7f-d4bd7075fe05` terminar `SUCCESS`, o 
 
 O domínio Railway canônico continuou acessível e servindo a aplicação. O domínio personalizado permanece o bloqueio independente para o smoke test autenticado pela URL mostrada na imagem. A configuração Railway mostra o domínio anexado ao serviço `growth-os` na porta 8080, mas não há ferramenta/conector de DNS ou proxy de domínio disponível nesta sessão para corrigir o apontamento externo.
 
+
+
+### Correção do diagnóstico do domínio personalizado
+
+O usuário observou corretamente que o domínio já estava configurado. Nova verificação mostrou evidência divergente:
+
+- Railway lista `growos.predibeacon.com` anexado ao serviço `growth-os`, porta 8080;
+- requisições `curl` ao domínio receberam HTTP 200, cabeçalhos `server: railway-hikari` e conteúdo da aplicação;
+- o navegador Cloud, tanto na aba existente quanto em uma aba nova, continuou recebendo `502 Bad Gateway / Connection refused`;
+- portanto, não há base para afirmar que o CNAME está ausente ou que o usuário precisa reconfigurá-lo;
+- diagnóstico atual: o serviço e o domínio estão publicados, mas existe uma divergência de rota/cache/edge entre o navegador Cloud e a requisição HTTP direta. O teste autenticado pelo navegador Cloud permanece inconclusivo até essa rota estabilizar.
+
+Nenhum DNS ou configuração do domínio foi alterado.
