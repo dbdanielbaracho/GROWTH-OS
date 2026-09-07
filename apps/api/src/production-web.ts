@@ -55,5 +55,16 @@ export async function registerProductionWeb(app: FastifyInstance): Promise<void>
       prefix: "/",
       index: ["index.html"]
     });
+
+    // Auth links arrive as direct browser navigations from email. Keep the
+    // API and asset namespaces strict, but let the known React routes load
+    // the same shell so the client can consume the token from the query.
+    scope.setNotFoundHandler(async (request, reply) => {
+      const pathname = new URL(request.url, "http://localhost").pathname;
+      if (request.method === "GET" && ["/verify-email", "/reset-password"].includes(pathname)) {
+        return reply.sendFile("index.html");
+      }
+      return reply.code(404).send({ status: "not_found" });
+    });
   });
 }
