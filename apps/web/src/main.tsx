@@ -509,13 +509,12 @@ function SignInScreen({ onSignedIn, onCreateAccount, onForgotPassword }: {
   );
 }
 
-function SignupScreen({ onBack, onResetPassword }: { onBack: () => void; onResetPassword: () => void }) {
+function SignupScreen({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [duplicateEmail, setDuplicateEmail] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -525,16 +524,12 @@ function SignupScreen({ onBack, onResetPassword }: { onBack: () => void; onReset
     }
     setSubmitting(true);
     setMessage(null);
-    setDuplicateEmail(false);
     try {
       await signUp(email, password);
       setMessage("Account created. Check your email to verify the account before signing in.");
     } catch (error) {
       if (error instanceof RadarApiError && error.apiStatus === "identity_email_unavailable") {
         setMessage("Account email delivery is not configured yet. Please contact the workspace administrator.");
-      } else if (error instanceof RadarApiError && error.apiStatus === "email_already_registered") {
-        setDuplicateEmail(true);
-        setMessage("This email is already registered. Sign in or reset your password.");
       } else if (error instanceof RadarApiError && error.httpStatus === 409) {
         setMessage("This account cannot be created with the submitted details.");
       } else {
@@ -559,9 +554,6 @@ function SignupScreen({ onBack, onResetPassword }: { onBack: () => void; onReset
           {message && <p className="auth-error" role="alert">{message}</p>}
           <button className="auth-primary" type="submit" disabled={submitting}>{submitting ? "Creating…" : "Create account"}</button>
         </form>
-        {duplicateEmail && (
-          <button className="auth-secondary" type="button" onClick={onResetPassword}>Reset password</button>
-        )}
         <button className="auth-secondary" type="button" onClick={onBack}>Back to sign in</button>
       </section>
     </main>
@@ -850,7 +842,7 @@ function RootApp() {
 
   if (state === "loading") return <AuthLoading />;
   if (state === "signed_out") return <SignInScreen onSignedIn={acceptSession} onCreateAccount={() => setState("signup")} onForgotPassword={() => setState("reset_request")} />;
-  if (state === "signup") return <SignupScreen onBack={() => setState("signed_out")} onResetPassword={() => setState("reset_request")} />;
+  if (state === "signup") return <SignupScreen onBack={() => setState("signed_out")} />;
   if (state === "reset_request") return <PasswordResetRequestScreen onBack={() => setState("signed_out")} />;
   if (state === "reset_complete" && resetToken) {
     return <PasswordResetCompleteScreen token={resetToken} onDone={() => {
