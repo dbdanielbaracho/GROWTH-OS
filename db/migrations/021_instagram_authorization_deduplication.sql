@@ -167,4 +167,3 @@ REVOKE ALL ON FUNCTION growth.instagram_begin_authorization(uuid,text[]) FROM PU
 GRANT EXECUTE ON FUNCTION growth.instagram_begin_authorization(uuid,text[]) TO app_runtime;
 
 COMMIT;
-\echo 'PASS 021_instagram_authorization_deduplication'
