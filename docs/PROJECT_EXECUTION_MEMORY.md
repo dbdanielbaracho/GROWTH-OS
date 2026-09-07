@@ -2842,3 +2842,25 @@ Com a autorização OAuth concluída, o próximo teste funcional é o botão **S
 ### Próximo passo operacional
 
 Clicar uma vez em **Sync media & metrics** no cartão conectado e verificar se aparece `Last sync` com mídias/métricas processadas. Nenhuma alteração de banco ou código foi feita nesta avaliação.
+
+
+## Evidência funcional — primeira sincronização Instagram — 2026-09-07
+
+Após a conexão OAuth, o cartão da conta exibiu:
+
+- estado: `connected`;
+- disponibilidade: `Live`;
+- tipo de conta: `BUSINESS`;
+- publicação: `Protected until enabled`;
+- insights: `Protected until enabled`;
+- `Last sync: 2 media / 4 metrics`.
+
+Interpretação:
+
+- a conta profissional foi conectada corretamente;
+- duas mídias foram encontradas e processadas na janela atual de sincronização;
+- quatro observações métricas foram gravadas;
+- publicação e insights avançados continuam bloqueados por gates independentes;
+- o resultado não significa que a conta tenha somente duas mídias no total, apenas que duas foram processadas nesta sincronização/janela.
+
+Resultado: primeira leitura de dados reais do Instagram confirmada. Nenhuma alteração de código, banco ou permissão foi feita nesta etapa.
