@@ -2690,3 +2690,19 @@ O usuário observou corretamente que o domínio já estava configurado. Nova ver
 - diagnóstico atual: o serviço e o domínio estão publicados, mas existe uma divergência de rota/cache/edge entre o navegador Cloud e a requisição HTTP direta. O teste autenticado pelo navegador Cloud permanece inconclusivo até essa rota estabilizar.
 
 Nenhum DNS ou configuração do domínio foi alterado.
+
+
+### Esclarecimento sobre a mensagem de revisão do Claude — 2026-09-07
+
+O usuário reenviou a mensagem do Claude que contém o veredito `APPROVE` para o SHA `1bb3f9b52dca366bb7839f13d43ec818e999c244`.
+
+Não houve falha ou rejeição nessa revisão. A frase “Não fiz merge, deploy nem alterei nenhum arquivo” descreve corretamente o escopo da atuação do Claude naquele momento e não contradiz as ações posteriores. Depois do `APPROVE`, o PR #50 foi mergeado no commit `8fb3bf66756d75f0ceaca6a255f42ee2ff2f27f1` e publicado no Railway.
+
+Estado posterior confirmado:
+
+- PR #50: MERGED;
+- deployment canônico: SUCCESS;
+- o código da correção está em `main` e em produção;
+- o único comportamento anômalo observado depois foi a resposta 502 intermitente/específica do navegador Cloud no domínio personalizado, enquanto requisições HTTP diretas ao mesmo domínio retornaram 200;
+- essa divergência foi registrada como questão de edge/cache/rota do navegador, não como falha da correção `busyId`.
+
