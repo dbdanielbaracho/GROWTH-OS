@@ -2405,3 +2405,19 @@ Esta regra é vinculante para as próximas etapas do GROW OS. O arquivo canônic
 - Claude: nenhuma revisão formal registrada no PR #48.
 - Pendente: teste real no navegador com sessão autenticada e conta Instagram/configuração OAuth aplicável.
 - Regra operacional: registrar a próxima execução e seu resultado neste documento antes de encerrar a etapa.
+
+
+---
+
+## Esclarecimento de status — problema “Opening” — 2026-09-07
+
+O usuário perguntou especificamente se o problema do botão do Instagram permanecer em **“Opening”** já foi resolvido.
+
+Resposta técnica baseada nas evidências disponíveis:
+
+- O PR #48 foi mergeado e publicado em produção.
+- A correção impede que a interface fique travada indefinidamente: a requisição agora é cancelada após 15 segundos, o estado de carregamento é liberado e uma mensagem de tentativa novamente é exibida.
+- O evento `pageshow` também limpa o estado quando o usuário retorna pelo histórico/bfcache.
+- Portanto, o bug de **estado preso indefinidamente em “Opening”** foi tratado no código publicado.
+- Porém, ainda não existe prova de navegador autenticado confirmando que o OAuth do Instagram abre corretamente. A alteração trata o travamento da interface, mas não comprova que a causa original da requisição não responder foi eliminada.
+- Status correto: **correção do travamento “Opening” publicada; confirmação do fluxo OAuth real ainda pendente**.
