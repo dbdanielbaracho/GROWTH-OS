@@ -30,6 +30,8 @@ BEGIN
 
   IF position('instagram_authorization_superseded' IN lower(begin_def)) = 0
      OR position('state=''authorizing''' IN lower(begin_def)) = 0
+     OR position('state in (''revoked'',' IN lower(begin_def)) = 0
+     OR position('if connection_id is null' IN lower(begin_def)) = 0
      OR position('for update' IN lower(begin_def)) = 0
   THEN
     RAISE EXCEPTION '039 failed: authorization helper does not supersede stale authorizations safely';
