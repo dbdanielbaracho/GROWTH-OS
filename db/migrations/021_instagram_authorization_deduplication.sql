@@ -97,7 +97,7 @@ AS $$
 DECLARE
   ws uuid := growth.current_workspace_id();
   actor uuid := growth.current_app_user_id();
-  connection_id uuid := gen_random_uuid();
+  connection_id uuid;
 BEGIN
   IF ws IS NULL OR actor IS NULL OR NOT growth.tenant_context_valid(ws) THEN
     RAISE EXCEPTION 'instagram authorization requires active tenant context';
@@ -127,14 +127,36 @@ BEGIN
     AND platform='instagram'
     AND state='authorizing';
 
-  INSERT INTO growth.platform_connections(
-    id,workspace_id,managed_account_id,platform,state,credential_ciphertext,
-    granted_scopes,created_at,updated_at
-  )
-  VALUES(
-    connection_id,ws,p_managed_account_id,'instagram','authorizing',NULL,
-    p_scopes,now(),now()
-  );
+  SELECT pc.id INTO connection_id
+  FROM growth.platform_connections pc
+  WHERE pc.workspace_id=ws
+    AND pc.managed_account_id=p_managed_account_id
+    AND pc.platform='instagram'
+    AND pc.state IN ('revoked','disconnected','reauth_required','failed')
+  ORDER BY pc.updated_at DESC
+  LIMIT 1
+  FOR UPDATE OF pc;
+
+  IF connection_id IS NULL THEN
+    connection_id := gen_random_uuid();
+    INSERT INTO growth.platform_connections(
+      id,workspace_id,managed_account_id,platform,state,credential_ciphertext,
+      granted_scopes,created_at,updated_at
+    )
+    VALUES(
+      connection_id,ws,p_managed_account_id,'instagram','authorizing',NULL,
+      p_scopes,now(),now()
+    );
+  ELSE
+    UPDATE growth.platform_connections
+    SET state='authorizing',
+        credential_ciphertext=NULL,
+        granted_scopes=p_scopes,
+        token_expires_at=NULL,
+        error_class=NULL,
+        updated_at=now()
+    WHERE workspace_id=ws AND id=connection_id;
+  END IF;
 
   RETURN connection_id;
 END;
