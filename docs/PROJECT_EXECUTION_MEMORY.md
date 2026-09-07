@@ -2809,3 +2809,36 @@ Ainda não foi apagado nenhum registro. A correção segura deverá:
 4. passar por novo CI, revisão adversarial do Claude, merge e deploy.
 
 Nenhuma alteração de banco foi executada nesta etapa.
+
+
+## Próxima avaliação após conexão Instagram — 2026-09-07
+
+Com a autorização OAuth concluída, o próximo teste funcional é o botão **Sync media & metrics** no cartão que aparece como **Connected/Live**.
+
+### O que esse teste deve comprovar
+
+- busca de mídias recentes da conta profissional autorizada;
+- importação de metadados e métricas de engajamento disponibilizadas pelo Instagram;
+- gravação das observações no Growth OS com proveniência e retry-safe writes;
+- retorno de uma contagem de mídias/métricas e atualização de `Last sync`;
+- janela atual de sincronização configurada no frontend: últimos 7 dias.
+
+### O que o usuário consegue nesta etapa
+
+- visualizar e armazenar dados da própria conta Instagram Business/Creator autorizada;
+- começar a avaliar quais conteúdos tiveram melhor resposta;
+- usar esses dados como base para sinais e futuras oportunidades do Growth OS.
+
+### Limites atuais
+
+- o botão não publica conteúdo;
+- não altera a conta Instagram;
+- não traz automaticamente dados de concorrentes ou contas públicas de terceiros;
+- publicação e insights avançados permanecem protegidos por gates separados;
+- mensagens não são o objetivo desse botão;
+- a duplicidade de cartões causada por autorizações antigas ainda precisa de correção própria;
+- o erro independente do endpoint de status do YouTube continua registrado e não afeta o Instagram.
+
+### Próximo passo operacional
+
+Clicar uma vez em **Sync media & metrics** no cartão conectado e verificar se aparece `Last sync` com mídias/métricas processadas. Nenhuma alteração de banco ou código foi feita nesta avaliação.
