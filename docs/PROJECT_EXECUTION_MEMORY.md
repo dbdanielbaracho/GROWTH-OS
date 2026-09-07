@@ -2956,3 +2956,63 @@ O gate 039 verifica a existência das funções, a priorização lateral, o trat
 6. Registrar cada resultado e cada falha neste documento antes de encerrar a etapa.
 
 **Resultado:** a correção dos cartões duplicados está implementada e validada no CI do SHA exato; merge, deploy, prova visual pós-deploy, correção do YouTube e conclusão do projeto permanecem pendentes.
+
+
+---
+
+## Registro operacional — correção do status YouTube em produção — 2026-09-07
+
+### Falha confirmada
+
+Após a conexão e a primeira sincronização do Instagram, os logs do serviço canônico `growth-os` mostravam:
+
+- `GET /v1/integrations/youtube/status → 500`;
+- erro: `function growth.youtube_integration_status() does not exist`;
+- o endpoint equivalente do Instagram continuava respondendo HTTP 200.
+
+A falha era independente do OAuth do Instagram e impedia o carregamento correto do status do YouTube.
+
+### Correção controlada
+
+A migration versionada `db/migrations/014_youtube_integration_status.sql` já existia no repositório e era aplicada pelo CI de validação, mas não estava presente no banco de produção. Como o serviço principal não possui comando de pre-deploy de migrations, foi usada temporariamente a infraestrutura do serviço `migrator`, sem criar um novo banco, sem expor o Postgres e sem registrar qualquer segredo neste documento.
+
+1. O comando temporário do `migrator` baixou a migration 014 do commit canônico `6f5fbf2b0444c8fd92448fe38d5a9ac4af8786b9`.
+2. A execução foi tornada idempotente com `CREATE OR REPLACE FUNCTION` e `ON_ERROR_STOP=1`.
+3. As primeiras tentativas de redeploy reutilizaram um snapshot antigo; os logs ainda exibiam o comando anterior. Essas tentativas não foram tratadas como sucesso.
+4. Uma variável operacional não secreta, `STARTCOMMAND_RESTORED_AT`, foi alterada apenas para forçar a criação de um novo snapshot e executar o comando correto.
+5. O deployment de aplicação foi `2693fdfc-de00-4d11-a4cb-dc0164f97685`, com status SUCCESS.
+6. Os marcadores observados foram `APPLYING_014`, `BEGIN`, `CREATE FUNCTION`, `ALTER FUNCTION`, `REVOKE`, `GRANT`, `COMMIT` e `FUNCTION_014_APPLIED`.
+7. O comando original do `migrator` foi restaurado.
+8. O deployment de restauração foi `bdb1c3c8-acf5-4627-827e-426de4660f58`, com status SUCCESS, e os logs voltaram ao comportamento original de verificação.
+
+### Evidência pós-correção
+
+Depois da aplicação, os logs HTTP do serviço canônico registraram:
+
+- YouTube status HTTP 500 antes da migration;
+- YouTube status HTTP 200 a partir de `2026-09-07T23:48:25Z`, repetido nas consultas seguintes;
+- Instagram status HTTP 200;
+- `GET /health/ready` HTTP 200;
+- uma chamada sem autenticação ao status do YouTube retornou HTTP 401, comportamento esperado de proteção, não uma regressão.
+
+O deployment atual do serviço `growth-os` é `5b5f9f01-19fc-4cb6-a896-3dfbb1b9b859`, SUCCESS.
+
+### Conclusão e limites
+
+- O erro de função ausente do status YouTube foi resolvido em produção.
+- O banco canônico permaneceu sendo usado; nenhum banco secundário foi promovido.
+- Public Access do Postgres não foi ativado.
+- Nenhuma credencial, token ou segredo foi alterado ou registrado.
+- A migration 021 de deduplicação do Instagram ainda não foi aplicada em produção.
+- A PR #51 continua aguardando revisão adversarial independente antes de merge/deploy.
+- A validação funcional final ainda precisa confirmar no navegador do usuário que há apenas um cartão Instagram e que uma nova reconexão não cria duplicidade.
+
+### Ponto exato de retomada
+
+1. Obter a revisão independente exigida para a PR #51 no SHA `c8d2186391e2baf379c8386e55b68c7d685bb774`.
+2. Se aprovada, fazer merge e deploy controlado da migration 021.
+3. Repetir o status e a reconexão Instagram no domínio usado pelo usuário.
+4. Confirmar o comportamento do YouTube agora que o endpoint de status responde 200.
+5. Continuar a cadeia do produto: sincronização real -> sinais -> insights/evidências -> oportunidades -> Radar.
+6. Registrar cada resultado no GitHub antes de avançar ou encerrar a etapa.
+
