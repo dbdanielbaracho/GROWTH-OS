@@ -2432,3 +2432,18 @@ Foi indicado ao usuário o endereço público canônico para testar o fluxo de a
 `https://growth-os-production-d120.up.railway.app/`
 
 O teste deve ser feito após entrar na conta e acessar o painel de integração do Instagram. O objetivo é verificar se o botão deixa de permanecer indefinidamente em `Opening` e se a janela/fluxo OAuth abre corretamente.
+
+
+---
+
+## Correção sobre o endereço de teste — 2026-09-07
+
+O usuário solicitou que o Documento da Verdade fosse consultado antes de indicar um link.
+
+Consulta realizada em `docs/PROJECT_EXECUTION_MEMORY.md`:
+
+- URL canônica documentada: `https://growth-os-production-d120.up.railway.app`;
+- URL secundária documentada: `https://growth-osapi-production-0df6.up.railway.app`;
+- `https://growos.predibeacon.com` não estava registrado no documento no momento da consulta.
+
+Correção de processo: o domínio personalizado foi identificado diretamente na configuração Railway, mas não deve ser tratado como endereço correto de teste sem estar confirmado no Documento da Verdade. A URL secundária está documentada como ambiente de desvio e não como fonte canônica. Antes de indicar o link final do teste, deve-se reconciliar o endereço com o registro operacional e o ambiente efetivamente usado pela tela do Instagram.
