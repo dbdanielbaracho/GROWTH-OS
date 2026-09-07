@@ -2332,3 +2332,76 @@ A configuração atual não executa migrations automaticamente.
 - Não criar migration corretiva enquanto o estado real e a causa raiz não estiverem comprovados.
 - Para mudanças de banco, ChatGPT executa e coleta evidências; Claude revisa adversarialmente; merge/deploy só ocorre após os dois resultados independentes serem coerentes.
 - A produção deve permanecer sem alteração quando houver divergência de evidências.
+
+
+---
+
+## Registro operacional — retomada do PR #48 e documentação contínua — 2026-09-07
+
+### 1. Regra permanente reafirmada pelo usuário
+
+O usuário reafirmou que toda conversa e toda execução relacionada ao projeto deve ser documentada continuamente no GitHub, para preservar a memória entre conversas e evitar perda de contexto. O registro deve incluir, sempre que aplicável:
+
+- pedidos e decisões do usuário;
+- ações executadas;
+- consultas e verificações;
+- comandos tentados;
+- resultados confirmados;
+- falhas, bloqueios e tentativas que não executaram;
+- correções de entendimento;
+- estado atual;
+- próximo passo pendente.
+
+Esta regra é vinculante para as próximas etapas do GROW OS. O arquivo canônico desse registro é `docs/PROJECT_EXECUTION_MEMORY.md`.
+
+### 2. Retomada da revisão
+
+1. Foi retomada a conversa interrompida sobre o PR #48 do repositório `dbdanielbaracho/GROWTH-OS`.
+2. O PR foi confirmado como `fix: recover stuck Instagram authorization state`.
+3. O branch original foi `fix/instagram-oauth-stuck-state`.
+4. O SHA da branch antes do merge foi `96971b85af1a2efb9776fb8d88d6d7148805f9ed`.
+5. O PR foi confirmado como mergeado em 2026-09-07 às 13:03:49 UTC.
+6. O commit mergeado em `main` foi `a11e09eacad1bae1d4bea57322da5ebc83d210e3`.
+7. O escopo permaneceu limitado a dois arquivos frontend:
+   - `apps/web/src/api.ts`;
+   - `apps/web/src/instagram-integration.tsx`.
+8. A alteração adiciona `AbortSignal` às requisições de autorização/reconexão, timeout de 15 segundos, mensagem de erro recuperável e limpeza do estado `busyId` no evento `pageshow`.
+9. Não foram identificadas alterações em banco, migrations, segredos, configuração OAuth ou permissões do provedor.
+
+### 3. CI e revisão do código
+
+1. Para o SHA `96971b85af1a2efb9776fb8d88d6d7148805f9ed`, o GitHub retornou duas execuções CI concluídas com `success`; a mais recente foi run #329.
+2. O job `validate` passou integralmente.
+3. Foram confirmados como bem-sucedidos: Test Integrity Gate, Typecheck, Build, migrations 001–019, gates SQL de identidade e Instagram, Growth Intelligence integration, Production same-origin web shell gate e testes.
+4. Não havia reviews formais nem comentários registrados no PR #48.
+5. Correção de entendimento: anteriormente a retomada tratava a revisão como pré-merge; a verificação atual confirmou que o PR já havia sido mergeado. Portanto, não é possível bloquear retroativamente o merge aguardando Claude. Qualquer nova correção deverá ocorrer em novo PR e novo SHA.
+
+### 4. Deploy e saúde da produção
+
+1. O serviço canônico Railway foi confirmado como `growth-os`, no projeto `successful-embrace`.
+2. O deployment pós-merge foi `c4490d58-ef70-42ae-9984-f68e086f6291`.
+3. O deployment foi criado em 2026-09-07 às 13:03:51 UTC, na branch `main`, com o commit `a11e09e...`.
+4. O deployment terminou com status `SUCCESS`.
+5. A URL pública `https://growth-os-production-d120.up.railway.app/health/ready` respondeu HTTP 200:
+   `{"status":"ready","database":"ok"}`.
+6. Não foi realizado deploy manual adicional nesta retomada.
+
+### 5. Verificação estática não concluída
+
+1. Foi iniciada uma tentativa de baixar o HTML público e os bundles JavaScript para confirmar a presença textual de `AbortController`, `pageshow` e da mensagem de timeout.
+2. A execução foi rejeitada pelo mecanismo de segurança do ambiente antes de iniciar, porque o comando continha remoção explícita de diretório temporário.
+3. Não houve alteração no repositório, na produção ou em arquivos do usuário nessa tentativa.
+4. Essa verificação permanece `PENDENTE`; o health check e o deployment estão confirmados, mas ainda falta a confirmação visual/interativa no navegador de que o botão Instagram abre o OAuth ou exibe o erro após 15 segundos.
+5. O usuário relatou anteriormente o sintoma: botão em `Opening` sem abrir nada. O PR trata o travamento da interface, mas o código, CI e health check não comprovam sozinhos que a causa externa do OAuth foi eliminada.
+
+### 6. Estado e próximo passo exato
+
+- PR #48: mergeado.
+- Commit em `main`: `a11e09eacad1bae1d4bea57322da5ebc83d210e3`.
+- CI: SUCCESS, run #329.
+- Railway: SUCCESS, deployment `c4490d58-ef70-42ae-9984-f68e086f6291`.
+- Health check: HTTP 200, banco OK.
+- Produção: publicada com o commit mergeado.
+- Claude: nenhuma revisão formal registrada no PR #48.
+- Pendente: teste real no navegador com sessão autenticada e conta Instagram/configuração OAuth aplicável.
+- Regra operacional: registrar a próxima execução e seu resultado neste documento antes de encerrar a etapa.
