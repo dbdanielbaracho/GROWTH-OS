@@ -166,7 +166,7 @@ function YoutubeIntegrationPanel() {
           {status?.integrations.map((row) => {
             const connected = row.connection_state === "connected" && Boolean(row.connection_id);
             const last = row.connection_id ? lastSync[row.connection_id] : undefined;
-            const busy = busyId === row.managed_account_id || busyId === row.connection_id;
+            const busy = busyId !== null && (busyId === row.managed_account_id || busyId === row.connection_id);
 
             return (
               <section className="youtube-account" key={row.managed_account_id}>
