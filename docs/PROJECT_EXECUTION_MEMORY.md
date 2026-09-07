@@ -2774,3 +2774,38 @@ Isso comprova que o fluxo OAuth deixou de ser rejeitado por `Invalid redirect_ur
 - YouTube continua com uma falha independente já observada: `growth.youtube_integration_status() does not exist`, sem relação com a conexão do Instagram.
 
 Nenhum segredo, token ou credencial foi registrado neste documento.
+
+
+## Diagnóstico — dois botões Instagram após tentativas OAuth — 2026-09-07
+
+O usuário informou que a conexão Instagram funcionou, mas a tela exibe dois cartões/botões para conectar.
+
+### Causa identificada no código
+
+A função frontend `fetchInstagramStatus()` renderiza um cartão para cada item retornado em `status.integrations`. A função SQL `growth.instagram_integration_status()`, criada na migration `017_instagram_connector_foundation.sql`, faz `LEFT JOIN` de `managed_accounts` com todas as `platform_connections` Instagram da conta, sem limitar o resultado à conexão mais recente nem excluir estados antigos `authorizing`.
+
+Cada chamada de autorização cria uma nova linha em `platform_connections` com:
+
+- `platform='instagram'`;
+- `state='authorizing'`;
+- novo `connection_id`.
+
+Durante as tentativas anteriores, a Meta rejeitou o `redirect_uri` antes de executar o callback. Assim, as linhas antigas permaneceram em `authorizing`. A consulta de status passou a devolver mais de uma linha e a interface exibiu mais de um botão.
+
+### Conclusão
+
+- não é uma segunda configuração da URL na Meta;
+- não indica necessariamente duas contas Instagram;
+- é compatível com conexões de autorização antigas/stale geradas pelas tentativas anteriores;
+- a conexão atual foi concluída com sucesso; o cartão adicional provavelmente é um registro anterior que ainda aparece no status.
+
+### Ação pendente para eliminar o duplicado
+
+Ainda não foi apagado nenhum registro. A correção segura deverá:
+
+1. fazer o status retornar somente a conexão vigente/mais recente por conta gerenciada;
+2. tratar ou expirar autorizações antigas que ficaram em `authorizing`;
+3. adicionar teste de regressão para múltiplas tentativas OAuth;
+4. passar por novo CI, revisão adversarial do Claude, merge e deploy.
+
+Nenhuma alteração de banco foi executada nesta etapa.
