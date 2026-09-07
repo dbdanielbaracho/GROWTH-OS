@@ -2447,3 +2447,74 @@ Consulta realizada em `docs/PROJECT_EXECUTION_MEMORY.md`:
 - `https://growos.predibeacon.com` não estava registrado no documento no momento da consulta.
 
 Correção de processo: o domínio personalizado foi identificado diretamente na configuração Railway, mas não deve ser tratado como endereço correto de teste sem estar confirmado no Documento da Verdade. A URL secundária está documentada como ambiente de desvio e não como fonte canônica. Antes de indicar o link final do teste, deve-se reconciliar o endereço com o registro operacional e o ambiente efetivamente usado pela tela do Instagram.
+
+
+---
+
+## Revisão completa — causa raiz confirmada do botão “Opening” — 2026-09-07
+
+### Evidência da reprodução
+
+1. A imagem fornecida pelo usuário mostra o domínio `growos.predibeacon.com`, usuário autenticado, painel Instagram aberto e botão `Abrindo o Instagram…` desabilitado.
+2. O bundle frontend público foi baixado do mesmo domínio e contém a correção de timeout (`AbortController`), o evento `pageshow` e a mensagem de timeout.
+3. Uma sessão autenticada foi reproduzida no navegador de verificação.
+4. Após o login, o botão Instagram já apareceu como `Opening Instagram…` e desabilitado, antes de um novo clique.
+5. Após aguardar mais de 15 segundos e recarregar a página, o botão continuou preso.
+6. A tentativa de abrir uma aba nova com a mesma sessão reproduziu o mesmo estado.
+7. Os logs do Railway na janela correspondente mostraram `GET /v1/integrations/instagram/status → 200`, mas não mostraram um POST de autorização concluído.
+8. Isso confirmou que o problema ocorria antes da requisição de autorização; o timeout não poderia atuar porque a ação não era iniciada.
+
+### Causa raiz
+
+No arquivo `apps/web/src/instagram-integration.tsx`, o estado começa com `busyId = null`. O cálculo existente era:
+
+```ts
+const busy = busyId === row.managed_account_id || busyId === row.connection_id;
+```
+
+Para uma conta não conectada, `row.connection_id` é `null`. Logo, no carregamento inicial:
+
+```ts
+null === null // true
+```
+
+Consequências:
+
+- o botão é renderizado como `Opening Instagram…`;
+- o botão fica desabilitado;
+- `beginAuthorization` nunca é chamado;
+- nenhum `POST /v1/integrations/instagram/authorize` é enviado;
+- o timeout de 15 segundos não é criado;
+- o PR #48 tratou o travamento depois do clique, mas não o estado inicial nulo que impede o clique.
+
+### Segundo local afetado
+
+O mesmo padrão existe em `apps/web/src/youtube-integration.tsx`:
+
+```ts
+const busy = busyId === row.managed_account_id || busyId === row.connection_id;
+```
+
+Portanto, o painel YouTube possui o mesmo risco quando `connection_id` é `null`.
+
+### Falha de cobertura
+
+Não foi localizado teste de interface que inicialize uma integração sem `connection_id` e confirme que o botão deve aparecer habilitado como `Connect Instagram` ou `Connect YouTube`. O CI verde não detectou a regressão porque os gates existentes validam backend, SQL, typecheck, build e contratos, mas não esse estado de renderização no frontend.
+
+### Correção técnica identificada
+
+A condição deve exigir um identificador ocupado antes de comparar valores anuláveis, por exemplo:
+
+```ts
+const busy = busyId !== null
+  && (busyId === row.managed_account_id || busyId === row.connection_id);
+```
+
+Essa correção deve ser aplicada nos dois painéis, acompanhada de teste de UI/regressão para:
+
+- integração não conectada: botão habilitado e texto de conexão;
+- autorização em andamento: botão desabilitado e texto `Opening…`;
+- timeout/erro: botão liberado novamente;
+- integração conectada: ações de sync/refresh/revoke sem regressão.
+
+**Estado:** causa raiz confirmada; código ainda não alterado nesta etapa de diagnóstico. Novo PR e novo CI serão necessários para corrigir o problema com rastreabilidade.
