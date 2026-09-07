@@ -463,7 +463,6 @@ function SignInScreen({ onSignedIn, onCreateAccount, onForgotPassword }: {
     event.preventDefault();
     setSubmitting(true);
     setMessage(null);
-    setDuplicateEmail(false);
     try {
       onSignedIn(await signIn(email, password));
     } catch (error) {
@@ -806,7 +805,7 @@ function WorkspaceScreen({
 function RootApp() {
   const [state, setState] = useState<"loading" | "signed_out" | "signup" | "reset_request" | "reset_complete" | "verify" | "workspace" | "onboarding" | "ready" | "dev">("loading");
   const verificationToken = new URLSearchParams(window.location.search).get("token");
-  const resetToken = new URLSearchParams(window.location.search).get("token");
+  const resetToken = verificationToken;
   const [session, setSession] = useState<AuthSessionResponse | null>(null);
 
   useEffect(() => {
