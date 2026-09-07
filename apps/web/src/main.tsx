@@ -458,7 +458,6 @@ function SignInScreen({ onSignedIn, onCreateAccount, onForgotPassword }: {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [duplicateEmail, setDuplicateEmail] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -517,6 +516,7 @@ function SignupScreen({ onBack, onResetPassword }: { onBack: () => void; onReset
   const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [duplicateEmail, setDuplicateEmail] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -526,6 +526,7 @@ function SignupScreen({ onBack, onResetPassword }: { onBack: () => void; onReset
     }
     setSubmitting(true);
     setMessage(null);
+    setDuplicateEmail(false);
     try {
       await signUp(email, password);
       setMessage("Account created. Check your email to verify the account before signing in.");
