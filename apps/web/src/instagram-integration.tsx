@@ -81,10 +81,16 @@ function InstagramIntegrationPanel() {
     void refresh();
     const timer = window.setInterval(() => void refresh(), authenticated ? 15000 : 2500);
     const focus = () => void refresh();
+    const pageShow = () => {
+      setBusyId(null);
+      void refresh();
+    };
     window.addEventListener("focus", focus);
+    window.addEventListener("pageshow", pageShow);
     return () => {
       window.clearInterval(timer);
       window.removeEventListener("focus", focus);
+      window.removeEventListener("pageshow", pageShow);
     };
   }, [authenticated, refresh]);
 
@@ -99,14 +105,22 @@ function InstagramIntegrationPanel() {
     if (row.connection_state === "connected") return;
     setBusyId(row.managed_account_id);
     setMessage(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
     try {
       const result = row.connection_state
-        ? await reconnectInstagram(row.managed_account_id)
-        : await authorizeInstagram(row.managed_account_id);
+        ? await reconnectInstagram(row.managed_account_id, controller.signal)
+        : await authorizeInstagram(row.managed_account_id, controller.signal);
       window.location.assign(result.authorizationUrl);
     } catch (error) {
-      setMessage(friendlyError(error));
+      if (error instanceof Error && error.name === "AbortError") {
+        setMessage("Instagram authorization did not respond. Try again.");
+      } else {
+        setMessage(friendlyError(error));
+      }
       setBusyId(null);
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 

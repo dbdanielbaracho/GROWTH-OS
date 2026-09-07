@@ -227,7 +227,7 @@ async function responseError(response: Response): Promise<never> {
 
 async function requestJson<T>(
   path: string,
-  options: { method?: string; body?: unknown; useDevelopmentIdentity?: boolean } = {}
+  options: { method?: string; body?: unknown; useDevelopmentIdentity?: boolean; signal?: AbortSignal } = {}
 ): Promise<T> {
   const method = (options.method ?? "GET").toUpperCase();
   const headers: Record<string, string> = {
@@ -242,6 +242,7 @@ async function requestJson<T>(
     method,
     headers,
     credentials: "include",
+    ...(options.signal ? { signal: options.signal } : {}),
     ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {})
   });
 
@@ -394,17 +395,19 @@ export async function fetchInstagramStatus(): Promise<InstagramStatusResponse> {
   return requestJson<InstagramStatusResponse>("/v1/integrations/instagram/status");
 }
 
-export async function authorizeInstagram(managedAccountId: string): Promise<InstagramAuthorizeResponse> {
+export async function authorizeInstagram(managedAccountId: string, signal?: AbortSignal): Promise<InstagramAuthorizeResponse> {
   return requestJson<InstagramAuthorizeResponse>("/v1/integrations/instagram/authorize", {
     method: "POST",
-    body: { managedAccountId }
+    body: { managedAccountId },
+    signal
   });
 }
 
-export async function reconnectInstagram(managedAccountId: string): Promise<InstagramAuthorizeResponse> {
+export async function reconnectInstagram(managedAccountId: string, signal?: AbortSignal): Promise<InstagramAuthorizeResponse> {
   return requestJson<InstagramAuthorizeResponse>("/v1/integrations/instagram/reconnect", {
     method: "POST",
-    body: { managedAccountId }
+    body: { managedAccountId },
+    signal
   });
 }
 
