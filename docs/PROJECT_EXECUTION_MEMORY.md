@@ -2747,3 +2747,30 @@ A documentação oficial da Meta exige correspondência exata entre o `redirect_
 No Meta Developers, adicionar a URI acima em **Instagram → API setup with Instagram Login → Business login settings → Valid OAuth Redirect URIs**. Se o app também tiver configuração **Facebook Login for Business**, conferir a mesma URI em **Settings → Client OAuth Settings → Valid OAuth Redirect URIs**. Depois repetir o botão.
 
 Nenhuma credencial, token ou segredo foi registrado neste documento.
+
+
+## Registro operacional — autorização Instagram concluída — 2026-09-07
+
+### Evidência do usuário
+
+O usuário informou que concluiu a conexão da conta Instagram após cadastrar a URL no fluxo **Instagram business login** do Meta Developers.
+
+### Evidência independente no Railway
+
+No deployment canônico `1ef5be61-aabe-4307-b329-aa750809a3c1`, para o domínio `growos.predibeacon.com`, foram confirmados:
+
+- `POST /v1/integrations/instagram/reconnect → 200`;
+- `GET /v1/integrations/instagram/callback → 303`;
+- retorno ao Growth OS em `GET / → 200`;
+- consultas posteriores de sessão e status do Instagram retornaram `200`.
+
+Isso comprova que o fluxo OAuth deixou de ser rejeitado por `Invalid redirect_uri`, o callback foi alcançado e o usuário retornou à aplicação.
+
+### Estado
+
+- Botão inicial `Opening`: corrigido e publicado;
+- erro `Invalid redirect_uri`: resolvido após configurar o Redirect URL no **Instagram business login**;
+- autorização Instagram: concluída conforme relato do usuário e confirmada pelo callback HTTP;
+- YouTube continua com uma falha independente já observada: `growth.youtube_integration_status() does not exist`, sem relação com a conexão do Instagram.
+
+Nenhum segredo, token ou credencial foi registrado neste documento.
