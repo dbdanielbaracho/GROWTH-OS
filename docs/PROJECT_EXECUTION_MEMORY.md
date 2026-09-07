@@ -2614,3 +2614,15 @@ A causa raiz está corrigida no branch e coberta pelo build/typecheck e pela rev
 - o PR continua sem merge e sem deploy;
 - não existe conexão Claude disponível nesta sessão para executar a aprovação em nome dele.
 
+
+
+### Continuação da revisão — verificação do branch final
+
+- consulta realizada no branch `fix/integration-opening-null-state`;
+- `apps/web/src/instagram-integration.tsx`: condição nova presente; ocorrência da condição antiga: 0;
+- `apps/web/src/youtube-integration.tsx`: condição nova presente; ocorrência da condição antiga: 0;
+- reviews formais no PR #50: nenhuma;
+- o comentário de encaminhamento para o Claude permanece publicado;
+- PR #50 continua aberto, sem merge e sem deploy;
+- conclusão desta verificação: a correção está íntegra no branch, mas a aprovação adversarial do Claude e o teste autenticado pós-deploy continuam pendentes.
+
