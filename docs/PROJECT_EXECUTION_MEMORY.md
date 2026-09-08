@@ -3191,3 +3191,22 @@ Nenhum segredo, token ou credencial foi registrado neste documento.
 - A correção mantém o contrato da API intacto e registra a janela solicitada em estado local da interface, usando apenas campos tipados existentes na resposta para os dados retornados.
 - Nenhuma alteração de banco, credencial, OAuth ou produção ocorreu durante a correção.
 - O head da branch mudou; o CI deve ser repetido no novo SHA exato antes de qualquer merge/deploy.
+
+
+## Fechamento da entrega PR #60 e validação de produção — 2026-09-08
+
+- O PR #60 foi aprovado pelo CI no SHA exato `537642969f117a551b34a0a80255061c75138fab`, com os dois jobs `validate` concluídos em SUCCESS.
+- O PR #60 foi mergeado com verificação do head esperado no commit `ec2fb72d8878312699a07b2a224b823d3f9663ed`.
+- A entrega publicada contém a janela YouTube selecionável de 7 ou 30 dias, o resultado identifica a janela usada e o controle visual segue o design editorial do Growth OS.
+- O primeiro deploy automático do commit de documentação `c79e860df3da5cb0f7bf55ede8a5b62208896c86` falhou no Railway após o build, sem logs de execução. O deploy seguinte do código ficou preso em `INITIALIZING` sem logs e sem snapshot.
+- O diagnóstico do Railway confirmou fila/snapshot travado, sem erro de código ou configuração. O deployment travado foi `20044e41-b63a-45ab-903f-a4f52c09b542`.
+- O redeploy controlado do mesmo commit foi executado pelo Railway no deployment `adcffef5-684b-410f-980f-484f668b897c`, com status SUCCESS. Banco, domínio, variáveis e secrets permaneceram inalterados.
+- Smoke test público em `https://growos.predibeacon.com/` e `https://growth-os-production-d120.up.railway.app/`:
+  - `GET /health/ready` → HTTP 200, `status=ready`, `database=ok`;
+  - `GET /v1/system` → HTTP 200, `Growth OS`, versão `0.1.0`, ambiente `production`;
+  - `GET /v1/auth/session` sem sessão → HTTP 401;
+  - `GET /v1/integrations/youtube/status` sem sessão → HTTP 401;
+  - `GET /v1/integrations/instagram/status` sem sessão → HTTP 401.
+- O smoke test confirma disponibilidade, banco saudável e fronteira de autenticação. A confirmação visual do controle 7/30 dias depende da abertura da interface autenticada no navegador do usuário.
+- Nenhuma migration, credencial, permissão OAuth ou dado de produção foi alterado nesta entrega.
+- O próximo bloco continua sendo o fechamento do ciclo real de dados e a expansão do produto, mantendo o Radar em no-op quando não houver evidência suficiente.
