@@ -673,3 +673,14 @@ PR #88 foi integrado no commit `8d38ac68ac8f174913eb8e6a00114941541619ab`, após
 A entrega adiciona a rota autenticada `POST /v1/publication-intents/:id/execute`. O caminho faz claim no banco, monta o adapter somente depois de receber o contexto protegido, executa Instagram/YouTube por meio dos adapters já validados e finaliza pelo helper canônico. O worker passou a aceitar uma factory de adapter para impedir construção fora do contexto de claim.
 
 O bloco inclui o primeiro caminho integrado de execução, mas não equivale a publicação real comprovada: migrations 023–026 ainda não têm confirmação no Postgres canônico por bloqueio de permissão Railway; não existe ainda agenda/fila de seleção automática de intenções, retry durável/dead-letter, reconciliação, cancelamento, notificações ou prova com contas reais. Phase 5 permanece In Progress, não Frozen.
+
+
+## Addendum — Phase 5: retry durável e backoff — 2026-09-08
+
+PR #90 foi integrado no commit `1e0bbd392833421a877e0d76dd95cd2d166e40aa`, após CI final #594 SUCCESS no SHA `583eae10d406e5bc815437912adbde613f0c4e07`.
+
+A migration 027 e o gate 044 adicionam a política persistente de retry: somente intenções em `failed_retryable` podem ser reagendadas, com contador, próximo horário, classe de erro sanitizada, backoff exponencial limitado e transição para `needs_user_action` depois do limite. O worker finaliza a tentativa imutável antes de solicitar o reagendamento.
+
+O CI #590 bloqueou no typecheck por narrowing de fixture; após correção, CI #592 passou todos os gates mas revelou uma expectativa matemática errada no teste (1600000ms em vez de 960000ms para 2⁴×60s). A correção do teste levou ao CI #594 verde. Nenhuma produção foi alterada.
+
+Phase 5 permanece In Progress: ainda faltam seleção automática de fila/agenda, dead-letter operacional, reconciliação, cancelamento, notificações, confirmação das migrations no Postgres canônico e publicação real.
