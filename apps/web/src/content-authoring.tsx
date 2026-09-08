@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   appendContentVersion,
+  approveContentVersion,
   ContentListItem,
   createContent,
   fetchAuthSession,
   fetchContent,
-  RadarApiError
+  RadarApiError,
+  requestContentChanges
 } from "./api.js";
 import "./content-authoring.css";
 
@@ -31,6 +33,7 @@ function ContentAuthoringPanel() {
   const [checking, setChecking] = useState(true);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [decisionBusyId, setDecisionBusyId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<ContentListItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [market, setMarket] = useState("US");
@@ -124,6 +127,27 @@ function ContentAuthoringPanel() {
     }
   }
 
+  async function decide(draft: ContentListItem, decision: "approve" | "request_changes") {
+    if (!draft.current_version_id || draft.status !== "ready_for_review") return;
+    setDecisionBusyId(draft.id);
+    setMessage(null);
+    try {
+      if (decision === "approve") {
+        await approveContentVersion(draft.current_version_id);
+        setMessage("Version approved. Publishing remains a separate controlled step.");
+      } else {
+        await requestContentChanges(draft.current_version_id);
+        setMessage("Changes requested. The item returned to draft.");
+      }
+      await loadDrafts();
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
+      setMessage(contentError(error));
+    } finally {
+      setDecisionBusyId(null);
+    }
+  }
+
   if (checking || !authenticated) return null;
 
   return (
@@ -156,7 +180,15 @@ function ContentAuthoringPanel() {
                   <small>{draft.platform_target || "Unassigned"} · v{draft.version_no ?? "—"}</small>
                   <p>{shortBody(draft.body)}</p>
                 </div>
-                <button className="content-secondary" type="button" onClick={() => editDraft(draft)}>Edit</button>
+                <div className="content-draft-actions">
+                  <button className="content-secondary" type="button" onClick={() => editDraft(draft)}>Edit</button>
+                  {draft.status === "ready_for_review" && (
+                    <>
+                      <button className="content-secondary content-approve" type="button" disabled={decisionBusyId === draft.id} onClick={() => void decide(draft, "approve")}>Approve</button>
+                      <button className="content-secondary" type="button" disabled={decisionBusyId === draft.id} onClick={() => void decide(draft, "request_changes")}>Changes</button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>
