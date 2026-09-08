@@ -132,6 +132,24 @@ export function createDatabasePublicationExecutionStore(
         );
         return finalizationResult.rows[0];
       });
-    }
+    },
+    scheduleRetry: async (
+      claimedIntent: ClaimablePublicationIntent,
+      retryAt: Date,
+      errorClass: string
+    ) => withTenantTransaction(principal, async (client) => {
+      const retryResult = await client.query(
+        `select *
+           from growth.schedule_publication_retry($1,$2,$3,$4,$5)`,
+        [
+          principal.workspaceId,
+          claimedIntent.publicationIntentId,
+          claimedIntent.attemptNo,
+          retryAt.toISOString(),
+          errorClass
+        ]
+      );
+      return retryResult.rows[0];
+    })
   };
 }

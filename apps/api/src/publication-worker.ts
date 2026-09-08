@@ -5,6 +5,7 @@ import {
   toFinalizationArguments,
   type PublicationProviderResult
 } from "./publication-execution.js";
+import { nextPublicationRetryAt } from "./publication-retry.js";
 
 export { PublicationProviderError } from "./publication-execution.js";
 
@@ -40,6 +41,11 @@ export type PublicationExecutionStore = {
   finalize: (
     claimed: ClaimablePublicationIntent,
     result: PublicationFinalization
+  ) => Promise<unknown>;
+  scheduleRetry?: (
+    claimed: ClaimablePublicationIntent,
+    retryAt: Date,
+    errorClass: string
   ) => Promise<unknown>;
 };
 
@@ -94,9 +100,20 @@ export async function executePublicationIntent(input: {
     );
   } catch (error) {
     const providerResult = failureResult(error, startedAt);
-    return input.store.finalize(
+    const finalized = await input.store.finalize(
       claimed,
       toFinalizationArguments(providerResult, requestHash)
     );
+
+    if (providerResult.outcome === "failed_retryable" && input.store.scheduleRetry) {
+      const errorClass = error instanceof Error ? error.name : "unknown_provider_error";
+      return input.store.scheduleRetry(
+        claimed,
+        nextPublicationRetryAt(new Date(), claimed.attemptNo - 1),
+        errorClass
+      );
+    }
+
+    return finalized;
   }
 }

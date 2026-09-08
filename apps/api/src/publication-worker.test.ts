@@ -125,3 +125,40 @@ test("worker constructs the provider adapter only after the claim", async () => 
   assert.equal(factoryClaim.publicationIntentId, claimed.publicationIntentId);
   assert.equal(finalized.length, 1);
 });
+
+
+test("worker schedules retryable failures after immutable finalization", async () => {
+  const finalized: Array<Record<string, unknown>> = [];
+  const scheduledRetries: Array<{ retryAt: Date; errorClass: string }> = [];
+  const store = {
+    claim: async () => claimed,
+    finalize: async (_claimed: ClaimablePublicationIntent, result: Record<string, unknown>) => {
+      finalized.push(result);
+      return { status: result.outcome };
+    },
+    scheduleRetry: async (
+      _claimed: ClaimablePublicationIntent,
+      retryAt: Date,
+      errorClass: string
+    ) => {
+      scheduledRetries.push({ retryAt, errorClass });
+      return { status: "retrying" };
+    }
+  };
+
+  const result = await executePublicationIntent({
+    store,
+    adapter: {
+      publish: async () => {
+        throw new PublicationProviderError(503, "provider-request-503", "temporary");
+      }
+    }
+  });
+
+  assert.deepEqual(result, { status: "retrying" });
+  assert.equal(finalized[0]?.outcome, "failed_retryable");
+  const scheduled = scheduledRetries[0];
+  assert.ok(scheduled);
+  assert.equal(scheduled.errorClass, "PublicationProviderError");
+  assert.ok(scheduled.retryAt.getTime() > Date.now());
+});
