@@ -3343,3 +3343,14 @@ O limite funcional foi preservado: essa entrega apenas registra uma intenção a
 A leitura de logs pelo conector Railway ficou temporariamente bloqueada por falta do papel viewer; por isso, a confirmação de deploy foi baseada no status oficial do commit publicado pelo Railway no GitHub. Nenhuma conclusão de sucesso de logs internos foi inventada.
 
 **Próximo ponto de retomada:** implementar o próximo limite controlado da Phase 5 sobre a intenção já persistida, começando pelo contrato de execução/claim idempotente e mantendo chamadas externas aos provedores separadas, auditáveis e fail-closed.
+
+
+## Addendum — Phase 5: contrato de claim da intenção de publicação — 2026-09-08
+
+Foi implementado o próximo limite controlado da Phase 5 na branch feat/publication-intent-claim-contract, a partir do main após o PR #71. A migration forward-only 023 adiciona lease explícito à publication_intents: current_attempt_no, claim_token, claimed_at e claim_expires_at.
+
+O helper SECURITY DEFINER growth.claim_publication_intent serializa a intenção com FOR UPDATE, revalida tenant, conteúdo aprovado e conta social conectada, aceita apenas estados executáveis, rejeita agendamento futuro, impede claim concorrente com outro token durante o lease de 10 minutos e permite recuperação após expiração. Repetição com o mesmo token é idempotente.
+
+O bloco não chama Instagram/YouTube, não cria publication_attempts incompletos e não grava credenciais. Os attempts permanecem evidência imutável para a futura finalização após a chamada externa. Foi acrescentado o gate SQL 040 e o workflow foi atualizado para executá-lo sob growth_test_harness.
+
+Estado: candidato de implementação, ainda aguardando CI, merge, deploy e prova operacional. Nenhuma mudança de produção ocorreu neste bloco.
