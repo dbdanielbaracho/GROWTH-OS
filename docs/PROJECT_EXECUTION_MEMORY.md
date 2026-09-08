@@ -3748,3 +3748,14 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Entrega web: endpoint autenticado `GET /v1/analytics/metrics` e painel Analytics com janela padrão de 7 dias, dados agrupados e estado explícito quando não existem observações reais.
 - Limites: não há valores sintéticos, atribuição, experimentos, OGI, anomalia ou exportação nesta etapa. Migrations 023–033 ainda não têm confirmação no Postgres canônico; o Railway permanece bloqueado por falta de permissão viewer/member.
 - Próximo bloco: ampliar analytics com frescor/anomalias e exportação auditável antes de avançar para experimentos e inteligência complementar.
+
+
+## Registro de execução — PR #109 integrado — qualidade e exportação de analytics — 2026-09-08
+
+- PR: #109.
+- Branch: `feat/analytics-quality-export`.
+- CI final: #713 SUCCESS no SHA `b98e97574d40c84c196d2acfeaad8d09fb8a1ef8`.
+- Merge: `c47abae475b938174e90240c3ae10a9970f1e814`.
+- Entrega: Analytics classifica cada linha como Complete, Stale ou Incomplete a partir das contagens de completude/freshness retornadas pelo helper; o painel permite baixar o snapshot JSON autenticado com `from`, `to` e as métricas exibidas.
+- Limites: o snapshot não substitui dados ausentes nem produz anomalias estatísticas, atribuição, OGI ou experimento. Produção continua sem confirmação das migrations 023–033 porque o Railway canônico ainda nega o papel viewer/member.
+- Próximo bloco: implementar a camada de anomalias determinísticas e a leitura de insights/opportunities com explicação de evidência, mantendo o fail-closed.
