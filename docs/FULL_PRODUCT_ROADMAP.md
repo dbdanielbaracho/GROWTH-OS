@@ -528,3 +528,8 @@ O bloco permanece candidato até o CI exato passar e a cadeia de migrations 023�
 ### Correção após CI #465
 
 O gate 041 foi ajustado para eliminar a ambiguidade PL/pgSQL/coluna e respeitar a fronteira sem acesso direto do app_runtime às tabelas de publicação. O novo SHA precisa passar o CI completo antes de qualquer integração.
+
+
+### Correção após CI #469
+
+O gate 041 recebeu a declaração explícita do alias da tabela de attempts. O próximo SHA deve repetir o CI completo antes da integração.
