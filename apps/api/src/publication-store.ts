@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AuthPrincipal } from "./auth.js";
-import { withTenantTransaction } from "./tenant-db.js";
+import { withTenantTransaction, withWorkerTenantTransaction, type WorkerTenantContext } from "./tenant-db.js";
 import type {
   ClaimablePublicationIntent,
   PublicationExecutionStore,
@@ -143,6 +143,94 @@ export function createDatabasePublicationExecutionStore(
            from growth.schedule_publication_retry($1,$2,$3,$4,$5)`,
         [
           principal.workspaceId,
+          claimedIntent.publicationIntentId,
+          claimedIntent.attemptNo,
+          retryAt.toISOString(),
+          errorClass
+        ]
+      );
+      return retryResult.rows[0];
+    })
+  };
+}
+
+
+export function createWorkerDatabasePublicationExecutionStore(
+  context: WorkerTenantContext,
+  publicationIntentId: string,
+  claimToken = randomUUID()
+): PublicationExecutionStore {
+  let claimed: ClaimablePublicationIntent | null = null;
+
+  return {
+    claim: async () => {
+      const result = await withWorkerTenantTransaction(context, async (client) => {
+        const claimResult = await client.query<{ [key: string]: unknown }>(
+          `select *
+             from growth.claim_publication_intent($1,$2,$3,$4)`,
+          [
+            context.workspaceId,
+            publicationIntentId,
+            claimToken,
+            new Date().toISOString()
+          ]
+        );
+        if (!claimResult.rows[0]) throw new Error("publication claim returned no intent");
+
+        const contextResult = await client.query<PublicationContextRow>(
+          `select *
+             from growth.get_publication_execution_context($1,$2,$3)`,
+          [context.workspaceId, publicationIntentId, claimToken]
+        );
+        const executionContext = contextResult.rows[0];
+        if (!executionContext) throw new Error("publication execution context unavailable");
+        return mapContext(executionContext);
+      });
+      claimed = result;
+      return result;
+    },
+    finalize: async (
+      claimedIntent: ClaimablePublicationIntent,
+      result: PublicationFinalization
+    ) => {
+      if (claimed && claimedIntent.claimToken !== claimed.claimToken) {
+        throw new Error("publication finalization claim token mismatch");
+      }
+      return withWorkerTenantTransaction(context, async (client) => {
+        const finalizationResult = await client.query(
+          `select *
+             from growth.finalize_publication_intent(
+               $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+             )`,
+          [
+            context.workspaceId,
+            claimedIntent.publicationIntentId,
+            claimedIntent.claimToken,
+            claimedIntent.attemptNo,
+            result.requestHash,
+            result.outcome,
+            result.httpStatus,
+            result.providerRequestId,
+            result.providerContentId,
+            result.providerPermalink,
+            result.startedAt,
+            result.providerRespondedAt,
+            result.rawPayloadRef
+          ]
+        );
+        return finalizationResult.rows[0];
+      });
+    },
+    scheduleRetry: async (
+      claimedIntent: ClaimablePublicationIntent,
+      retryAt: Date,
+      errorClass: string
+    ) => withWorkerTenantTransaction(context, async (client) => {
+      const retryResult = await client.query(
+        `select *
+           from growth.schedule_publication_retry($1,$2,$3,$4,$5)`,
+        [
+          context.workspaceId,
           claimedIntent.publicationIntentId,
           claimedIntent.attemptNo,
           retryAt.toISOString(),
