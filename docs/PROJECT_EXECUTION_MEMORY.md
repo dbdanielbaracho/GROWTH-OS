@@ -3454,3 +3454,10 @@ Foi implementado o próximo bloco da Phase 5 na branch `feat/publication-provide
 A validação exige assets HTTPS, limita tipos e tamanho dos metadados, mantém tokens apenas em Authorization e usa privacidade `private` como padrão do YouTube. Os testes cobrem o formato dos requests e rejeitam asset HTTP, título vazio e tamanho não positivo.
 
 Nenhum banco, segredo, OAuth ou serviço Railway foi alterado. Este bloco ainda não representa publicação real; a aplicação das migrations 023–024 e a ligação ao worker operacional dependem da permissão Railway.
+
+
+## Addendum — correção do CI #517 nos builders de provedor — 2026-09-08
+
+O CI #517 falhou no typecheck porque os builders declaravam tipos de saída de Zod como tipos de entrada; campos com `default` continuavam obrigatórios para o TypeScript, embora fossem opcionais em runtime. A correção usa `z.input` nos tipos de entrada e mantém `parse` para aplicar os defaults.
+
+A alteração foi limitada ao contrato dos builders e documentada. Nenhuma chamada externa, alteração de banco, segredo, OAuth ou Railway ocorreu.
