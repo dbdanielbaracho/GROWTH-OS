@@ -3697,3 +3697,15 @@ A branch `feat/publication-worker-process` adiciona o comando de processo contí
 - logs sem token, payload bruto ou mensagem de erro sensível.
 
 O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker, do claim e dos helpers das migrations 030–032. Ainda não há serviço Railway nem segredo operacional configurado. A produção não foi alterada e o bloco aguarda CI.
+
+
+## Registro de execução — PR #101 integrado — processo consumidor do worker — 2026-09-08
+
+- PR: #101.
+- Branch: `feat/publication-worker-process`.
+- CI final: #672 SUCCESS no SHA `005bc09d69d48db4a059b48d145b9bb6c5c527d8`.
+- Merge: `06a998e64fa3c4d83c6f76d0e63e9f83e6f653d5`.
+- Entrega: processo contínuo `worker:publication`, validação obrigatória do principal de serviço e da URL de banco dedicada, intervalo e lease limitados, consumo por `runPublicationQueueOnce` e shutdown gracioso.
+- Correção registrada: o CI #670 encontrou narrowing incorreto de variáveis de ambiente opcionais no TypeScript; a validação foi reescrita com variáveis configuradas explicitamente e o CI #672 passou.
+- Limites: nenhum serviço Railway foi criado ou publicado, nenhum segredo/OAuth foi alterado e nenhuma migration 023–032 foi confirmada no banco canônico. O Railway continua bloqueado por `You don't have the required role (viewer) on this resource.`.
+- Próximo bloco: preparar o contrato operacional do worker e a integração da superfície de publicação com execução/recuperação, mantendo a prova de produção condicionada à liberação do Railway e ao provisionamento explícito do principal/URL dedicada.
