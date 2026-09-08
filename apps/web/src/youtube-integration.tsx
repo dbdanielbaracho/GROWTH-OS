@@ -47,6 +47,7 @@ function YoutubeIntegrationPanel() {
   const [pendingNonce, setPendingNonce] = useState<Record<string, string>>({});
   const [lastSync, setLastSync] = useState<Record<string, YoutubeSyncResponse>>({});
   const [lookbackDays, setLookbackDays] = useState<Record<string, number>>({});
+  const [lastRequestedWindow, setLastRequestedWindow] = useState<Record<string, number>>({});
   const [expanded, setExpanded] = useState(true);
 
   const callbackNotice = useMemo(() => {
@@ -117,6 +118,7 @@ function YoutubeIntegrationPanel() {
     try {
       const result = await syncYoutube(connectionId, nonce, requestedLookbackDays);
       setLastSync((current) => ({ ...current, [connectionId]: result }));
+      setLastRequestedWindow((current) => ({ ...current, [connectionId]: requestedLookbackDays }));
       window.dispatchEvent(new CustomEvent("growth-os:radar-refresh"));
       setPendingNonce((current) => {
         const next = { ...current };
@@ -209,7 +211,7 @@ function YoutubeIntegrationPanel() {
                     {last && (
                       <div className="youtube-sync-result">
                         <strong>{last.observationsProcessed} real observations processed</strong>
-                        <span>{last.requestedLookbackDays}-day window · {last.rowsReceived} provider row{last.rowsReceived === 1 ? "" : "s"} · through {last.returnedThroughDate ?? "no returned day"}</span>
+                        <span>{lastRequestedWindow[row.connection_id!] ?? 7}-day window · {last.rowsReceived} provider row{last.rowsReceived === 1 ? "" : "s"} · through {last.returnedThroughDate ?? "no returned day"}</span>
                         {last.intelligenceStatus === "opportunity_created" ? (
                           <span className="youtube-intelligence-success">Opportunity Radar updated from stored evidence.</span>
                         ) : (
