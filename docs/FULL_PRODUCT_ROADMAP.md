@@ -584,3 +584,8 @@ A execução avançou na branch `feat/publication-worker-orchestration`, partind
 - Testes cobrem sucesso, falha transitória, falha de autorização, chamada única do adapter e finalização única.
 
 Este bloco ainda não conecta os adaptadores Instagram/YouTube nem cria um serviço Railway. A migração 023/024 continua sem prova de produção por bloqueio de permissão; nenhum deploy foi feito neste bloco.
+
+
+### Correção do CI #503 — narrowing do resultado do worker — 2026-09-08
+
+O typecheck do PR #77 encontrou acessos possivelmente `undefined` em `finalized[0]` nos testes do orquestrador. A implementação não foi executada pelo CI além do typecheck. Os testes foram corrigidos com narrowing explícito após confirmar que a coleção possui um resultado. Nenhuma produção foi afetada.
