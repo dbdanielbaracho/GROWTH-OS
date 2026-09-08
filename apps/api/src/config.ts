@@ -13,6 +13,7 @@ const RawEnvSchema = z.object({
   INSTAGRAM_APP_ID: z.string().min(1).optional(),
   INSTAGRAM_APP_SECRET: z.string().min(1).optional(),
   INSTAGRAM_GRAPH_API_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v24.0"),
+  PUBLICATION_ASSET_HOSTS: z.string().default(""),
 
   SESSION_ABSOLUTE_TTL_SECONDS: z.coerce.number().int().min(3600).max(60 * 60 * 24 * 90).default(60 * 60 * 24 * 30),
   SESSION_IDLE_TTL_SECONDS: z.coerce.number().int().min(300).max(60 * 60 * 24 * 30).default(60 * 60 * 24),

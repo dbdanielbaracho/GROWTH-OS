@@ -8,7 +8,7 @@ BEGIN;
 
 SET search_path = growth, public;
 
-CREATE FUNCTION growth.get_publication_execution_context(
+CREATE OR REPLACE FUNCTION growth.get_publication_execution_context(
   p_workspace_id uuid,
   p_publication_intent_id uuid,
   p_claim_token uuid
@@ -16,6 +16,7 @@ CREATE FUNCTION growth.get_publication_execution_context(
 RETURNS TABLE(
   publication_intent_id uuid,
   workspace_id uuid,
+  connection_id uuid,
   claim_token uuid,
   attempt_no integer,
   provider text,
@@ -43,6 +44,7 @@ AS $context$
   SELECT
     pi.id,
     pi.workspace_id,
+    pc.id,
     pi.claim_token,
     pi.current_attempt_no,
     pc.platform,

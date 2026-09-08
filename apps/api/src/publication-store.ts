@@ -10,6 +10,7 @@ import type {
 type PublicationContextRow = {
   publication_intent_id: string;
   workspace_id: string;
+  connection_id: string;
   claim_token: string;
   attempt_no: number;
   provider: string;
@@ -36,7 +37,7 @@ function provider(value: string): "instagram" | "youtube" {
 }
 
 function mapContext(row: PublicationContextRow): ClaimablePublicationIntent {
-  if (!row.publication_intent_id || !row.claim_token || !row.attempt_no) {
+  if (!row.publication_intent_id || !row.claim_token || !row.attempt_no || !row.connection_id) {
     throw new Error("publication claim returned an incomplete context");
   }
   return {
@@ -50,6 +51,7 @@ function mapContext(row: PublicationContextRow): ClaimablePublicationIntent {
     body: row.body,
     structure: row.structure,
     assetRefs: [row.media_asset_id, row.storage_ref],
+    connectionId: row.connection_id,
     mediaAssetId: row.media_asset_id,
     storageRef: row.storage_ref,
     mimeType: row.mime_type,
