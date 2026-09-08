@@ -3524,3 +3524,20 @@ O gate 042 prova owner `growth_migrator`, `SECURITY DEFINER`, execução para `a
 - Produção: sem confirmação de aplicação das migrations 023–026; o Railway canônico continua retornando `You don't have the required role (viewer) on this resource.`.
 - Não foram alterados segredos, OAuth, Public Access ou serviços temporários.
 - Próximo bloco: implementar a ligação do worker operacional ao store/contexto/adapter, com fila/agenda, retry durável, dead-letter, cancelamento, reconciliação, notificações e testes de concorrência; somente depois executar deploy e prova com conta real quando o bloqueio de permissão Railway estiver resolvido.
+
+
+## Registro de execução — PR #88 — 2026-09-08
+
+- Branch: `feat/publication-execution-endpoint`.
+- PR: #88.
+- Objetivo: ligar uma intenção de publicação aprovada ao contexto protegido, ao adapter específico do provedor e à finalização auditável.
+- Rota adicionada: `POST /v1/publication-intents/:id/execute`, autenticada e tenant-scoped.
+- Worker alterado: aceita `adapterFactory`, que só recebe o contexto depois do claim; falhas da factory também são convertidas em resultado finalizável.
+- Teste adicionado: comprova que a factory recebe a claim antes de construir o adapter.
+- CI #573: falhou no typecheck porque o teste acessava uma variável capturada pela callback e o TypeScript a inferiu como `never`; nenhum teste funcional ou SQL foi executado depois desse bloqueio.
+- CI #575: repetiu a mesma classe de narrowing; a tentativa com `assert.ok` ainda não estreitou a variável capturada.
+- Correção: o fixture passou a guardar a claim em um array mutável criado antes da execução e a validar uma variável local após a execução.
+- CI final #577: SUCCESS no SHA `225a29779ebcc79e93cf933e7516752099659e03`.
+- Merge: commit `8d38ac68ac8f174913eb8e6a00114941541619ab`.
+- Ambiente: validação somente no CI/banco isolado; produção não foi alterada nem considerada comprovada.
+- Limite: a rota é execução autenticada sob demanda, não ainda um scheduler/worker autônomo. Faltam seleção de fila, retry durável, dead-letter, reconciliação, cancelamento, notificações, deploy e prova com contas reais. O bloqueio Railway `You don't have the required role (viewer) on this resource.` continua impedindo a confirmação das migrations 023–026 em produção.
