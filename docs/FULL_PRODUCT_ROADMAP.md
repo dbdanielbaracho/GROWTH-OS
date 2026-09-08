@@ -644,3 +644,12 @@ A entrega adiciona adaptadores HTTP controlados para os provedores:
 - testes de sucesso, autorização negada, SSRF e divergência de bytes.
 
 Esta entrega ainda não lê `media_assets`, não liga um worker operacional às credenciais e não faz publicação real. O contrato de asset publicável, a resolução segura do conteúdo, retries/reconciliação e a ativação dependem das migrations 023–024 e de prova direta no Railway. A permissão canônica continua bloqueando essa validação; nenhuma conclusão de produção foi inferida.
+
+
+## Phase 5 — PR #83 integrado; contrato de asset publicável — 2026-09-08
+
+O PR #83 foi validado no SHA exato `d4e86150b991fe5f7e3a371f8d634224b73c8087`, com CI #539 em success, e integrado por squash no commit `e574af6befd1d0deea9e17859d37ab92d2a98604`.
+
+A migration forward-only 025 adiciona `publication_intents.media_asset_id` e uma FK composta pelo workspace. O helper de seis argumentos só aceita asset `publishable` da mesma `content_version`, com `storage_ref` e `rights_status` declarados. O helper antigo de cinco argumentos permanece compatível. A rota `POST /v1/publication-intents` aceita `mediaAssetId` opcional.
+
+O gate SQL 042 verifica a fronteira `SECURITY DEFINER`, owner/grants, persistência do vínculo válido e rejeição de asset não publicável. Ainda não há leitura de bytes, worker operacional ou publicação real; migrations 023–025 continuam sem prova no Railway por falta de permissão viewer.
