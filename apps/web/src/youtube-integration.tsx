@@ -46,6 +46,8 @@ function YoutubeIntegrationPanel() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pendingNonce, setPendingNonce] = useState<Record<string, string>>({});
   const [lastSync, setLastSync] = useState<Record<string, YoutubeSyncResponse>>({});
+  const [lookbackDays, setLookbackDays] = useState<Record<string, number>>({});
+  const [lastRequestedWindow, setLastRequestedWindow] = useState<Record<string, number>>({});
   const [expanded, setExpanded] = useState(true);
 
   const callbackNotice = useMemo(() => {
@@ -108,13 +110,15 @@ function YoutubeIntegrationPanel() {
     if (!row.connection_id) return;
     const connectionId = row.connection_id;
     const nonce = pendingNonce[connectionId] ?? crypto.randomUUID();
+    const requestedLookbackDays = lookbackDays[connectionId] ?? 7;
     setPendingNonce((current) => ({ ...current, [connectionId]: nonce }));
     setBusyId(connectionId);
     setMessage(null);
 
     try {
-      const result = await syncYoutube(connectionId, nonce, 7);
+      const result = await syncYoutube(connectionId, nonce, requestedLookbackDays);
       setLastSync((current) => ({ ...current, [connectionId]: result }));
+      setLastRequestedWindow((current) => ({ ...current, [connectionId]: requestedLookbackDays }));
       window.dispatchEvent(new CustomEvent("growth-os:radar-refresh"));
       setPendingNonce((current) => {
         const next = { ...current };
@@ -185,13 +189,29 @@ function YoutubeIntegrationPanel() {
                       {row.source_timezone && <><dt>Provider day</dt><dd>{row.source_timezone}</dd></>}
                       <dt>Derived analytics</dt><dd>{status.derived_analytics_policy_accepted ? "Policy accepted" : "Disabled"}</dd>
                     </dl>
-                    <button className="youtube-primary" type="button" disabled={busy} onClick={() => void sync(row)}>
-                      {busy ? "Syncing…" : pendingNonce[row.connection_id!] ? "Retry same sync" : "Sync last 7 days"}
-                    </button>
+                    <div className="youtube-sync-controls">
+                      <div className="youtube-window-picker" role="group" aria-label="Synchronization window">
+                        {[7, 30].map((days) => (
+                          <button
+                            className="youtube-window-button"
+                            key={days}
+                            type="button"
+                            aria-pressed={(lookbackDays[row.connection_id!] ?? 7) === days}
+                            disabled={busy}
+                            onClick={() => setLookbackDays((current) => ({ ...current, [row.connection_id!]: days }))}
+                          >
+                            {days} days
+                          </button>
+                        ))}
+                      </div>
+                      <button className="youtube-primary" type="button" disabled={busy} onClick={() => void sync(row)}>
+                        {busy ? "Syncing…" : pendingNonce[row.connection_id!] ? "Retry same sync" : "Sync selected window"}
+                      </button>
+                    </div>
                     {last && (
                       <div className="youtube-sync-result">
                         <strong>{last.observationsProcessed} real observations processed</strong>
-                        <span>{last.rowsReceived} provider row{last.rowsReceived === 1 ? "" : "s"} · through {last.returnedThroughDate ?? "no returned day"}</span>
+                        <span>{lastRequestedWindow[row.connection_id!] ?? 7}-day window · {last.rowsReceived} provider row{last.rowsReceived === 1 ? "" : "s"} · through {last.returnedThroughDate ?? "no returned day"}</span>
                         {last.intelligenceStatus === "opportunity_created" ? (
                           <span className="youtube-intelligence-success">Opportunity Radar updated from stored evidence.</span>
                         ) : (

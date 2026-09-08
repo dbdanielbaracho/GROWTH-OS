@@ -404,3 +404,18 @@ A sequência de execução foi registrada integralmente na memória operacional:
 - run 309 passou integralmente no SHA f0136c15253f00def2fdbd73ae72127d83b9ce2d.
 
 O bloco Instagram media/metrics continua In Progress, não Frozen. O PR #44 ainda não foi mergeado nem deployado, e a produção permanece intocada. O próximo gate obrigatório é uma nova revisão adversarial do Claude no SHA exato f0136c15253f00def2fdbd73ae72127d83b9ce2d.
+
+
+## Addendum — janela de evidência e design do sync YouTube — 2026-09-08
+
+A interface do conector YouTube foi evoluída para permitir janelas de 7 e 30 dias no mesmo fluxo de sincronização. O endpoint já aceitava uma janela de 1–30 dias; a UI agora expõe essa capacidade sem alterar o contrato do provedor.
+
+A resposta visual mostra a janela efetivamente usada, as linhas retornadas, o último dia disponível e as observações reais processadas. Quando o provedor não devolve dados suficientes, o sistema continua exibindo no-op verdadeiro e não cria sinal, insight ou oportunidade artificial.
+
+Essa entrega também registra a aplicação do design editorial do Growth OS ao controle: baixa fricção, leitura imediata do estado, contraste de seleção e preservação de estados de erro, carregamento e insuficiência de evidência. Ela avança a experiência da Phase 3, mas não congela a fase nem conclui o produto.
+
+
+## Addendum — correção do typecheck da janela YouTube — 2026-09-08
+
+O primeiro CI da entrega de janela de evidência encontrou uma incompatibilidade real entre a UI e o contrato tipado de `YoutubeSyncResponse`. A interface foi corrigida para manter a janela solicitada localmente, sem inventar um campo inexistente no contrato da API. A validação do novo SHA exato permanece obrigatória antes da promoção.
+
