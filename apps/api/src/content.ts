@@ -54,6 +54,65 @@ export const AppendContentVersionSchema = z.object({
 
 export type AppendContentVersionInput = z.infer<typeof AppendContentVersionSchema>;
 
+export const ContentDecisionSchema = z.object({
+  contentVersionId: z.string().uuid(),
+  notes: z.string().trim().max(2_000).optional()
+});
+
+export type ContentDecisionInput = z.infer<typeof ContentDecisionSchema>;
+
+export class ContentVersionNotFoundError extends Error {}
+
+async function decideContent(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  input: ContentDecisionInput,
+  decision: "approve" | "request_changes"
+) {
+  const versionResult = await client.query(
+    `select content_item_id
+       from growth.content_versions
+      where workspace_id = $1
+        and id = $2`,
+    [principal.workspaceId, input.contentVersionId]
+  );
+  if (!versionResult.rowCount) throw new ContentVersionNotFoundError("content_version_not_found");
+
+  const helper = decision === "approve" ? "content_approve" : "content_request_changes";
+  const approvalResult = await client.query(
+    `select *
+       from growth.${helper}($1, $2, $3)`,
+    [principal.workspaceId, input.contentVersionId, input.notes ?? null]
+  );
+
+  const itemResult = await client.query(
+    `select id, workspace_id, objective, market, language, platform_target, source_type,
+            status, created_by, created_at
+       from growth.content_items
+      where workspace_id = $1
+        and id = $2`,
+    [principal.workspaceId, versionResult.rows[0].content_item_id]
+  );
+
+  return { item: itemResult.rows[0], approval: approvalResult.rows[0] };
+}
+
+export async function approveContent(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  input: ContentDecisionInput
+) {
+  return decideContent(client, principal, input, "approve");
+}
+
+export async function requestContentChanges(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  input: ContentDecisionInput
+) {
+  return decideContent(client, principal, input, "request_changes");
+}
+
 export function contentChecksum(body: string, structure: Record<string, unknown>): string {
   const canonicalPayload = JSON.stringify(canonicalize({ body, structure }));
   return createHash("sha256").update(canonicalPayload).digest("hex");
