@@ -45,6 +45,56 @@ export const CreateContentSchema = z.object({
 
 export type CreateContentInput = z.infer<typeof CreateContentSchema>;
 
+export const AppendContentVersionSchema = z.object({
+  contentItemId: z.string().uuid(),
+  body: z.string().max(100_000).default(""),
+  structure: BoundedJsonObjectSchema.default({}),
+  aiProvenance: BoundedJsonObjectSchema.optional()
+});
+
+export type AppendContentVersionInput = z.infer<typeof AppendContentVersionSchema>;
+
+export class ContentNotFoundError extends Error {}
+
+export async function appendContentVersion(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  input: AppendContentVersionInput
+) {
+  const itemResult = await client.query(
+    `select id, workspace_id, objective, market, language, platform_target, source_type,
+            status, created_by, created_at
+       from growth.content_items
+      where workspace_id = $1
+        and id = $2
+      for update`,
+    [principal.workspaceId, input.contentItemId]
+  );
+  if (!itemResult.rowCount) throw new ContentNotFoundError("content_not_found");
+
+  const versionResult = await client.query(
+    `insert into growth.content_versions
+       (id, workspace_id, content_item_id, version_no, body, structure_json, ai_provenance, checksum)
+     select $1, $2, $3, coalesce(max(version_no), 0) + 1, $4, $5::jsonb, $6::jsonb, $7
+       from growth.content_versions
+      where workspace_id = $2
+        and content_item_id = $3
+     returning id, workspace_id, content_item_id, version_no, body, structure_json,
+               ai_provenance, checksum, created_at`,
+    [
+      randomUUID(),
+      principal.workspaceId,
+      input.contentItemId,
+      input.body,
+      JSON.stringify(input.structure),
+      input.aiProvenance ? JSON.stringify(input.aiProvenance) : null,
+      contentChecksum(input.body, input.structure)
+    ]
+  );
+
+  return { item: itemResult.rows[0], version: versionResult.rows[0] };
+}
+
 export function contentChecksum(body: string, structure: Record<string, unknown>): string {
   const canonicalPayload = JSON.stringify(canonicalize({ body, structure }));
   return createHash("sha256").update(canonicalPayload).digest("hex");

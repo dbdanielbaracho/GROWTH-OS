@@ -366,6 +366,30 @@ export async function createWorkspace(input: {
 }
 
 
+export type ContentListItem = {
+  id: string;
+  objective: string | null;
+  market: string;
+  language: string;
+  platform_target: string | null;
+  source_type: string;
+  status: string;
+  created_by: string | null;
+  created_at: string;
+  current_version_id: string | null;
+  version_no: number | null;
+  body: string | null;
+  structure_json: Record<string, unknown> | null;
+  ai_provenance: Record<string, unknown> | null;
+  checksum: string | null;
+  version_created_at: string | null;
+};
+
+type ContentListResponse = {
+  status: "ok";
+  content: ContentListItem[];
+};
+
 export async function createContent(input: {
   objective?: string;
   market: string;
@@ -379,6 +403,27 @@ export async function createContent(input: {
   return requestJson<ContentCreateResponse>("/v1/content", {
     method: "POST",
     body: input
+  });
+}
+
+export async function fetchContent(): Promise<ContentListItem[]> {
+  const response = await requestJson<ContentListResponse>("/v1/content");
+  return response.content;
+}
+
+export async function appendContentVersion(input: {
+  contentItemId: string;
+  body: string;
+  structure?: Record<string, unknown>;
+  aiProvenance?: Record<string, unknown>;
+}): Promise<ContentCreateResponse> {
+  return requestJson<ContentCreateResponse>(`/v1/content/${encodeURIComponent(input.contentItemId)}/versions`, {
+    method: "POST",
+    body: {
+      body: input.body,
+      structure: input.structure,
+      aiProvenance: input.aiProvenance
+    }
   });
 }
 

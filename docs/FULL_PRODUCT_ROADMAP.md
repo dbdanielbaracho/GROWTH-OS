@@ -444,3 +444,12 @@ Pendente para este slice: CI no SHA exato, merge, deploy canônico, smoke test e
 O primeiro fluxo autenticado de CREATE foi integrado pelo PR #62 e publicado no serviço canônico. O CI passou nos runs #400 e #401 no SHA exato `edb64a60c73d2abd01c0afa231aca535952cfddb`; o merge criou o commit `349559a10b18743993da70f672d6c41c0a64bdd2`; o deployment Railway `382ee1c8-7888-4ead-bd7c-dd7f587779d6` terminou em SUCCESS.
 
 O smoke test comprovou health, system, entrega do shell com `content-authoring-root` e proteção de `/v1/content` sem sessão. O estado não autoriza afirmar criação autenticada no navegador nem conclusão da Phase 4. O próximo gate operacional desta jornada é validar com sessão real; depois a execução continua para versionamento/edição, aprovação, publicação e demais fases do roadmap.
+
+
+## Addendum — Phase 4: biblioteca e versionamento de rascunhos — 2026-09-08
+
+O CREATE agora avança de gravação isolada para retomada de trabalho: o painel lista rascunhos do workspace e permite carregar um item para salvar uma nova versão sem sobrescrever a anterior.
+
+A nova rota autenticada `POST /v1/content/:id/versions` usa o contrato existente, isolamento por workspace e lock da linha do conteúdo. Cada edição gera novo `version_no` e checksum. O fluxo segue fail-closed: continua sem publicação automática e sem dados sintéticos.
+
+Este bloco ainda não congela a Phase 4. Permanecem pendentes aprovação, edição completa de metadados, geração assistida com proveniência, publicação, reconciliação e os gates das fases seguintes.

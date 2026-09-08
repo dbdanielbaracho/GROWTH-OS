@@ -1,22 +1,38 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createContent, fetchAuthSession, RadarApiError } from "./api.js";
+import {
+  appendContentVersion,
+  ContentListItem,
+  createContent,
+  fetchAuthSession,
+  fetchContent,
+  RadarApiError
+} from "./api.js";
 import "./content-authoring.css";
 
 function contentError(error: unknown): string {
   if (error instanceof RadarApiError) {
     if (error.httpStatus === 401) return "Your Growth OS session expired. Sign in again.";
     if (error.httpStatus === 403) return "This workspace is not allowed to create content.";
+    if (error.httpStatus === 404) return "That draft is no longer available in this workspace.";
     if (error.httpStatus === 400) return "Complete the required content fields before saving.";
   }
   return "The draft could not be saved. No content was published.";
+}
+
+function shortBody(body: string | null): string {
+  const normalized = body?.replace(/\s+/g, " ").trim() ?? "";
+  return normalized.length > 96 ? `${normalized.slice(0, 96)}…` : normalized || "Empty draft";
 }
 
 function ContentAuthoringPanel() {
   const [authenticated, setAuthenticated] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [drafts, setDrafts] = useState<ContentListItem[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [market, setMarket] = useState("US");
   const [language, setLanguage] = useState("en-US");
   const [platform, setPlatform] = useState("Instagram");
@@ -24,18 +40,31 @@ function ContentAuthoringPanel() {
   const [body, setBody] = useState("");
   const [message, setMessage] = useState<string | null>(null);
 
+  const loadDrafts = useCallback(async () => {
+    setLoadingDrafts(true);
+    try {
+      setDrafts(await fetchContent());
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
+    } finally {
+      setLoadingDrafts(false);
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
       await fetchAuthSession();
       setAuthenticated(true);
+      await loadDrafts();
     } catch (error) {
       if (error instanceof RadarApiError && error.httpStatus === 401) {
         setAuthenticated(false);
+        setDrafts([]);
       }
     } finally {
       setChecking(false);
     }
-  }, []);
+  }, [loadDrafts]);
 
   useEffect(() => {
     void refresh();
@@ -44,24 +73,49 @@ function ContentAuthoringPanel() {
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
+  useEffect(() => {
+    const onContentRefresh = () => void loadDrafts();
+    window.addEventListener("growth-os:content-refresh", onContentRefresh);
+    return () => window.removeEventListener("growth-os:content-refresh", onContentRefresh);
+  }, [loadDrafts]);
+
+  function startNewDraft() {
+    setEditingId(null);
+    setObjective("");
+    setBody("");
+    setMessage(null);
+  }
+
+  function editDraft(draft: ContentListItem) {
+    setEditingId(draft.id);
+    setObjective(draft.objective ?? "");
+    setMarket(draft.market);
+    setLanguage(draft.language);
+    setPlatform(draft.platform_target ?? "Instagram");
+    setBody(draft.body ?? "");
+    setMessage(null);
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
     setMessage(null);
     try {
-      const result = await createContent({
-        objective: objective.trim() || undefined,
-        market,
-        language,
-        platformTarget: platform,
-        sourceType: "manual",
-        body,
-        structure: { format: "plain_text", editor: "growth-os-content-authoring-v1" }
-      });
-      setMessage(`Draft saved · version ${result.version.version_no} · checksum ${result.version.checksum.slice(0, 12)}…`);
-      setBody("");
-      setObjective("");
-      window.dispatchEvent(new CustomEvent("growth-os:content-refresh"));
+      const structure = { format: "plain_text", editor: "growth-os-content-authoring-v1" };
+      const result = editingId
+        ? await appendContentVersion({ contentItemId: editingId, body, structure })
+        : await createContent({
+            objective: objective.trim() || undefined,
+            market,
+            language,
+            platformTarget: platform,
+            sourceType: "manual",
+            body,
+            structure
+          });
+      setMessage(`${editingId ? "Draft version saved" : "Draft saved"} · version ${result.version.version_no} · checksum ${result.version.checksum.slice(0, 12)}…`);
+      startNewDraft();
+      await loadDrafts();
     } catch (error) {
       if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
       setMessage(contentError(error));
@@ -82,9 +136,30 @@ function ContentAuthoringPanel() {
 
       {expanded && (
         <div className="content-panel-body">
-          <p className="content-kicker">Create from evidence</p>
-          <h2>Start a draft</h2>
+          <div className="content-draft-header">
+            <div>
+              <p className="content-kicker">Create from evidence</p>
+              <h2>{editingId ? "Edit this draft" : "Start a draft"}</h2>
+            </div>
+            {editingId && <button className="content-secondary" type="button" onClick={startNewDraft}>New draft</button>}
+          </div>
           <p className="content-copy">Write and save an auditable draft before any approval or publishing step. Nothing is published from this panel.</p>
+
+          <div className="content-draft-list">
+            <div className="content-list-heading"><span>Saved drafts</span><small>{drafts.length}</small></div>
+            {loadingDrafts && <p className="content-list-empty">Loading drafts…</p>}
+            {!loadingDrafts && drafts.length === 0 && <p className="content-list-empty">No drafts saved in this workspace yet.</p>}
+            {!loadingDrafts && drafts.slice(0, 5).map((draft) => (
+              <div className={`content-draft-row${editingId === draft.id ? " selected" : ""}`} key={draft.id}>
+                <div>
+                  <strong>{draft.objective || "Untitled draft"}</strong>
+                  <small>{draft.platform_target || "Unassigned"} · v{draft.version_no ?? "—"}</small>
+                  <p>{shortBody(draft.body)}</p>
+                </div>
+                <button className="content-secondary" type="button" onClick={() => editDraft(draft)}>Edit</button>
+              </div>
+            ))}
+          </div>
 
           <form className="content-form" onSubmit={submit}>
             <label>
@@ -106,9 +181,9 @@ function ContentAuthoringPanel() {
               <span>Draft text</span>
               <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={100000} required rows={6} placeholder="Add the first version of the idea or copy…" />
             </label>
-            {message && <div className={message.startsWith("Draft saved") ? "content-notice" : "content-error"} role="status">{message}</div>}
+            {message && <div className={message.startsWith("Draft") ? "content-notice" : "content-error"} role="status">{message}</div>}
             <button className="content-primary" type="submit" disabled={saving || body.trim().length === 0}>
-              {saving ? "Saving draft…" : "Save draft"}
+              {saving ? "Saving draft…" : editingId ? "Save new version" : "Save draft"}
             </button>
           </form>
         </div>

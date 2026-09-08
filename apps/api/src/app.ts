@@ -6,7 +6,7 @@ import { resolvePrincipal, type AuthPrincipal } from "./auth.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
 import { getOpportunityDetail, listInsights, listOpportunities } from "./intelligence.js";
-import { CreateContentSchema, createContent, listContent } from "./content.js";
+import { AppendContentVersionSchema, ContentNotFoundError, CreateContentSchema, appendContentVersion, createContent, listContent } from "./content.js";
 import {
   CreateCreativeRequestSchema, createCreativeRequest,
   CreateCreativeGenerationSchema, createCreativeGeneration,
@@ -348,6 +348,31 @@ export function buildApp(logger = false) {
       );
       return reply.code(201).send({ status: "created", ...created });
     } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/content/:id/versions", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = AppendContentVersionSchema.safeParse({
+      ...(request.body as Record<string, unknown>),
+      contentItemId: (request.params as { id: string }).id
+    });
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const created = await withTenantTransaction(principal, (client) =>
+        appendContentVersion(client, principal, parsed.data)
+      );
+      return reply.code(201).send({ status: "created", ...created });
+    } catch (error) {
+      if (error instanceof ContentNotFoundError) {
+        return reply.code(404).send({ status: "not_found" });
+      }
       app.log.error(error);
       const mapped = databaseStatus(error);
       return reply.code(mapped.code).send({ status: mapped.status });
