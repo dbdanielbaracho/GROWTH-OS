@@ -629,7 +629,7 @@ export type MetricAnalyticsSummary = {
   fresh_observations: number;
 };
 
-type MetricAnalyticsResponse = {
+export type MetricAnalyticsResponse = {
   status: "ok";
   from: string;
   to: string;
