@@ -3375,3 +3375,8 @@ Foi implementada a migration forward-only 024 na branch feat/publication-intent-
 Replays idênticos devolvem a intenção já finalizada; replays com divergência factual são rejeitados. Confirmed exige provider_content_id. O helper mantém tenant isolation e app_runtime sem acesso direto às tabelas de publicação. O gate SQL 041 e o workflow foram adicionados.
 
 Este é somente um candidato de implementação: não há chamada de provedor neste bloco e a migration ainda aguarda CI, merge, aplicação/consulta no Postgres canônico e deploy. A migration 023 continua sem confirmação em produção por bloqueio do Railway registrado no addendum anterior.
+
+
+### Correção do CI #465 — gate 041 — 2026-09-08
+
+O primeiro CI do PR #74 falhou somente no gate 041 por ambiguidade de variável no SQL do teste: workspace_id=workspace_id não qualificava a coluna. A inspeção da tabela também estava posicionada sob app_runtime, que corretamente não possui SELECT direto em publication_attempts. O teste foi corrigido para qualificar pa.workspace_id, retornar ao papel growth_test_harness para a inspeção e voltar a app_runtime para validar o replay pelo helper. A migration 024 permaneceu inalterada; nenhuma produção foi afetada.
