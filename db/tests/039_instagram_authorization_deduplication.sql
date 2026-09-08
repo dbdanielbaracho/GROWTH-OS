@@ -4,7 +4,8 @@
 
 BEGIN;
 
-DO $$
+DO $
+<<test_case>>
 DECLARE
   status_oid oid;
   begin_oid oid;
@@ -174,10 +175,10 @@ BEGIN
              AND error_class='instagram_authorization_superseded'
          )
     INTO total_count, authorizing_count, superseded_count
-  FROM growth.platform_connections
-  WHERE workspace_id=workspace_id
-    AND managed_account_id=managed_id
-    AND platform='instagram';
+  FROM growth.platform_connections pc
+  WHERE pc.workspace_id=test_case.workspace_id
+    AND pc.managed_account_id=test_case.managed_id
+    AND pc.platform='instagram';
 
   IF total_count <> 3 OR authorizing_count <> 1 OR superseded_count <> 1 THEN
     RAISE EXCEPTION
