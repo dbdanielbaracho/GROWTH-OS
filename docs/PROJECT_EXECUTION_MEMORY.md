@@ -3541,3 +3541,19 @@ O gate 042 prova owner `growth_migrator`, `SECURITY DEFINER`, execução para `a
 - Merge: commit `8d38ac68ac8f174913eb8e6a00114941541619ab`.
 - Ambiente: validação somente no CI/banco isolado; produção não foi alterada nem considerada comprovada.
 - Limite: a rota é execução autenticada sob demanda, não ainda um scheduler/worker autônomo. Faltam seleção de fila, retry durável, dead-letter, reconciliação, cancelamento, notificações, deploy e prova com contas reais. O bloqueio Railway `You don't have the required role (viewer) on this resource.` continua impedindo a confirmação das migrations 023–026 em produção.
+
+
+## Registro de execução — PR #90 — 2026-09-08
+
+- Branch: `feat/publication-retry-scheduling`.
+- PR: #90.
+- Migration: `027_publication_retry_scheduling.sql`.
+- Gate: `044_publication_retry_scheduling.sql`.
+- Resultado: `retry_count`, `last_error_class`, índice de vencimento e helper `growth.schedule_publication_retry(uuid,uuid,integer,timestamptz,text)`; somente `failed_retryable` pode ser reagendado, com backoff persistido e limite de cinco ciclos antes de `needs_user_action`.
+- Código: política determinística de 60s, 120s, 240s, 480s e 960s, limitada a 30 minutos; o worker finaliza a evidência antes de solicitar o retry.
+- CI #590: falhou no typecheck por narrowing de fixture; a migration/gate ainda não haviam rodado.
+- CI #592: typecheck/build/migrations/gates passaram, mas o teste esperava 1600000ms para 2⁴×60s; o valor correto é 960000ms.
+- CI #594: SUCCESS no SHA `583eae10d406e5bc815437912adbde613f0c4e07`.
+- Merge: `1e0bbd392833421a877e0d76dd95cd2d166e40aa`.
+- Produção: não alterada; migrations 023–027 continuam sem confirmação no Postgres canônico devido ao bloqueio Railway `You don't have the required role (viewer) on this resource.`.
+- Próximo limite: reconciliação de resultados ambíguos, cancelamento seguro e seleção/agenda de fila. Ainda não há publicação real comprovada.
