@@ -89,6 +89,7 @@ jobs:
             END IF;
           END
           $$;
+          GRANT growth_worker TO growth_test_harness;
           GRANT CONNECT, CREATE ON DATABASE growth_os_ci TO growth_migrator;
           CREATE EXTENSION IF NOT EXISTS pgcrypto;
           SQL
