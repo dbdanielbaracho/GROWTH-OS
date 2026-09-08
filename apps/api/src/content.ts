@@ -54,6 +54,11 @@ export const AppendContentVersionSchema = z.object({
 
 export type AppendContentVersionInput = z.infer<typeof AppendContentVersionSchema>;
 
+export function contentChecksum(body: string, structure: Record<string, unknown>): string {
+  const canonicalPayload = JSON.stringify(canonicalize({ body, structure }));
+  return createHash("sha256").update(canonicalPayload).digest("hex");
+}
+
 export class ContentNotFoundError extends Error {}
 
 export async function appendContentVersion(
