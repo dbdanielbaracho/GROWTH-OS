@@ -34,7 +34,7 @@ import {
 } from "./identity-adapter.js";
 import { z } from "zod";
 import { registerIdentityRoutes } from "./identity-routes.js";
-import { CreatePublicationIntentSchema, PublicationReconciliationSchema, cancelPublicationIntent, createPublicationIntent, recordPublicationReconciliation } from "./publishing.js";
+import { CreatePublicationIntentSchema, PublicationReconciliationSchema, cancelPublicationIntent, createPublicationIntent, listPublicationIntents, recordPublicationReconciliation } from "./publishing.js";
 import { createDatabasePublicationExecutionStore } from "./publication-store.js";
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
 import { executePublicationIntent } from "./publication-worker.js";
@@ -431,6 +431,22 @@ export function buildApp(logger = false) {
       if (error instanceof ContentVersionNotFoundError) {
         return reply.code(404).send({ status: "not_found" });
       }
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/publication-intents", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const publicationIntents = await withTenantTransaction(principal, (client) =>
+        listPublicationIntents(client, principal)
+      );
+      return { status: "ok", publicationIntents };
+    } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
       return reply.code(mapped.code).send({ status: mapped.status });
