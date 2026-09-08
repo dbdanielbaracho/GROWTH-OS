@@ -3137,3 +3137,38 @@ A duplicidade de cartões Instagram está resolvida em produção: código merge
 O projeto ainda não está concluído como produto completo. O próximo gate é conectar um canal YouTube real e validar o fluxo autorizado de dados reais; depois, continuar a cadeia observações -> sinais factuais -> evidências/insights -> oportunidades ranqueadas -> Radar. Enquanto não houver evidência suficiente, o sistema deve permanecer em no-op verdadeiro.
 
 Nenhum segredo, token ou credencial foi registrado neste documento.
+
+
+## Próxima etapa — início da autorização real do YouTube — 2026-09-08
+
+- Após o fechamento da deduplicação Instagram, o botão **Connect YouTube** foi acionado na URL pública `https://growos.predibeacon.com/`.
+- O Growth OS iniciou o OAuth com o callback canônico `/v1/integrations/youtube/callback` e escopos somente leitura para YouTube e YouTube Analytics.
+- O Google selecionou a conta `dbdanielbaracho@gmail.com` e exibiu a etapa **Verify it’s you**, solicitando código enviado por SMS.
+- Nenhuma senha, código MFA, token ou segredo foi enviado ao chat ou registrado neste documento.
+- Estado atual: aguardando a verificação direta do usuário na tela do Google. Após a confirmação, será validada a autorização, o canal real, o primeiro sync e a proveniência dos dados.
+
+
+## Bloqueio encontrado no OAuth YouTube — 2026-09-08
+
+- Ao reiniciar a autorização YouTube, o Google retornou `Error 403: access_denied`.
+- A mensagem informa: `predibeacon.com has not completed the Google verification process` e que o app está em teste e só pode ser acessado por usuários de teste aprovados.
+- Diagnóstico: o projeto OAuth está configurado como aplicativo externo em modo de teste, mas `dbdanielbaracho@gmail.com` ainda não está confirmado na lista **Test users** do projeto Google Cloud correto.
+- A correção de teste é adicionar esse e-mail em **Google Auth Platform → Audience → Test users** (ou **APIs & Services → OAuth consent screen → Test users**, conforme a interface exibida), salvar e repetir a autorização.
+- Não é necessário publicar o app nem iniciar a verificação pública para este teste interno do projeto.
+- Nenhuma senha, código MFA, Client Secret ou token foi registrado.
+
+## Primeiro sync real do YouTube e aplicação da migration 015 — 2026-09-08
+
+- Depois que o OAuth foi concluído, a conta `@dbdanielbaracho` apareceu como `Connected / Live` no serviço público.
+- A primeira tentativa de **Sync last 7 days** retornou HTTP 500. A leitura dos logs do serviço canônico identificou a causa exata: `function growth.recompute_youtube_growth_intelligence(unknown) does not exist`.
+- A função pertence à migration versionada `db/migrations/015_youtube_growth_intelligence.sql`, já aprovada no fluxo de CI do repositório, mas ausente no banco de produção.
+- A migration 015 foi aplicada de forma controlada no banco canônico pelo serviço `migrator`, a partir do SHA fixo `1569e90d0b5330cbb85ab1ee50c2630652483fc7`.
+- O deployment de aplicação foi `b298d32a-6c82-4ce0-bff1-4c6fb490c17b`, SUCCESS. Os logs confirmaram `APPLYING_015`, `CREATE FUNCTION`, `ALTER FUNCTION`, `REVOKE`, `GRANT`, `COMMIT` e `APPLIED_015`.
+- O comando temporário do migrador foi removido e o comando original foi restaurado no deployment `4c8355c7-26cc-418d-9fe2-ffa19dda724e`, SUCCESS.
+- Após a correção, a nova chamada real de sincronização retornou HTTP 200 no endpoint `/v1/integrations/youtube/sync`.
+- A interface informou: `0 real observations processed`, `0 provider rows`, `through no returned day` e `Not enough complete observations for a factual opportunity yet.`
+- Interpretação: o caminho técnico está funcionando, mas o YouTube não retornou linhas diárias completas para os últimos 7 dias. O sistema permaneceu corretamente em no-op e não inventou sinal, insight ou oportunidade.
+- `Derived analytics` continua `Disabled` por política fail-closed; isso não representa falha de conexão nem de autorização.
+- O próximo gate ainda é obter observações reais completas suficientes e repetir o sync; somente então será possível comprovar a cadeia observação → sinal factual → evidência/insight → oportunidade → Radar.
+- Nenhum segredo, token, código MFA ou credencial foi registrado.
+
