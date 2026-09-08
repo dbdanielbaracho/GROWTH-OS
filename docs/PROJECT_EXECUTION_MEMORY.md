@@ -3385,3 +3385,8 @@ O primeiro CI do PR #74 falhou somente no gate 041 por ambiguidade de variável 
 ### Correção do CI #469 — gate 041 — 2026-09-08
 
 O segundo CI falhou porque a correção anterior qualificou pa.workspace_id, mas o alias pa não havia sido declarado no FROM. O teste foi corrigido para declarar explicitamente FROM growth.publication_attempts pa. A migration 024 continua inalterada e a produção permanece sem alteração.
+
+
+### Correção do CI #474 — gate 041 — 2026-09-08
+
+O terceiro CI falhou porque o teste usava test_case.workspace_id para desambiguar a variável PL/pgSQL, mas o bloco DO não tinha o rótulo <<test_case>>. O rótulo foi adicionado. A migration 024 permaneceu inalterada e nenhuma produção foi afetada.
