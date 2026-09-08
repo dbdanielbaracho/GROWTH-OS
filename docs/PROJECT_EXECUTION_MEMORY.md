@@ -3088,3 +3088,52 @@ A correção agora tem evidência estrutural e comportamental, mas ainda precisa
 - O próximo gate obrigatório é Claude retornar formal `APPROVE` para o SHA exato `0469de7b819ed88c291fcaf729e9bc568fc2191e`.
 - Após aprovação: conferir SHA novamente, retirar o draft, fazer merge, aplicar/deployar controladamente e confirmar no navegador do usuário que resta um único cartão Instagram.
 
+
+
+## Fechamento operacional — PR #56, migration 021 e validação pós-produção — 2026-09-08
+
+### Aprovação e entrega do código
+
+- O usuário forneceu a revisão adversarial do Claude para o SHA exato `0469de7b819ed88c291fcaf729e9bc568fc2191e`.
+- O veredito recebido foi `APPROVE`, sem falhas funcionais, de segurança, concorrência, migration ou compatibilidade.
+- A aprovação foi registrada como comentário na PR #56; não foi apresentada como review formal do GitHub.
+- A PR #56 foi marcada como pronta e mergeada com verificação do head esperado.
+- Merge commit: `dad1aa929194c7c4968f61218be1774dc6f3f8a6`.
+- O deployment do serviço canônico `growth-os` foi `09b44b00-1550-472e-8e7b-2fb10e186ef1`, SUCCESS, com servidor ouvindo na porta 8080 e healthcheck `/health/ready` HTTP 200.
+
+### Falha encontrada na primeira validação pós-deploy
+
+A primeira abertura da tela real ainda mostrou duas linhas `authorizing`. A investigação confirmou que o código da PR já consultava `growth.instagram_integration_status()`, mas a migration 021 não havia sido aplicada no banco de produção. O README do banco confirma que migrations são operações explícitas e não rodam automaticamente no boot da API.
+
+Duas tentativas iniciais de redeploy do serviço migrador reutilizaram um snapshot antigo; os logs exibiram o comando anterior e não foram tratados como sucesso. Essa falha operacional foi registrada antes de qualquer conclusão.
+
+### Aplicação controlada da migration 021
+
+- Foi usado o serviço Railway `migrator` já existente no ambiente canônico; nenhum banco novo foi criado e o Postgres não foi exposto publicamente.
+- A migration foi baixada do SHA fixo `0469de7b819ed88c291fcaf729e9bc568fc2191e`.
+- Foi aplicado somente `db/migrations/021_instagram_authorization_deduplication.sql` com `ON_ERROR_STOP=1`.
+- O deployment correto foi `3bea58c0-ac87-4694-8b20-507d38e32dd0`, SUCCESS.
+- Os logs confirmaram `CREATE FUNCTION`, `ALTER FUNCTION`, `REVOKE`, `GRANT`, `COMMIT` e `APPLIED_021`.
+- O comando do migrador foi restaurado no deployment `e254b46c-889a-471e-9c05-1aa91d98ab49`, SUCCESS.
+- As alterações operacionais `MIGRATION_RUN_ID` e `STARTCOMMAND_RESTORED_AT` não contêm credenciais nem tokens.
+
+### Validação funcional real após a migration
+
+Após recarregar `https://growos.predibeacon.com/` na sessão autenticada:
+
+- a tela passou a mostrar exatamente um cartão Instagram;
+- o cartão exibiu `dbdanielbaracho`, `connected`, `Live` e conta `BUSINESS`;
+- `Sync media & metrics`, `Refresh token` e `Revoke locally` permaneceram disponíveis;
+- o cartão duplicado `authorizing` desapareceu da projeção;
+- o YouTube respondeu HTTP 200, mas continua `Not connected`, conforme esperado porque a autorização YouTube ainda não foi feita;
+- o Radar exibiu zero oportunidades e `Waiting for a real signal`, sem criar sinal sintético.
+
+Os logs HTTP do serviço canônico confirmaram consultas autenticadas com HTTP 200 para `/v1/integrations/instagram/status` e `/v1/integrations/youtube/status` após a aplicação.
+
+### Estado e próximo gate
+
+A duplicidade de cartões Instagram está resolvida em produção: código mergeado, migration aplicada e tela real confirmada com uma única conta visível. A sincronização Instagram anterior continua registrada como `2 media / 4 metrics`.
+
+O projeto ainda não está concluído como produto completo. O próximo gate é conectar um canal YouTube real e validar o fluxo autorizado de dados reais; depois, continuar a cadeia observações -> sinais factuais -> evidências/insights -> oportunidades ranqueadas -> Radar. Enquanto não houver evidência suficiente, o sistema deve permanecer em no-op verdadeiro.
+
+Nenhum segredo, token ou credencial foi registrado neste documento.
