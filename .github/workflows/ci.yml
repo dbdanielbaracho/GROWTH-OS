@@ -72,6 +72,11 @@ jobs:
             ELSE
               ALTER ROLE app_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'app_runtime';
             END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_worker') THEN
+              CREATE ROLE growth_worker LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+            ELSE
+              ALTER ROLE growth_worker LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+            END IF;
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_rls_helper') THEN
               CREATE ROLE growth_rls_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
             ELSE
