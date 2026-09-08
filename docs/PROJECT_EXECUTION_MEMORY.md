@@ -3461,3 +3461,10 @@ Nenhum banco, segredo, OAuth ou serviço Railway foi alterado. Este bloco ainda 
 O CI #517 falhou no typecheck porque os builders declaravam tipos de saída de Zod como tipos de entrada; campos com `default` continuavam obrigatórios para o TypeScript, embora fossem opcionais em runtime. A correção usa `z.input` nos tipos de entrada e mantém `parse` para aplicar os defaults.
 
 A alteração foi limitada ao contrato dos builders e documentada. Nenhuma chamada externa, alteração de banco, segredo, OAuth ou Railway ocorreu.
+
+
+## Addendum — PR #79 integrado; builders de provedor e bloqueio Railway — 2026-09-08
+
+O PR #79 foi integrado por squash no commit `182353c179ca9f7a004e56a52052305e2bacbec3` após o CI #522 passar no SHA `2a5dc17a959fcc45ff394313d2eb04fe6f316d76`. O bloco implementa requests controlados para Instagram e YouTube, com assets HTTPS, tokens fora de URL/corpo e YouTube privado por padrão.
+
+Os builders não executam chamadas externas. O Railway canônico continua bloqueado por falta do papel viewer/member; migrations 023–024 e o worker operacional ainda não podem ser confirmados em produção. Nenhum segredo, OAuth ou banco foi alterado.
