@@ -3229,3 +3229,19 @@ Esta entrega continua a execução do escopo original do Growth OS e transforma 
 - Nenhuma migration foi criada porque o contrato e as tabelas necessárias já existiam no backend.
 - Nenhuma credencial, OAuth, dado de produção ou publicação real foi alterado nesta etapa.
 - Pendente: CI no SHA final, revisão dos gates, merge, deploy canônico, smoke test e validação autenticada da jornada. O produto continua incompleto até as fases finais do roadmap.
+
+
+## Addendum — PR #62 integrado e validado em produção — 2026-09-08
+
+- O PR #62, `feat: expose authenticated content authoring flow`, foi validado no SHA `edb64a60c73d2abd01c0afa231aca535952cfddb`.
+- Os runs de CI #400 e #401 terminaram `SUCCESS` no SHA exato.
+- O PR foi mergeado por squash no commit `349559a10b18743993da70f672d6c41c0a64bdd2`.
+- O deploy canônico do serviço `growth-os` no Railway foi `382ee1c8-7888-4ead-bd7c-dd7f587779d6`, status `SUCCESS`, com snapshot válido.
+- Smoke test em `https://growos.predibeacon.com/`:
+  - `GET /health/ready` → HTTP 200, `status=ready`, `database=ok`;
+  - `GET /` → HTTP 200 e HTML contendo `content-authoring-root`;
+  - `GET /v1/system` → HTTP 200;
+  - `GET /v1/auth/session` sem sessão → HTTP 401;
+  - `GET /v1/content` sem sessão → HTTP 401.
+- A fronteira pública/protegida está consistente. A confirmação da jornada de criação com sessão autenticada permanece pendente de navegador autenticado; não foi inferida pelo smoke público.
+- O bloco CREATE está publicado, mas o projeto completo continua incompleto: publicação, reconciliação, analytics, inteligência, experimentos, automação, comercial/enterprise e hardening ainda exigem execução e gates próprios.

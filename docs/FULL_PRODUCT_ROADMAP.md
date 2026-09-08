@@ -437,3 +437,10 @@ A interface principal agora expõe um painel autenticado de Content Authoring qu
 Esta entrega avança a Phase 4 de fundação de API para a primeira jornada de usuário de CREATE, mas não congela a fase. Ainda faltam, entre outros itens, edição/versionamento completo, geração assistida com proveniência, aprovação, calendário, publicação segura, reconciliação, analytics, experimentos e os gates das demais fases do produto.
 
 Pendente para este slice: CI no SHA exato, merge, deploy canônico, smoke test e validação autenticada de produção. O estado vazio continua sendo verdadeiro; nenhum dado sintético foi introduzido.
+
+
+## Addendum — Phase 4: CREATE publicado no produto — 2026-09-08
+
+O primeiro fluxo autenticado de CREATE foi integrado pelo PR #62 e publicado no serviço canônico. O CI passou nos runs #400 e #401 no SHA exato `edb64a60c73d2abd01c0afa231aca535952cfddb`; o merge criou o commit `349559a10b18743993da70f672d6c41c0a64bdd2`; o deployment Railway `382ee1c8-7888-4ead-bd7c-dd7f587779d6` terminou em SUCCESS.
+
+O smoke test comprovou health, system, entrega do shell com `content-authoring-root` e proteção de `/v1/content` sem sessão. O estado não autoriza afirmar criação autenticada no navegador nem conclusão da Phase 4. O próximo gate operacional desta jornada é validar com sessão real; depois a execução continua para versionamento/edição, aprovação, publicação e demais fases do roadmap.
