@@ -313,3 +313,39 @@
 .youtube-intelligence-muted {
   color: #aaa99e;
 }
+
+
+/* Evidence-window control — v0.1 */
+.youtube-sync-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.youtube-window-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.youtube-window-button {
+  border: 1px solid #3b3c35;
+  border-radius: 2px;
+  background: #1a1b18;
+  color: #aaa99e;
+  padding: 8px 10px;
+  font-size: .72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.youtube-window-button[aria-pressed="true"] {
+  border-color: #bd9241;
+  background: rgba(213, 168, 79, .18);
+  color: #f0c96e;
+}
+
+.youtube-window-button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
