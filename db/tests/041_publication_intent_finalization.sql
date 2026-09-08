@@ -149,7 +149,7 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO attempt_count
-  FROM growth.publication_attempts
+  FROM growth.publication_attempts pa
   WHERE pa.workspace_id=test_case.workspace_id
     AND pa.publication_intent_id=v_intent.id;
 
