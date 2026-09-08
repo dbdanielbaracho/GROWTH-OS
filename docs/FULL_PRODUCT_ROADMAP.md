@@ -664,3 +664,12 @@ PR #86 foi integrado no commit `b90170917766446307303b04c5d5d61721eaa1db`, após
 O histórico de validação foi preservado: CI #559 falhou por uma edição automática que quebrou a linha da regex em `config.ts` (TS1005); o arquivo foi restaurado integralmente. CI #561 passou typecheck, build e gates, mas encontrou uma asserção de teste incorreta que usava credencial inválida antes de testar a allowlist; o fixture foi corrigido para usar envelope cifrado válido. O CI #565 então passou com 42/42 testes.
 
 Limites: este bloco ainda não constitui publicação real em produção. O worker operacional ainda precisa ser ligado ao store de banco, as migrations 023–026 continuam sem confirmação no Postgres canônico enquanto o Railway exigir o papel `viewer`, e ainda faltam fila/agenda, retry durável, reconciliação, cancelamento, notificações e prova com contas reais. Phase 5 permanece In Progress, não Frozen.
+
+
+## Addendum — Phase 5: execução autenticada da intenção — 2026-09-08
+
+PR #88 foi integrado no commit `8d38ac68ac8f174913eb8e6a00114941541619ab`, após CI #577 SUCCESS no SHA `225a29779ebcc79e93cf933e7516752099659e03`.
+
+A entrega adiciona a rota autenticada `POST /v1/publication-intents/:id/execute`. O caminho faz claim no banco, monta o adapter somente depois de receber o contexto protegido, executa Instagram/YouTube por meio dos adapters já validados e finaliza pelo helper canônico. O worker passou a aceitar uma factory de adapter para impedir construção fora do contexto de claim.
+
+O bloco inclui o primeiro caminho integrado de execução, mas não equivale a publicação real comprovada: migrations 023–026 ainda não têm confirmação no Postgres canônico por bloqueio de permissão Railway; não existe ainda agenda/fila de seleção automática de intenções, retry durável/dead-letter, reconciliação, cancelamento, notificações ou prova com contas reais. Phase 5 permanece In Progress, não Frozen.
