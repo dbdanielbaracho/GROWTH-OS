@@ -426,3 +426,14 @@ O primeiro CI da entrega de janela de evidência encontrou uma incompatibilidade
 O PR #60 foi validado no SHA `537642969f117a551b34a0a80255061c75138fab`, mergeado no commit `ec2fb72d8878312699a07b2a224b823d3f9663ed` e publicado no serviço canônico `growth-os` pelo deployment `adcffef5-684b-410f-980f-484f668b897c`, SUCCESS.
 
 A entrega adiciona a seleção de janela YouTube de 7 ou 30 dias e o controle visual correspondente. O smoke test público passou nos dois domínios canônicos: health e system retornaram 200; os endpoints autenticados retornaram 401 sem sessão. O projeto continua incompleto e a validação visual autenticada do novo controle ainda é parte do próximo teste operacional.
+
+
+## Addendum — Phase 4: primeiro fluxo CREATE utilizável — 2026-09-08
+
+O primeiro slice de CREATE foi implementado na branch `feat/content-authoring-panel`, partindo do commit `6721983d232f67e8239ae3e49d4048f7f32da641`.
+
+A interface principal agora expõe um painel autenticado de Content Authoring que cria rascunhos manuais com objetivo, mercado, idioma, plataforma e texto. O rascunho é persistido pelo contrato existente de `POST /v1/content`, recebe versão e checksum, e não é publicado automaticamente. O painel usa o design editorial preto/dourado do Growth OS e mantém o fluxo dentro da superfície principal.
+
+Esta entrega avança a Phase 4 de fundação de API para a primeira jornada de usuário de CREATE, mas não congela a fase. Ainda faltam, entre outros itens, edição/versionamento completo, geração assistida com proveniência, aprovação, calendário, publicação segura, reconciliação, analytics, experimentos e os gates das demais fases do produto.
+
+Pendente para este slice: CI no SHA exato, merge, deploy canônico, smoke test e validação autenticada de produção. O estado vazio continua sendo verdadeiro; nenhum dado sintético foi introduzido.
