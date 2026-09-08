@@ -7,6 +7,8 @@ import {
   createContent,
   fetchAuthSession,
   fetchContent,
+  fetchPublicationIntents,
+  PublicationIntentListItem,
   RadarApiError,
   requestContentChanges
 } from "./api.js";
@@ -27,14 +29,20 @@ function shortBody(body: string | null): string {
   return normalized.length > 96 ? `${normalized.slice(0, 96)}…` : normalized || "Empty draft";
 }
 
+function publicationLabel(intent: PublicationIntentListItem): string {
+  return intent.status.replace(/_/g, " ");
+}
+
 function ContentAuthoringPanel() {
   const [authenticated, setAuthenticated] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [checking, setChecking] = useState(true);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
+  const [loadingPublications, setLoadingPublications] = useState(false);
   const [saving, setSaving] = useState(false);
   const [decisionBusyId, setDecisionBusyId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<ContentListItem[]>([]);
+  const [publicationIntents, setPublicationIntents] = useState<PublicationIntentListItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [market, setMarket] = useState("US");
   const [language, setLanguage] = useState("en-US");
@@ -54,11 +62,22 @@ function ContentAuthoringPanel() {
     }
   }, []);
 
+  const loadPublications = useCallback(async () => {
+    setLoadingPublications(true);
+    try {
+      setPublicationIntents(await fetchPublicationIntents());
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
+    } finally {
+      setLoadingPublications(false);
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
       await fetchAuthSession();
       setAuthenticated(true);
-      await loadDrafts();
+      await Promise.all([loadDrafts(), loadPublications()]);
     } catch (error) {
       if (error instanceof RadarApiError && error.httpStatus === 401) {
         setAuthenticated(false);
@@ -67,7 +86,7 @@ function ContentAuthoringPanel() {
     } finally {
       setChecking(false);
     }
-  }, [loadDrafts]);
+  }, [loadDrafts, loadPublications]);
 
   useEffect(() => {
     void refresh();
@@ -77,10 +96,10 @@ function ContentAuthoringPanel() {
   }, [refresh]);
 
   useEffect(() => {
-    const onContentRefresh = () => void loadDrafts();
+    const onContentRefresh = () => void Promise.all([loadDrafts(), loadPublications()]);
     window.addEventListener("growth-os:content-refresh", onContentRefresh);
     return () => window.removeEventListener("growth-os:content-refresh", onContentRefresh);
-  }, [loadDrafts]);
+  }, [loadDrafts, loadPublications]);
 
   function startNewDraft() {
     setEditingId(null);
@@ -118,7 +137,7 @@ function ContentAuthoringPanel() {
           });
       setMessage(`${editingId ? "Draft version saved" : "Draft saved"} · version ${result.version.version_no} · checksum ${result.version.checksum.slice(0, 12)}…`);
       startNewDraft();
-      await loadDrafts();
+      await Promise.all([loadDrafts(), loadPublications()]);
     } catch (error) {
       if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
       setMessage(contentError(error));
@@ -139,7 +158,7 @@ function ContentAuthoringPanel() {
         await requestContentChanges(draft.current_version_id);
         setMessage("Changes requested. The item returned to draft.");
       }
-      await loadDrafts();
+      await Promise.all([loadDrafts(), loadPublications()]);
     } catch (error) {
       if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
       setMessage(contentError(error));
@@ -189,6 +208,22 @@ function ContentAuthoringPanel() {
                     </>
                   )}
                 </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="content-draft-list">
+            <div className="content-list-heading"><span>Publishing status</span><small>{publicationIntents.length}</small></div>
+            {loadingPublications && <p className="content-list-empty">Loading publication status…</p>}
+            {!loadingPublications && publicationIntents.length === 0 && <p className="content-list-empty">No publication intents exist in this workspace yet.</p>}
+            {!loadingPublications && publicationIntents.slice(0, 5).map((intent) => (
+              <div className="content-draft-row" key={intent.id}>
+                <div>
+                  <strong>{publicationLabel(intent)}</strong>
+                  <small>Attempt {intent.current_attempt_no ?? "—"} · retry {intent.retry_count}</small>
+                  <p>{intent.provider_content_id ? "Provider content id recorded." : "No provider content id recorded."}</p>
+                </div>
+                <span className="content-status">{publicationLabel(intent)}</span>
               </div>
             ))}
           </div>
