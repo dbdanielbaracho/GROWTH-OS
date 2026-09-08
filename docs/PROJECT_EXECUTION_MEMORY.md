@@ -3628,3 +3628,26 @@ A branch `feat/publication-status-surface` integra o estado de publicação à i
 ### Limites
 
 A implementação é somente de leitura: não publica, não cancela e não cria intenções. Não altera segredos, OAuth ou Railway. O consumidor autônomo da fila, o contexto de principal de serviço durante a execução e a prova em produção continuam pendentes. O Railway canônico segue bloqueado por `You don't have the required role (viewer) on this resource.`.
+
+
+## Registro de execução — PR #96 integrado — 2026-09-08
+
+- PR: #96.
+- Branch: `feat/publication-worker-service-principal`.
+- CI final: #635 SUCCESS no SHA `9dfc3509f8e3cc234dc73cb0ecd26b1d67e4babb`.
+- Merge: `74a83ef909e32f409bd784a20d64902249302de0`.
+- Migration/gate: 030/047.
+- Entrega: principal de serviço explícito, `jobs.service_principal_id`, enqueue idempotente, claim `FOR UPDATE SKIP LOCKED`, lease bounded e papel `growth_worker` sem SELECT direto em `growth.jobs`.
+- Correção registrada: CI #628 falhou no gate porque o harness não tinha EXECUTE; o gate foi ajustado para preparar fixtures com o harness e executar o helper assumindo `growth_worker`. CI #633 bloqueou a ordem do GRANT antes da criação de `growth_test_harness`; a ordem foi corrigida e o CI #635 passou.
+- Limite: ainda não existe consumidor Railway nem contexto de execução por principal de serviço. Produção não foi alterada.
+
+## Registro de execução — PR #97 integrado — 2026-09-08
+
+- PR: #97.
+- Branch: `feat/publication-status-surface`.
+- CI final: #647 SUCCESS no SHA `165cd001e5792a14a770c83a33f790220c57783b`.
+- Merge: `81b3ef7dc3070e6d776d010821df92768c1ffc27`.
+- Migration/gate: 031/048.
+- Entrega: projeção tenant-scoped de status, endpoint autenticado `GET /v1/publication-intents`, cliente web tipado e status no Content Authoring.
+- Limite: leitura somente; não cria/publica/cancela intenções. Ainda faltam consumidor do worker, contexto de principal de serviço e prova no Railway canônico.
+
