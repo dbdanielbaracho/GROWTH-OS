@@ -150,7 +150,23 @@ function ContentAuthoringPanel() {
     const onContentRefresh = () => void Promise.all([loadDrafts(), loadPublications(), loadConnectedAccounts()]);
     window.addEventListener("growth-os:content-refresh", onContentRefresh);
     return () => window.removeEventListener("growth-os:content-refresh", onContentRefresh);
-  }, [loadDrafts, loadPublications]);
+  }, [loadDrafts, loadPublications, loadConnectedAccounts]);
+
+  useEffect(() => {
+    const onCreateDraft = (event: Event) => {
+      const detail = (event as CustomEvent<{ objective?: string; market?: string; platform?: string }>).detail;
+      if (!detail || typeof detail.market !== "string") return;
+      setExpanded(true);
+      setEditingId(null);
+      setObjective(detail.objective ?? `${detail.market} opportunity`);
+      setMarket(detail.market);
+      setPlatform(detail.platform === "YouTube" ? "YouTube" : "Instagram");
+      setBody("");
+      setMessage("Opportunity context loaded. Add the draft text before saving.");
+    };
+    window.addEventListener("growth-os:create-draft", onCreateDraft);
+    return () => window.removeEventListener("growth-os:create-draft", onCreateDraft);
+  }, []);
 
   function startNewDraft() {
     setEditingId(null);
