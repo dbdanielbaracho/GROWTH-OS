@@ -71,8 +71,10 @@ test("composition decrypts the protected credential and invokes Instagram adapte
 
 test("composition fails closed when asset host allowlist is empty", async () => {
   process.env.PUBLICATION_ASSET_HOSTS = "";
+  const workspaceId = "b0000000-0000-4000-8000-000000000001";
+  const connectionId = "c0000000-0000-4000-8000-000000000996";
   const adapter = createPublicationProviderAdapter({
-    workspaceId: "b0000000-0000-4000-8000-000000000001",
+    workspaceId,
     publicationIntentId: "c0000000-0000-4000-8000-000000000992",
     claimToken: "c0000000-0000-4000-8000-000000000993",
     attemptNo: 1,
@@ -82,10 +84,10 @@ test("composition fails closed when asset host allowlist is empty", async () => 
     body: null,
     structure: {},
     assetRefs: ["asset"],
-    connectionId: "c0000000-0000-4000-8000-000000000996",
+    connectionId,
     storageRef: "https://cdn.example.com/post.jpg",
     providerAccountId: "17890000000000000",
-    credentialCiphertext: Buffer.from("invalid")
+    credentialCiphertext: sealCredential("secret-token", "instagram", workspaceId, connectionId)
   });
   await assert.rejects(
     adapter.publish({ claimed: {} as never, requestHash: "hash" }),
