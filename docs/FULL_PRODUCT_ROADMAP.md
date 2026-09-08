@@ -543,3 +543,10 @@ O gate 041 agora declara o rótulo usado para qualificar o workspace do caso de 
 ### Correção após CI #478
 
 O gate 041 passou a validar a persistência do attempt por replay idempotente através do helper, sem ampliar privilégios diretos em tabelas de publicação. O novo SHA aguarda CI completo.
+
+
+## Phase 5 — PR #74 integrado; aplicação em produção pendente
+
+O contrato de finalização auditável foi integrado pelo PR #74 no commit 3cd448f78f758116a130c68d4f441a0af81f7385 após o CI #482 passar no SHA 8275e6ee15811c5b87331520ee795c6f9cb8a628. A migration 024 e o gate 041 estão no repositório principal.
+
+A aplicação de 023–024 no banco canônico permanece pendente por bloqueio de permissão do Railway. Portanto, a Phase 5 não pode ser considerada disponível em produção. O próximo gate é operacional: executar ambas, nesta ordem, pelo migrator canônico e comprovar as funções/colunas diretamente no banco.
