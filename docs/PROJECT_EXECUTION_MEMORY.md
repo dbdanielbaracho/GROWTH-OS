@@ -3277,3 +3277,15 @@ O CI desta branch limpa ainda é obrigatório. Até a integração, a produção
 O CI #421 repetiu a falha de typecheck ao validar a branch limpa: a substituição da função de versionamento removeu a exportação existente `contentChecksum`. O log identificou o teste `content.test.ts` e duas chamadas de `content.ts` afetadas.
 
 A exportação foi restaurada na branch limpa. As falhas #417 e #421 foram de compilação, não chegaram a build/deploy e não alteraram produção. O novo SHA exige CI completo novamente.
+
+
+## Addendum — PR #66 corrigido, publicado e validado — 2026-09-08
+
+- O PR #66 foi validado no SHA `3a4a4009dff4d3b5fcd17e9566063486bcfd796b`; o CI #423 terminou `SUCCESS`.
+- O PR foi mergeado por squash no commit `4aee0d8803378066d6d0154ff51ccc01b55b3e4e`.
+- O deploy canônico Railway `d89d30bc-62ad-4aa4-8384-4a996bf25aab` terminou `SUCCESS`.
+- O healthcheck interno do Railway confirmou `GET /health/ready` com HTTP 200 e banco disponível; o processo iniciou e escutou na porta esperada.
+- A correção publicada usa `growth.content_new_version` e preserva a exportação `contentChecksum`.
+- Os probes externos adicionais via `curl` não puderam ser concluídos nesta sessão porque a autorização de rede do ambiente foi cancelada; esse limite não foi tratado como resultado positivo.
+- O histórico das falhas #417 e #421, do conflito de merge #65 e das correções está registrado acima. Nenhuma dessas falhas chegou a alterar produção.
+- A validação autenticada da jornada CREATE/edição continua pendente de navegador com sessão real. O projeto permanece em execução e não está declarado concluído.
