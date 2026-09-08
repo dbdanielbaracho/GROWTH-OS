@@ -751,3 +751,18 @@ O PR #97 foi validado no CI #647 no SHA `165cd001e5792a14a770c83a33f790220c57783
 A entrega adicionou migration 031, gate 048, helper autenticado e bounded `growth.list_publication_intents`, endpoint `GET /v1/publication-intents`, cliente web tipado e status de publicação no Content Authoring. A projeção é somente leitura e não expõe credenciais, payloads ou leases.
 
 Phase 5 segue In Progress. O próximo bloco deve ligar a seleção da fila ao contexto de principal de serviço e ao executor, com recuperação operacional e evidência de produção.
+
+
+## Addendum — Phase 5: contexto e runner do worker — candidato — 2026-09-08
+
+A branch `feat/publication-worker-runtime-context` implementa a ligação controlada entre o job leased e a execução da publicação:
+
+- migration `032_publication_worker_runtime_context.sql`;
+- `tenant_context_valid` passa a aceitar contexto de principal de serviço somente quando há principal ativo, workspace atual e job de publicação em estado `leased`;
+- helper `growth.complete_publication_job` encerra jobs como `done`, `retry_wait` ou `dead`, rejeitando leases expirados;
+- transações TypeScript próprias para contexto de worker;
+- store de execução de publicação compatível com o contexto de principal de serviço;
+- runner `runPublicationQueueOnce` que faz claim, executa o intent e encerra o job;
+- gate SQL `049_publication_worker_runtime_context.sql`.
+
+Este é um candidato de implementação e ainda não está validado, mergeado ou publicado. O runner usa o papel/credencial do worker, mas não cria automaticamente um serviço Railway nesta etapa. Também permanece pendente a prova do contexto em banco canônico e a publicação com conta real.
