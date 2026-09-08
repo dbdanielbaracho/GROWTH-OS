@@ -58,7 +58,9 @@ test("worker claims once, calls the adapter, and finalizes once", async () => {
   assert.deepEqual(response, { status: "confirmed" });
   assert.equal(calls, 1);
   assert.equal(finalized.length, 1);
-  assert.equal(finalized[0].claimed.attemptNo, 1);
+  const final = finalized[0];
+  assert.ok(final);
+  assert.equal(final.claimed.attemptNo, 1);
 });
 
 test("transient provider failures finalize as retryable without leaking the error message", async () => {
@@ -71,11 +73,13 @@ test("transient provider failures finalize as retryable without leaking the erro
       }
     }
   });
-  assert.equal(finalized[0].result.outcome, "failed_retryable");
-  assert.equal(finalized[0].result.httpStatus, 429);
-  assert.equal(finalized[0].result.providerRequestId, "provider-request-429");
-  assert.match(String(finalized[0].result.rawPayloadRef), /^sha256:[a-f0-9]{64}$/);
-  assert.equal(JSON.stringify(finalized[0].result).includes("token must not be persisted"), false);
+  const final = finalized[0];
+  assert.ok(final);
+  assert.equal(final.result.outcome, "failed_retryable");
+  assert.equal(final.result.httpStatus, 429);
+  assert.equal(final.result.providerRequestId, "provider-request-429");
+  assert.match(String(final.result.rawPayloadRef), /^sha256:[a-f0-9]{64}$/);
+  assert.equal(JSON.stringify(final.result).includes("token must not be persisted"), false);
 });
 
 test("provider authorization failures finalize as user action", async () => {
@@ -88,5 +92,7 @@ test("provider authorization failures finalize as user action", async () => {
       }
     }
   });
-  assert.equal(finalized[0].result.outcome, "needs_user_action");
+  const final = finalized[0];
+  assert.ok(final);
+  assert.equal(final.result.outcome, "needs_user_action");
 });
