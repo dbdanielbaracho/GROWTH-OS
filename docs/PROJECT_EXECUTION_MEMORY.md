@@ -3366,3 +3366,12 @@ Estado real: migration 023 e growth.claim_publication_intent(uuid,uuid,uuid,time
 
 O CI do PR #72 continua sendo evidência válida para o banco isolado, mas não substitui a prova de produção. Próximo ponto de retomada: aplicar e consultar diretamente a migration 023 no banco canônico; depois restaurar/confirmar o estado ocioso do migrator antes de qualquer novo deploy de migration.
 
+
+
+## Addendum — Phase 5: finalização auditável de publicação — candidato — 2026-09-08
+
+Foi implementada a migration forward-only 024 na branch feat/publication-intent-finalization-contract. O helper SECURITY DEFINER growth.finalize_publication_intent recebe o resultado de uma chamada externa, grava um único publication_attempt imutável, fecha o claim ativo e transiciona a intenção para confirmed, failed_retryable ou needs_user_action.
+
+Replays idênticos devolvem a intenção já finalizada; replays com divergência factual são rejeitados. Confirmed exige provider_content_id. O helper mantém tenant isolation e app_runtime sem acesso direto às tabelas de publicação. O gate SQL 041 e o workflow foram adicionados.
+
+Este é somente um candidato de implementação: não há chamada de provedor neste bloco e a migration ainda aguarda CI, merge, aplicação/consulta no Postgres canônico e deploy. A migration 023 continua sem confirmação em produção por bloqueio do Railway registrado no addendum anterior.
