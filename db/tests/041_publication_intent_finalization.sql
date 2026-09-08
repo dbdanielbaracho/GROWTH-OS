@@ -150,12 +150,14 @@ BEGIN
 
   SELECT count(*) INTO attempt_count
   FROM growth.publication_attempts
-  WHERE workspace_id=workspace_id
-    AND publication_intent_id=v_intent.id;
+  WHERE pa.workspace_id=test_case.workspace_id
+    AND pa.publication_intent_id=v_intent.id;
 
   IF attempt_count <> 1 THEN
     RAISE EXCEPTION '041 failed: expected one immutable attempt, got %', attempt_count;
   END IF;
+
+  SET LOCAL ROLE app_runtime;
 
   SELECT * INTO v_replay
   FROM growth.finalize_publication_intent(
