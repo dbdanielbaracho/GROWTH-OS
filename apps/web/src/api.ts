@@ -550,3 +550,30 @@ export async function revokeInstagram(connectionId: string): Promise<void> {
     { method: "POST" }
   );
 }
+
+
+export type PublicationIntentListItem = {
+  id: string;
+  social_account_id: string;
+  content_version_id: string;
+  status: "ready" | "scheduled" | "queued" | "sending" | "failed_retryable" | "retrying" | "needs_user_action" | "confirmed" | "cancelled" | "superseded";
+  scheduled_for: string | null;
+  current_attempt_no: number | null;
+  retry_count: number;
+  last_error_class: string | null;
+  provider_content_id: string | null;
+  provider_permalink: string | null;
+  created_at: string;
+  updated_at: string;
+  cancelled_at: string | null;
+};
+
+type PublicationIntentListResponse = {
+  status: "ok";
+  publicationIntents: PublicationIntentListItem[];
+};
+
+export async function fetchPublicationIntents(): Promise<PublicationIntentListItem[]> {
+  const response = await requestJson<PublicationIntentListResponse>("/v1/publication-intents");
+  return response.publicationIntents;
+}
