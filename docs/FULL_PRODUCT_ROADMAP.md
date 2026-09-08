@@ -453,3 +453,8 @@ O CREATE agora avança de gravação isolada para retomada de trabalho: o painel
 A nova rota autenticada `POST /v1/content/:id/versions` usa o contrato existente, isolamento por workspace e lock da linha do conteúdo. Cada edição gera novo `version_no` e checksum. O fluxo segue fail-closed: continua sem publicação automática e sem dados sintéticos.
 
 Este bloco ainda não congela a Phase 4. Permanecem pendentes aprovação, edição completa de metadados, geração assistida com proveniência, publicação, reconciliação e os gates das fases seguintes.
+
+
+## Correção de contrato — versionamento CREATE — 2026-09-08
+
+Durante a revisão da implementação, foi identificado que a nova versão precisava usar o helper canônico `growth.content_new_version`, já definido pela migration 003 e autorizado pelos grants de produção. O caminho direto de INSERT foi removido antes do merge. A versão final preserva o checksum, o isolamento por workspace e a transição oficial para `ready_for_review`.
