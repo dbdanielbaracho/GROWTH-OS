@@ -695,3 +695,12 @@ A migration 028 e o gate 045 adicionam cancelamento actor-bound para intenções
 O CI #604 falhou antes dos gates por declaração duplicada de `PublicationIntentParamsSchema` no `app.ts`; a correção removeu somente a segunda declaração. A produção não foi alterada.
 
 Phase 5 continua In Progress: faltam reconciliação de resultados ambíguos, fila/agenda automática, dead-letter operacional, notificações, confirmação das migrations 023–028 no banco canônico e publicação real com conta conectada.
+
+
+## Addendum — Phase 5: reconciliação controlada — 2026-09-08
+
+PR #94 foi integrado no commit `65246d3035698113c65cea3d7343ee2a7fd72918`, após CI #616 SUCCESS no SHA `24f75db6f7e3c83af7071de1b47c82da709b6c02`.
+
+A migration 029 e o gate 046 adicionam registro de reconciliação por método, confiança e estado, sem persistir payload bruto. A correspondência exige confiança forte e ID do provedor antes de confirmar uma intenção; estados ambíguos/escalados não viram sucesso e podem exigir ação do usuário. A API autenticada expõe `POST /v1/publication-intents/:id/reconcile`.
+
+Este bloco fornece a recuperação controlada, mas não é reconciliação automática contra o provedor: ainda faltam um worker de fila com principal de serviço explícito, agenda automática, dead-letter operacional, notificações, confirmação das migrations 023–029 no banco canônico e prova real.
