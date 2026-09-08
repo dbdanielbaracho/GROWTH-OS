@@ -34,7 +34,7 @@ import {
 } from "./identity-adapter.js";
 import { z } from "zod";
 import { registerIdentityRoutes } from "./identity-routes.js";
-import { CreatePublicationIntentSchema, cancelPublicationIntent, createPublicationIntent } from "./publishing.js";
+import { CreatePublicationIntentSchema, PublicationReconciliationSchema, cancelPublicationIntent, createPublicationIntent, recordPublicationReconciliation } from "./publishing.js";
 import { createDatabasePublicationExecutionStore } from "./publication-store.js";
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
 import { executePublicationIntent } from "./publication-worker.js";
@@ -492,6 +492,33 @@ export function buildApp(logger = false) {
         cancelPublicationIntent(client, principal, parsed.data.id)
       );
       return { status: "cancelled", publicationIntent };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/publication-intents/:id/reconcile", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = PublicationIntentParamsSchema.safeParse(request.params);
+    const parsed = PublicationReconciliationSchema.safeParse(request.body);
+    if (!params.success || !parsed.success) {
+      return reply.code(400).send({ status: "invalid_request" });
+    }
+
+    try {
+      const reconciliation = await withTenantTransaction(principal, (client) =>
+        recordPublicationReconciliation(
+          client,
+          principal,
+          params.data.id,
+          parsed.data
+        )
+      );
+      return { status: "reconciled", reconciliation };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
