@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import {
   fetchAuthSession,
   fetchMetricAnalyticsSummary,
+  fetchMetricAnalyticsSnapshot,
   RadarApiError,
   type MetricAnalyticsSummary
 } from "./api.js";
@@ -21,12 +22,19 @@ function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 }
 
+function qualityLabel(row: MetricAnalyticsSummary): string {
+  if (row.complete_observations < row.observation_count) return "Incomplete";
+  if (row.fresh_observations < row.observation_count) return "Stale";
+  return "Complete";
+}
+
 function AnalyticsPanel() {
   const [authenticated, setAuthenticated] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<MetricAnalyticsSummary[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -46,6 +54,25 @@ function AnalyticsPanel() {
       setLoading(false);
     }
   }, []);
+
+  async function exportSnapshot() {
+    setExporting(true);
+    setMessage(null);
+    try {
+      const snapshot = await fetchMetricAnalyticsSnapshot();
+      const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `growth-os-metrics-${snapshot.from.slice(0, 10)}-${snapshot.to.slice(0, 10)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setMessage(analyticsError(error));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     void refresh();
@@ -72,6 +99,9 @@ function AnalyticsPanel() {
           <p className="analytics-kicker">Data evidence</p>
           <h2>Metric summary</h2>
           <p className="analytics-copy">Last 7 days of stored provider observations. Totals are grouped by account and metric; missing data stays visible as empty.</p>
+          <button className="analytics-export" type="button" onClick={() => void exportSnapshot()} disabled={exporting}>
+            {exporting ? "Exporting…" : "Export JSON snapshot"}
+          </button>
           {loading && <p className="analytics-muted">Loading analytics…</p>}
           {message && <div className="analytics-error" role="alert">{message}</div>}
           {!loading && !message && rows.length === 0 && (
@@ -83,7 +113,7 @@ function AnalyticsPanel() {
           {!loading && rows.length > 0 && (
             <div className="analytics-table" role="table" aria-label="Metric summary">
               <div className="analytics-table-row analytics-table-head" role="row">
-                <span>Account</span><span>Metric</span><span>Rows</span><span>Total</span>
+                <span>Account</span><span>Metric</span><span>Rows</span><span>Total</span><span>Quality</span>
               </div>
               {rows.slice(0, 20).map((row) => (
                 <div className="analytics-table-row" role="row" key={row.social_account_id + ":" + row.metric_name}>
@@ -91,6 +121,7 @@ function AnalyticsPanel() {
                   <span>{row.metric_name}</span>
                   <span>{row.observation_count}</span>
                   <span>{formatNumber(row.total_value)}</span>
+                  <span>{qualityLabel(row)}</span>
                 </div>
               ))}
             </div>
