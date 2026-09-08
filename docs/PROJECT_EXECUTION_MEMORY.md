@@ -3445,3 +3445,12 @@ O PR #77 foi integrado no commit `4863f5dc3d5895ec4fb07773232d4b09f3f951bc` apó
 Depois do merge, o status do Railway foi consultado novamente para o projeto canônico `successful-embrace` e continuou bloqueado por `You don't have the required role (viewer) on this resource.` Portanto, as migrations 023–024 seguem sem confirmação no banco de produção. Nenhum deploy, segredo, OAuth ou serviço novo foi alterado nessa tentativa.
 
 A execução foi documentada sem transformar CI isolado em prova de produção. O próximo passo operacional permanece a restauração da permissão Railway e a aplicação/consulta direta das migrations 023–024.
+
+
+## Addendum — builders de requests Instagram/YouTube — candidato — 2026-09-08
+
+Foi implementado o próximo bloco da Phase 5 na branch `feat/publication-provider-request-builders`. Os builders não fazem chamadas externas: eles produzem requests controlados para o container/publicação do Instagram e para o upload resumable do YouTube.
+
+A validação exige assets HTTPS, limita tipos e tamanho dos metadados, mantém tokens apenas em Authorization e usa privacidade `private` como padrão do YouTube. Os testes cobrem o formato dos requests e rejeitam asset HTTP, título vazio e tamanho não positivo.
+
+Nenhum banco, segredo, OAuth ou serviço Railway foi alterado. Este bloco ainda não representa publicação real; a aplicação das migrations 023–024 e a ligação ao worker operacional dependem da permissão Railway.
