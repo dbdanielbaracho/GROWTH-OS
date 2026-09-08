@@ -9,7 +9,7 @@ import {
 test("publication retry policy is bounded exponential backoff", () => {
   assert.equal(publicationRetryDelayMs(0), 60_000);
   assert.equal(publicationRetryDelayMs(1), 120_000);
-  assert.equal(publicationRetryDelayMs(4), 1_600_000);
+  assert.equal(publicationRetryDelayMs(4), 960_000);
   assert.equal(publicationRetryDelayMs(MAX_PUBLICATION_RETRIES), 1_800_000);
   assert.equal(publicationRetryDelayMs(99), 1_800_000);
 });
