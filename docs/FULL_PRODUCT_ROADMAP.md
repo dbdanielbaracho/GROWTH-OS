@@ -484,3 +484,10 @@ A aprovação não publica conteúdo. A publicação continua sendo uma etapa co
 O PR #68 adicionou e publicou os controles de aprovação e solicitação de alterações para versões `ready_for_review`, usando os helpers canônicos e o histórico append-only de decisões. CI #434/#435 passou, o merge gerou `50ff3cd887f09f1aa04a41eee02511dbffd46615` e o Railway confirmou deploy SUCCESS `df7c068d-cfcf-477b-b8e2-de3a096d0519`.
 
 A aprovação não publica conteúdo e a validação autenticada da jornada continua pendente; a Phase 4 ainda não está Frozen.
+
+
+## Addendum — Phase 5: intenção de publicação controlada — 2026-09-08
+
+Foi iniciada a primeira entrega da Phase 5: criação de uma intenção auditável somente para conteúdo aprovado e conta conectada. O contrato usa idempotência, tenant isolation, estado inicial `ready` e helper SECURITY DEFINER.
+
+Esta entrega não publica conteúdo e não congela a Phase 5. Ainda faltam seleção/validação de assets, agendamento, workers, chamadas reais aos provedores, retries, reconciliação, cancelamento e notificações.

@@ -3314,3 +3314,17 @@ Foi iniciado o bloco de governança de conteúdo na branch `feat/content-review-
 - O bloco publicado usa `content_approve` e `content_request_changes`, registra decisões append-only e mantém publicação como etapa separada.
 - A validação autenticada no navegador e uma prova de decisão com usuário real ainda não foram executadas nesta sessão; não são inferidas pelo healthcheck.
 - O projeto permanece incompleto até os blocos de publicação, analytics, inteligência, experimentos, automação, comercial/enterprise e hardening.
+
+
+## Addendum — fundação de intenção de publicação controlada — 2026-09-08
+
+A execução foi retomada a partir do PR #69 e iniciou a branch `feat/publication-intent-foundation`.
+
+- Migration forward-only `022_publication_intent_foundation.sql`.
+- Helper `growth.create_publication_intent`, `SECURITY DEFINER`, owner `growth_migrator`, execução concedida somente a `app_runtime`.
+- A intenção exige workspace ativo, versão pertencente ao workspace, conteúdo em estado `approved`, conta social pertencente ao workspace e conexão em estado `connected`.
+- Idempotência por `workspace_id + idempotency_key`; conflito material de chave é rejeitado.
+- Status inicial da intenção: `ready`.
+- Rota autenticada: `POST /v1/publication-intents`.
+- A intenção é somente registro controlado; não existe chamada ao provedor, envio de mídia ou publicação automática.
+- Pendente: CI, gate SQL/comportamental, merge, deploy e validação operacional.
