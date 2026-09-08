@@ -3354,3 +3354,15 @@ O helper SECURITY DEFINER growth.claim_publication_intent serializa a intenção
 O bloco não chama Instagram/YouTube, não cria publication_attempts incompletos e não grava credenciais. Os attempts permanecem evidência imutável para a futura finalização após a chamada externa. Foi acrescentado o gate SQL 040 e o workflow foi atualizado para executá-lo sob growth_test_harness.
 
 Estado: candidato de implementação, ainda aguardando CI, merge, deploy e prova operacional. Nenhuma mudança de produção ocorreu neste bloco.
+
+
+## Addendum — bloqueio de aplicação da migration 023 em produção — 2026-09-08
+
+Após o merge do PR #72 no commit df1d6c25792d811d24f5a0442a885ae8dd6b715d, o status do Railway marcou os serviços como sem deployment necessário porque o bloco não alterou o artefato web/API monitorado. A migration 023, portanto, não foi considerada aplicada em produção por inferência.
+
+Foi localizado o migrator canônico (serviço migrator, ID 5575baa9-532d-41ac-8b2c-6b0f99e6eeb5) no projeto successful-embrace. A tentativa controlada de usar o comando oficial node db/scripts/apply-migration.mjs db/migrations/023_publication_intent_claim.sql excedeu o tempo do canal Railway (HTTP 504). A consulta de estado seguinte retornou o bloqueio explícito required role (member) on this resource.
+
+Estado real: migration 023 e growth.claim_publication_intent(uuid,uuid,uuid,timestamptz) permanecem **não confirmados em produção**. Não houve criação de serviço, alteração de segredo, alteração de OAuth, ativação de Public Access ou uso de grateful-courage. A execução fica pendente até a conexão Railway recuperar o papel mínimo necessário.
+
+O CI do PR #72 continua sendo evidência válida para o banco isolado, mas não substitui a prova de produção. Próximo ponto de retomada: aplicar e consultar diretamente a migration 023 no banco canônico; depois restaurar/confirmar o estado ocioso do migrator antes de qualquer novo deploy de migration.
+
