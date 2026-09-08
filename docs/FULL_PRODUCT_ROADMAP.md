@@ -419,3 +419,10 @@ Essa entrega também registra a aplicação do design editorial do Growth OS ao 
 
 O primeiro CI da entrega de janela de evidência encontrou uma incompatibilidade real entre a UI e o contrato tipado de `YoutubeSyncResponse`. A interface foi corrigida para manter a janela solicitada localmente, sem inventar um campo inexistente no contrato da API. A validação do novo SHA exato permanece obrigatória antes da promoção.
 
+
+
+## Addendum — PR #60 publicado e Production Truth básico — 2026-09-08
+
+O PR #60 foi validado no SHA `537642969f117a551b34a0a80255061c75138fab`, mergeado no commit `ec2fb72d8878312699a07b2a224b823d3f9663ed` e publicado no serviço canônico `growth-os` pelo deployment `adcffef5-684b-410f-980f-484f668b897c`, SUCCESS.
+
+A entrega adiciona a seleção de janela YouTube de 7 ou 30 dias e o controle visual correspondente. O smoke test público passou nos dois domínios canônicos: health e system retornaram 200; os endpoints autenticados retornaram 401 sem sessão. O projeto continua incompleto e a validação visual autenticada do novo controle ainda é parte do próximo teste operacional.
