@@ -3276,3 +3276,10 @@ A implementação foi corrigida antes do merge para:
 - reler o item após a operação para devolver o status efetivo.
 
 A versão que fazia INSERT direto não foi publicada. O SHA final da branch mudou e exige nova execução completa do CI.
+
+
+## Falha e correção do CI #417 — checksum export — 2026-09-08
+
+O primeiro CI do follow-up #65 falhou no typecheck porque a refatoração que substituiu o INSERT direto pelo helper canônico removeu acidentalmente a exportação de `contentChecksum`. O log confirmou três erros: o teste não encontrava a exportação e duas chamadas do módulo não encontravam o símbolo.
+
+A correção restaurou a função `contentChecksum` no módulo, sem alterar o contrato do helper canônico. O CI do novo SHA deve ser executado novamente antes de qualquer merge.
