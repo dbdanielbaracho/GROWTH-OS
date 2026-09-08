@@ -120,6 +120,7 @@ test("worker constructs the provider adapter only after the claim", async () => 
     }
   });
   assert.deepEqual(response, { status: "confirmed" });
-  assert.equal(factoryClaim?.publicationIntentId, claimed.publicationIntentId);
+  assert.ok(factoryClaim);
+  assert.equal(factoryClaim.publicationIntentId, claimed.publicationIntentId);
   assert.equal(finalized.length, 1);
 });
