@@ -720,3 +720,17 @@ Foi implementado na branch `feat/publication-worker-service-principal` o contrat
 - provisionamento do papel worker no CI isolado e no bootstrap administrativo de produção.
 
 O bloco resolve o requisito arquitetural de que todo job carregue um principal de serviço explícito. Ele ainda não cria o processo Railway que consome a fila nem habilita execução cross-tenant em produção: a conexão Railway canônica continua bloqueada por falta do papel mínimo, e as migrations 023–030 ainda precisam de aplicação e prova SQL no banco canônico. Portanto Phase 5 permanece In Progress, não Frozen.
+
+
+## Addendum — Phase 5/Phase 4: status de publicação na superfície web — 2026-09-08
+
+A branch `feat/publication-status-surface` adiciona a primeira projeção user-facing do ciclo de publicação:
+
+- migration `031_publication_status_projection.sql`;
+- helper `growth.list_publication_intents(uuid,integer)` com limite bounded e contexto tenant;
+- endpoint autenticado `GET /v1/publication-intents`;
+- cliente web tipado;
+- painel Content Authoring com status de publicação, tentativa, retry e indicação de ID do provedor;
+- gate SQL `048_publication_status_projection.sql`.
+
+A projeção não expõe credenciais, payloads, leases ou tabelas internas diretamente. Ela torna visível o estado auditável que já existe no backend, mas não cria publicação nem altera o contrato de execução. O bloco ainda depende do CI, da aplicação das migrations 023–031 no banco canônico e da implementação do consumidor worker para fechar a jornada operacional.
