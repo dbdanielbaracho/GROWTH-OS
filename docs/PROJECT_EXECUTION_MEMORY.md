@@ -3709,3 +3709,15 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Correção registrada: o CI #670 encontrou narrowing incorreto de variáveis de ambiente opcionais no TypeScript; a validação foi reescrita com variáveis configuradas explicitamente e o CI #672 passou.
 - Limites: nenhum serviço Railway foi criado ou publicado, nenhum segredo/OAuth foi alterado e nenhuma migration 023–032 foi confirmada no banco canônico. O Railway continua bloqueado por `You don't have the required role (viewer) on this resource.`.
 - Próximo bloco: preparar o contrato operacional do worker e a integração da superfície de publicação com execução/recuperação, mantendo a prova de produção condicionada à liberação do Railway e ao provisionamento explícito do principal/URL dedicada.
+
+
+## Registro de execução — PR #103 integrado — superfície operacional de publicação — 2026-09-08
+
+- PR: #103.
+- Branch: `feat/publication-operations-surface`.
+- CI final: #680 SUCCESS no SHA `c2342ecbe739a0e5b8ea9b1017115c6d3a06158f`.
+- Merge: `4765d5994f361354ad3c615ec3e190d5989bd5b3`.
+- Entrega: cliente web tipado para criar, executar e cancelar intents; seleção de conta social conectada; preparação de publicação disponível somente para conteúdo aprovado; chave idempotente por versão/conta; ações de execução e cancelamento com estados permitidos e confirmação para cancelamento.
+- Segurança preservada: o clique de preparação cria a intenção, mas não publica automaticamente; execução permanece ação separada e autenticada; tokens, payloads brutos, OAuth e segredos não entram na interface.
+- Limites: a reconciliação continua explícita e ainda não há prova de publicação real. Nenhum serviço Railway foi criado/publicado e nenhuma migration 023–032 foi confirmada no Postgres canônico devido ao bloqueio de permissão.
+- Próximo bloco: fechar a integração operacional do worker com configuração documentada, observabilidade e validação dos estados de execução; depois avançar para analytics e demais fases do roadmap.
