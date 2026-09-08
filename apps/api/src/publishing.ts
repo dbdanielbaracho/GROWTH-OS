@@ -5,6 +5,7 @@ import type { AuthPrincipal } from "./auth.js";
 export const CreatePublicationIntentSchema = z.object({
   socialAccountId: z.string().uuid(),
   contentVersionId: z.string().uuid(),
+  mediaAssetId: z.string().uuid().optional(),
   requestNonce: z.string().uuid(),
   idempotencyKey: z.string().trim().min(1).max(200)
 });
@@ -16,6 +17,22 @@ export async function createPublicationIntent(
   principal: AuthPrincipal,
   input: CreatePublicationIntentInput
 ) {
+  if (input.mediaAssetId) {
+    const result = await client.query(
+      `select *
+         from growth.create_publication_intent($1, $2, $3, $4, $5, $6)`,
+      [
+        principal.workspaceId,
+        input.socialAccountId,
+        input.contentVersionId,
+        input.requestNonce,
+        input.idempotencyKey,
+        input.mediaAssetId
+      ]
+    );
+    return result.rows[0];
+  }
+
   const result = await client.query(
     `select *
        from growth.create_publication_intent($1, $2, $3, $4, $5)`,
