@@ -3395,3 +3395,12 @@ O terceiro CI falhou porque o teste usava test_case.workspace_id para desambigua
 ### Correção do CI #478 — gate 041 — 2026-09-08
 
 O quarto CI encontrou permission denied para a inspeção direta de publication_attempts pelo teste. Isso é coerente com a fronteira de least privilege: o harness não deve depender de acesso direto à tabela de evidência no caminho de validação do runtime. A consulta foi removida; o replay idêntico pelo helper continua sendo a prova comportamental da persistência do attempt, pois sem a linha o claim já fechado não poderia ser finalizado novamente. A migration 024 permaneceu inalterada.
+
+
+## Addendum — PR #74 integrado; produção pendente por bloqueio Railway — 2026-09-08
+
+O PR #74 foi validado no SHA exato 8275e6ee15811c5b87331520ee795c6f9cb8a628. O CI #482 terminou com sucesso após quatro correções de teste registradas nesta memória: ambiguidade de workspace_id, alias SQL ausente, rótulo do bloco DO e tentativa de leitura direta proibida de publication_attempts.
+
+O PR foi integrado por squash no commit 3cd448f78f758116a130c68d4f441a0af81f7385. A migration 024 e o gate 041 agora estão no main. Como o Railway marcou o commit sem deployment necessário e o acesso ao projeto canônico continua bloqueado pelo papel member/viewer, as migrations 023 e 024 ainda não foram aplicadas ou confirmadas no Postgres de produção. O CI isolado não substitui essa evidência.
+
+Nenhum serviço novo, segredo, OAuth, networking ou Public Access foi alterado. O próximo gate permanece a aplicação controlada e a consulta SQL direta das migrations 023–024 no Postgres canônico, usando o migrator existente, assim que o acesso Railway for restaurado.
