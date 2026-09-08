@@ -3488,3 +3488,39 @@ O PR #83 foi integrado por squash no commit `e574af6befd1d0deea9e17859d37ab92d2a
 A migration 025 adiciona `media_asset_id` à `publication_intents`, mantém a integridade pelo par `workspace_id/media_asset_id` e estende o helper de criação com uma forma de seis argumentos. O asset só pode ser usado quando é `publishable`, pertence à mesma versão de conteúdo e declara storage/direitos. A forma de cinco argumentos continua disponível para compatibilidade.
 
 O gate 042 prova owner `growth_migrator`, `SECURITY DEFINER`, execução para `app_runtime`, ausência de execução pública, vínculo válido e rejeição de asset `source`. Nenhum segredo, OAuth ou provedor externo foi alterado. Sem permissão Railway, não se afirma aplicação de migrations nem disponibilidade em produção.
+
+
+## Registro de execução — PR #85 e PR #86 — 2026-09-08
+
+### PR #85 — contexto protegido da execução
+
+- Branch: `feat/protected-publication-execution-context`.
+- CI #547: SUCCESS no SHA `4f1d8a5693df8c309252f3d6bd3a97efd032e187`.
+- Merge: commit `5e014e4205b499f6d418e90d8a99a5a1d5cc3b13`.
+- Migration: `026_publication_execution_context.sql`.
+- Gate: `043_publication_execution_context.sql`.
+- Resultado: helper `growth.get_publication_execution_context` com `SECURITY DEFINER`, owner `growth_migrator`, execução para `app_runtime`, claim/lease ativo, conteúdo aprovado, asset publicável, conta conectada e credencial cifrada; nenhum acesso direto indevido do runtime a `provider_credentials`.
+- Ambiente: somente CI/banco isolado; produção não foi alterada nem considerada validada.
+
+### PR #86 — composição de adapters de publicação
+
+- Branch: `feat/publication-adapter-composition`.
+- PR: #86.
+- Objetivo: ligar o contexto protegido aos adapters HTTP de Instagram e YouTube sem persistir token ou payload bruto.
+- Commit final mergeado: `b90170917766446307303b04c5d5d61721eaa1db`.
+- SHA candidato final: `1ca1e9ab3e6df88c833547862c13e4d7f9071fff`.
+- CI final: #565, SUCCESS, com typecheck, build, migrations/gates e 42/42 testes.
+- Alterações: store de execução carrega o contexto via helper; adapter descriptografa credencial somente em memória; assets exigem HTTPS e host allowlisted; Instagram faz container + publish; YouTube faz upload resumable com validação do asset e privacidade `private` por padrão; finalização continua passando pelo helper canônico.
+
+### Falhas e correções comprovadas
+
+1. CI #559 falhou no Typecheck com `src/config.ts(16,3): error TS1005: ',' expected.` A edição automática havia quebrado a linha da regex de `INSTAGRAM_GRAPH_API_VERSION`, misturando-a com `PUBLICATION_ASSET_HOSTS`. O arquivo `config.ts` foi restaurado integralmente sobre o SHA corrente; nenhuma lógica do adapter foi alterada.
+2. CI #561 passou por typecheck, build e todos os gates SQL, mas falhou em 1 de 42 testes: o caso de allowlist usava `Buffer.from("invalid")`, portanto o adapter falhava corretamente em `publication credential is unreadable` antes de alcançar a validação do host. O teste foi corrigido para gerar envelope AES-GCM válido e manter o host fora da allowlist.
+3. CI #565 confirmou a correção com 42/42 testes verdes. A correção foi limitada ao fixture do teste; credenciais reais nunca foram gravadas ou expostas.
+
+### Estado após o merge
+
+- Phase 5: In Progress, não Frozen.
+- Produção: sem confirmação de aplicação das migrations 023–026; o Railway canônico continua retornando `You don't have the required role (viewer) on this resource.`.
+- Não foram alterados segredos, OAuth, Public Access ou serviços temporários.
+- Próximo bloco: implementar a ligação do worker operacional ao store/contexto/adapter, com fila/agenda, retry durável, dead-letter, cancelamento, reconciliação, notificações e testes de concorrência; somente depois executar deploy e prova com conta real quando o bloqueio de permissão Railway estiver resolvido.
