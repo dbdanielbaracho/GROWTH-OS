@@ -22,6 +22,17 @@ const PublicationResultSchema = z.object({
 
 export type PublicationProviderResult = z.infer<typeof PublicationResultSchema>;
 
+export class PublicationProviderError extends Error {
+  constructor(
+    readonly httpStatus: number | null,
+    readonly providerRequestId?: string | null,
+    message = "publication provider request failed"
+  ) {
+    super(message);
+    this.name = "PublicationProviderError";
+  }
+}
+
 export type PublicationRequestIdentity = {
   provider: "instagram" | "youtube";
   socialAccountId: string;

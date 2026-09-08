@@ -1,9 +1,12 @@
 import {
   preparePublicationProviderResult,
+  PublicationProviderError,
   publicationRequestHash,
   toFinalizationArguments,
   type PublicationProviderResult
 } from "./publication-execution.js";
+
+export { PublicationProviderError } from "./publication-execution.js";
 
 export type ClaimablePublicationIntent = {
   workspaceId: string;
@@ -34,17 +37,6 @@ export type PublicationProviderAdapter = {
     requestHash: string;
   }) => Promise<PublicationProviderResult>;
 };
-
-export class PublicationProviderError extends Error {
-  constructor(
-    readonly httpStatus: number | null,
-    readonly providerRequestId?: string | null,
-    message = "publication provider request failed"
-  ) {
-    super(message);
-    this.name = "PublicationProviderError";
-  }
-}
 
 function failureResult(error: unknown, startedAt: string) {
   const providerError = error instanceof PublicationProviderError ? error : null;
