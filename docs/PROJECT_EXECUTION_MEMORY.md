@@ -3261,3 +3261,18 @@ Foi iniciado o segundo slice de CREATE na branch `feat/content-draft-versioning`
 - O design editorial foi ampliado para biblioteca, seleção, estados vazios e responsividade.
 - Nenhuma migration nova foi necessária: o contrato existente de `content_versions` já suporta versões monotônicas e checksum único.
 - Pendente: CI no SHA exato, merge, deploy, smoke/API checks e validação autenticada de criação/edição.
+
+
+## Correção material antes do CI final — versionamento — 2026-09-08
+
+A primeira implementação do endpoint de nova versão fazia INSERT direto em `content_versions`. A leitura do contrato canônico revelou que a migration 003 e os grants de produção definem `growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb)` como o caminho de lifecycle autorizado.
+
+A implementação foi corrigida antes do merge para:
+
+- manter o lock tenant-scoped da linha de `content_items`;
+- chamar o helper `SECURITY DEFINER` canônico;
+- preservar o checksum calculado pela aplicação;
+- permitir que o helper atualize o item para `ready_for_review`, conforme o lifecycle de aprovação;
+- reler o item após a operação para devolver o status efetivo.
+
+A versão que fazia INSERT direto não foi publicada. O SHA final da branch mudou e exige nova execução completa do CI.
