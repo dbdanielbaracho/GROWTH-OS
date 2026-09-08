@@ -3183,3 +3183,11 @@ Nenhum segredo, token ou credencial foi registrado neste documento.
 - A mudança inclui um passe visual coerente com o design editorial já definido: controle compacto, estados selecionados, foco no dado e preservação do fail-closed.
 - Nenhum dado sintético, credencial, permissão OAuth ou banco de produção foi alterado por esta entrega.
 - O CI e o deploy ainda precisam ser executados para este SHA; a revisão final do Claude permanece reservada para o estado integral congelado do projeto.
+
+## Correção do CI da janela YouTube — 2026-09-08
+
+- O primeiro CI do PR #60 falhou no typecheck do frontend porque `YoutubeSyncResponse` não possui o campo `requestedLookbackDays`.
+- A falha foi localizada nos logs dos dois jobs `validate` (IDs `101919697415` e `101919667244`), antes da execução dos demais gates.
+- A correção mantém o contrato da API intacto e registra a janela solicitada em estado local da interface, usando apenas campos tipados existentes na resposta para os dados retornados.
+- Nenhuma alteração de banco, credencial, OAuth ou produção ocorreu durante a correção.
+- O head da branch mudou; o CI deve ser repetido no novo SHA exato antes de qualquer merge/deploy.
