@@ -629,22 +629,35 @@ export type MetricAnalyticsSummary = {
   fresh_observations: number;
 };
 
-type MetricAnalyticsResponse = {
+export type MetricAnalyticsResponse = {
   status: "ok";
   from: string;
   to: string;
   metrics: MetricAnalyticsSummary[];
 };
 
+async function fetchMetricAnalyticsResponse(
+  from?: string,
+  to?: string
+): Promise<MetricAnalyticsResponse> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  return requestJson<MetricAnalyticsResponse>(
+    `/v1/analytics/metrics${params.size > 0 ? `?${params.toString()}` : ""}`
+  );
+}
+
 export async function fetchMetricAnalyticsSummary(
   from?: string,
   to?: string
 ): Promise<MetricAnalyticsSummary[]> {
-  const params = new URLSearchParams();
-  if (from) params.set("from", from);
-  if (to) params.set("to", to);
-  const response = await requestJson<MetricAnalyticsResponse>(
-    `/v1/analytics/metrics${params.size > 0 ? `?${params.toString()}` : ""}`
-  );
-  return response.metrics;
+  return (await fetchMetricAnalyticsResponse(from, to)).metrics;
+}
+
+export async function fetchMetricAnalyticsSnapshot(
+  from?: string,
+  to?: string
+): Promise<MetricAnalyticsResponse> {
+  return fetchMetricAnalyticsResponse(from, to);
 }
