@@ -491,3 +491,13 @@ A aprovação não publica conteúdo e a validação autenticada da jornada cont
 Foi iniciada a primeira entrega da Phase 5: criação de uma intenção auditável somente para conteúdo aprovado e conta conectada. O contrato usa idempotência, tenant isolation, estado inicial `ready` e helper SECURITY DEFINER.
 
 Esta entrega não publica conteúdo e não congela a Phase 5. Ainda faltam seleção/validação de assets, agendamento, workers, chamadas reais aos provedores, retries, reconciliação, cancelamento e notificações.
+
+
+## Phase 5 — PR #70 integrado: intenção de publicação controlada — 2026-09-08
+
+O PR #70 foi validado no SHA 22a8bd64f97a756a7a532b8720f1a6073d66b2c0, com CI #444 e #445 em success, e integrado no commit 9b51762b1000a46bcff32b89a2c61113744a53a1. O deploy do serviço canônico successful-embrace / growth-os foi confirmado como success pelo status do commit, no deployment 134bb6fa-05f9-4fd0-bbb4-057df3e9a10d, domínio growos.predibeacon.com.
+
+Essa fatia colocou em produção a fronteira de intenção auditável para conteúdo aprovado e conta conectada. A rota autenticada POST /v1/publication-intents usa a migration 022 e o helper growth.create_publication_intent, com tenant isolation, idempotência e estado inicial ready.
+
+A Phase 5 continua **In Progress**. A intenção não publica por si só. Ainda faltam claim/execução idempotente, assets válidos, agendamento, workers Instagram/YouTube, chamadas reais, retries, reconciliação, cancelamento, notificações e validação com publicação real. O próximo bloco é o contrato seguro de claim/transition da intenção, sem acoplar ainda o worker externo.
+
