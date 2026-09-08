@@ -95,6 +95,17 @@ BEGIN
     'queued', now(), service_id
   );
 
+END;
+$worker_gate$;
+
+SET LOCAL ROLE growth_worker;
+
+DO $worker_execution$
+DECLARE
+  service_id uuid := 'f0000000-0000-4000-8000-000000000047';
+  job_id uuid := 'f0000000-0000-4000-8000-000000000048';
+  claimed growth.jobs;
+BEGIN
   SELECT * INTO claimed
   FROM growth.claim_due_publication_job(service_id, now(), 60)
   LIMIT 1;
@@ -104,10 +115,10 @@ BEGIN
      OR claimed.service_principal_id IS DISTINCT FROM service_id
      OR claimed.attempts IS DISTINCT FROM 1
   THEN
-    RAISE EXCEPTION '047 failed: due job was not atomically leased';
+    RAISE EXCEPTION '047 failed: due job was not atomically leased by growth_worker';
   END IF;
 END;
-$worker_gate$;
+$worker_execution$;
 
 ROLLBACK;
 
