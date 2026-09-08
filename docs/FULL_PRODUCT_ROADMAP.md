@@ -550,3 +550,17 @@ O gate 041 passou a validar a persistência do attempt por replay idempotente at
 O contrato de finalização auditável foi integrado pelo PR #74 no commit 3cd448f78f758116a130c68d4f441a0af81f7385 após o CI #482 passar no SHA 8275e6ee15811c5b87331520ee795c6f9cb8a628. A migration 024 e o gate 041 estão no repositório principal.
 
 A aplicação de 023–024 no banco canônico permanece pendente por bloqueio de permissão do Railway. Portanto, a Phase 5 não pode ser considerada disponível em produção. O próximo gate é operacional: executar ambas, nesta ordem, pelo migrator canônico e comprovar as funções/colunas diretamente no banco.
+
+
+## Phase 5 — contrato de execução de provedor — candidato — 2026-09-08
+
+A execução continuou na branch `feat/publication-provider-execution-contract`, a partir do main após o PR #75.
+
+- Foi criado `apps/api/src/publication-execution.ts` como contrato provider-neutral para o worker futuro.
+- O hash de request é determinístico e inclui provedor, conta, versão, tentativa, corpo, estrutura e referências de assets.
+- Resultados 2xx só são `confirmed` quando trazem `provider_content_id`; respostas incompletas permanecem retryable.
+- 401/403/404/409/422 são classificados como `needs_user_action`; falhas transitórias permanecem `failed_retryable`.
+- O payload bruto nunca é encaminhado à finalização: somente um digest `sha256:` é produzido para `raw_payload_ref`.
+- Testes unitários cobrem estabilidade do hash, mudança factual, classificação fail-closed e ausência de dados sensíveis no resultado.
+
+Este bloco não chama Instagram ou YouTube e não marca publicação como concluída. Ele prepara a fronteira para o worker/adaptadores reais, que continuarão separados do claim/finalização SQL. A aplicação das migrations 023–024 em produção segue pendente pelo bloqueio de permissão do Railway.
