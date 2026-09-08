@@ -19,6 +19,7 @@ export type ClaimablePublicationIntent = {
   body: string | null;
   structure: unknown;
   assetRefs: string[];
+  connectionId?: string;
   mediaAssetId?: string | null;
   storageRef?: string;
   mimeType?: string;
