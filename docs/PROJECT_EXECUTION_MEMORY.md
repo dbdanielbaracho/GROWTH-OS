@@ -3056,3 +3056,18 @@ O teste também passou a validar owner, `SECURITY DEFINER`, grants dos dois help
 
 A correção agora tem evidência estrutural e comportamental, mas ainda precisa do revisor adversarial independente exigido pelo processo. Depois dessa aprovação, o próximo passo será atualizar a branch se necessário, confirmar o SHA final, fazer merge/deploy controlado e validar no navegador do usuário que aparece um único cartão Instagram.
 
+
+
+---
+
+## Checkpoint operacional — PR #54 mergeada e gate final da PR #51 — 2026-09-08
+
+- A PR #54, documentação do teste comportamental de deduplicação, passou no CI #365 e foi mergeada no `main` pelo commit `b8aafa089017621e473533db05428d2397ce8b99`.
+- O deployment canônico resultante do `main` está SUCCESS; os endpoints observados no domínio `growos.predibeacon.com` continuam retornando HTTP 200 para sessão, status YouTube e status Instagram.
+- A PR #51 recebeu o teste comportamental 039, o gate foi adicionado ao workflow e o delimitador SQL foi corrigido após a falha #363.
+- Head final atual da PR #51: `f0172203b5a72086ee59ec9774cce039ebe43294`.
+- CI final do head: run #364, ID `34172028344`, job `validate` SUCCESS, incluindo o passo `Run Instagram deduplication gate`.
+- A PR #51 está aberta, draft e mergeable, sem revisão formal independente registrada.
+- O próximo gate obrigatório é a revisão adversarial independente do Claude sobre o SHA exato `f0172203b5a72086ee59ec9774cce039ebe43294`. Até essa aprovação, a migration 021 não será mergeada nem aplicada em produção.
+- Depois da aprovação, ainda será necessário confirmar o deploy, o único cartão Instagram no navegador do usuário e a continuidade da cadeia de inteligência até sinais, evidências, oportunidades e Radar.
+
