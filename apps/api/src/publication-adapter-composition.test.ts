@@ -1,7 +1,10 @@
 import { createCipheriv, randomBytes } from "node:crypto";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
+
+process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:5432/test";
+const { createPublicationProviderAdapter } =
+  await import("./publication-adapter-composition.js");
 
 function sealCredential(
   accessToken: string,
