@@ -3071,3 +3071,20 @@ A correção agora tem evidência estrutural e comportamental, mas ainda precisa
 - O próximo gate obrigatório é a revisão adversarial independente do Claude sobre o SHA exato `f0172203b5a72086ee59ec9774cce039ebe43294`. Até essa aprovação, a migration 021 não será mergeada nem aplicada em produção.
 - Depois da aprovação, ainda será necessário confirmar o deploy, o único cartão Instagram no navegador do usuário e a continuidade da cadeia de inteligência até sinais, evidências, oportunidades e Radar.
 
+
+
+---
+
+## Checkpoint operacional — PR final de deduplicação Instagram — 2026-09-08
+
+- A PR #51 foi encerrada como supersedida porque o `main` avançou com documentação e a branch ficou divergente.
+- A PR #56 é a proposta funcional única e atual: `https://github.com/dbdanielbaracho/GROWTH-OS/pull/56`.
+- Branch final: `fix/instagram-duplicate-authorizations-final`, baseada no `main` atual.
+- Head exato: `0469de7b819ed88c291fcaf729e9bc568fc2191e`.
+- Diff: migration 021, teste 039 comportamental e inclusão do gate 039 no workflow.
+- CI #369, ID `34172545143`, job `validate`: SUCCESS; todos os passos, inclusive o gate 039, passaram.
+- O pacote de revisão adversarial foi publicado na PR #56 com seis pontos de verificação.
+- Não houve merge, deploy ou alteração da migration 021 em produção.
+- O próximo gate obrigatório é Claude retornar formal `APPROVE` para o SHA exato `0469de7b819ed88c291fcaf729e9bc568fc2191e`.
+- Após aprovação: conferir SHA novamente, retirar o draft, fazer merge, aplicar/deployar controladamente e confirmar no navegador do usuário que resta um único cartão Instagram.
+
