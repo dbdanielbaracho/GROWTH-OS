@@ -3390,3 +3390,8 @@ O segundo CI falhou porque a correção anterior qualificou pa.workspace_id, mas
 ### Correção do CI #474 — gate 041 — 2026-09-08
 
 O terceiro CI falhou porque o teste usava test_case.workspace_id para desambiguar a variável PL/pgSQL, mas o bloco DO não tinha o rótulo <<test_case>>. O rótulo foi adicionado. A migration 024 permaneceu inalterada e nenhuma produção foi afetada.
+
+
+### Correção do CI #478 — gate 041 — 2026-09-08
+
+O quarto CI encontrou permission denied para a inspeção direta de publication_attempts pelo teste. Isso é coerente com a fronteira de least privilege: o harness não deve depender de acesso direto à tabela de evidência no caminho de validação do runtime. A consulta foi removida; o replay idêntico pelo helper continua sendo a prova comportamental da persistência do attempt, pois sem a linha o claim já fechado não poderia ser finalizado novamente. A migration 024 permaneceu inalterada.
