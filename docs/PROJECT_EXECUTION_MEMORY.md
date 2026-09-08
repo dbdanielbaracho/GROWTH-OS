@@ -3380,3 +3380,8 @@ Este é somente um candidato de implementação: não há chamada de provedor ne
 ### Correção do CI #465 — gate 041 — 2026-09-08
 
 O primeiro CI do PR #74 falhou somente no gate 041 por ambiguidade de variável no SQL do teste: workspace_id=workspace_id não qualificava a coluna. A inspeção da tabela também estava posicionada sob app_runtime, que corretamente não possui SELECT direto em publication_attempts. O teste foi corrigido para qualificar pa.workspace_id, retornar ao papel growth_test_harness para a inspeção e voltar a app_runtime para validar o replay pelo helper. A migration 024 permaneceu inalterada; nenhuma produção foi afetada.
+
+
+### Correção do CI #469 — gate 041 — 2026-09-08
+
+O segundo CI falhou porque a correção anterior qualificou pa.workspace_id, mas o alias pa não havia sido declarado no FROM. O teste foi corrigido para declarar explicitamente FROM growth.publication_attempts pa. A migration 024 continua inalterada e a produção permanece sem alteração.
