@@ -3479,3 +3479,12 @@ O bloco implementa os adaptadores de execução HTTP do Instagram e YouTube sobr
 Durante a implementação, o tipo `PublicationProviderError` foi centralizado em `publication-execution.ts` e reexportado pelo worker, mantendo compatibilidade com os testes existentes.
 
 Limites preservados: os adaptadores ainda não estão conectados ao worker de produção, não resolvem `media_assets`, não publicam contas reais e não alteram banco/segredos/OAuth. O Railway canônico continua bloqueado por `You don't have the required role (viewer) on this resource.`; migrations 023–024 seguem sem prova de aplicação em produção.
+
+
+## Addendum — PR #83 integrado; contrato de asset publicável — 2026-09-08
+
+O PR #83 foi integrado por squash no commit `e574af6befd1d0deea9e17859d37ab92d2a98604` após CI #539 passar no SHA `d4e86150b991fe5f7e3a371f8d634224b73c8087`.
+
+A migration 025 adiciona `media_asset_id` à `publication_intents`, mantém a integridade pelo par `workspace_id/media_asset_id` e estende o helper de criação com uma forma de seis argumentos. O asset só pode ser usado quando é `publishable`, pertence à mesma versão de conteúdo e declara storage/direitos. A forma de cinco argumentos continua disponível para compatibilidade.
+
+O gate 042 prova owner `growth_migrator`, `SECURITY DEFINER`, execução para `app_runtime`, ausência de execução pública, vínculo válido e rejeição de asset `source`. Nenhum segredo, OAuth ou provedor externo foi alterado. Sem permissão Railway, não se afirma aplicação de migrations nem disponibilidade em produção.
