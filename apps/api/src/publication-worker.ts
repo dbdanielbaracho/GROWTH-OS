@@ -19,6 +19,17 @@ export type ClaimablePublicationIntent = {
   body: string | null;
   structure: unknown;
   assetRefs: string[];
+  mediaAssetId?: string | null;
+  storageRef?: string;
+  mimeType?: string;
+  bytes?: number | string | null;
+  providerAccountId?: string;
+  credentialCiphertext?: Buffer;
+  cipherVersion?: string;
+  keyVersion?: string;
+  tokenExpiresAt?: string | null;
+  refreshAvailable?: boolean;
+  grantedScopes?: string[];
 };
 
 export type PublicationFinalization = ReturnType<typeof toFinalizationArguments>;
