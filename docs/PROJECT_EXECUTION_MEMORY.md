@@ -3137,3 +3137,12 @@ A duplicidade de cartões Instagram está resolvida em produção: código merge
 O projeto ainda não está concluído como produto completo. O próximo gate é conectar um canal YouTube real e validar o fluxo autorizado de dados reais; depois, continuar a cadeia observações -> sinais factuais -> evidências/insights -> oportunidades ranqueadas -> Radar. Enquanto não houver evidência suficiente, o sistema deve permanecer em no-op verdadeiro.
 
 Nenhum segredo, token ou credencial foi registrado neste documento.
+
+
+## Próxima etapa — início da autorização real do YouTube — 2026-09-08
+
+- Após o fechamento da deduplicação Instagram, o botão **Connect YouTube** foi acionado na URL pública `https://growos.predibeacon.com/`.
+- O Growth OS iniciou o OAuth com o callback canônico `/v1/integrations/youtube/callback` e escopos somente leitura para YouTube e YouTube Analytics.
+- O Google selecionou a conta `dbdanielbaracho@gmail.com` e exibiu a etapa **Verify it’s you**, solicitando código enviado por SMS.
+- Nenhuma senha, código MFA, token ou segredo foi enviado ao chat ou registrado neste documento.
+- Estado atual: aguardando a verificação direta do usuário na tela do Google. Após a confirmação, será validada a autorização, o canal real, o primeiro sync e a proveniência dos dados.
