@@ -508,3 +508,11 @@ A Phase 5 continua **In Progress**. A intenção não publica por si só. Ainda 
 A branch feat/publication-intent-claim-contract implementa a migration 023 e o gate SQL 040 para o contrato de claim/lease da publication_intents. O claim é tenant-bound, idempotente, serializado, revalida aprovação e conexão e recupera claims expirados após 10 minutos.
 
 Essa fatia permanece candidata até passar CI no SHA exato, ser integrada e publicada. Ela não chama provedores externos e não conclui a publicação. O próximo limite, depois da promoção, será a finalização auditável do resultado externo, incluindo persistência de attempt imutável e transições seguras de sucesso, retryable, needs_user_action e confirmed.
+
+
+## Bloqueio de produção — migration 023
+
+A implementação do claim de publicação foi integrada pelo PR #72, mas sua aplicação no Postgres canônico ainda está bloqueada. O Railway não autorizou o acesso ao projeto successful-embrace durante a tentativa de operação do migrator: primeiro ocorreu timeout HTTP 504 e depois o canal informou que falta o papel member.
+
+A Phase 5 não avança para produção nesta condição. O CI isolado passou, porém migration 023, lease de claim e função growth.claim_publication_intent ainda não podem ser marcados como disponíveis no ambiente real. O próximo gate é exclusivamente recuperar a permissão Railway, executar a migration uma única vez pelo migrator canônico e obter prova SQL direta.
+
