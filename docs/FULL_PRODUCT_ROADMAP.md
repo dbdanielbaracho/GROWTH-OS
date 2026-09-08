@@ -619,3 +619,12 @@ O bloco prepara as chamadas oficiais, mas ainda não as executa contra contas re
 ### Correção do CI #517 — tipos de inputs com defaults — 2026-09-08
 
 O typecheck do PR #79 encontrou que `z.default()` altera o tipo de saída, mas não torna os campos opcionais no tipo de entrada inferido automaticamente. Os testes omitindo `caption`, `tags` e `privacyStatus` falharam por isso. Os tipos públicos dos builders foram corrigidos para usar `z.input`, preservando os defaults em runtime. Nenhuma produção foi afetada.
+
+
+## Phase 5 — PR #79 integrado; builders de provedor publicados no main — 2026-09-08
+
+O PR #79 foi validado no SHA exato `2a5dc17a959fcc45ff394313d2eb04fe6f316d76`, após a correção registrada do CI #517, e integrado por squash no commit `182353c179ca9f7a004e56a52052305e2bacbec3`. O CI #522 terminou com sucesso.
+
+A entrega adiciona builders controlados para container/publicação do Instagram e upload resumable do YouTube, exige assets HTTPS, mantém tokens somente no header Authorization e inicia uploads do YouTube com privacidade `private`. O bloco não chama provedores reais e não publica conteúdo.
+
+O Railway canônico continua sem acesso viewer/member para aplicar e provar as migrations 023–024. Nenhuma conclusão de produção foi inferida.
