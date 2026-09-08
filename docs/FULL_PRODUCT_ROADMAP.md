@@ -564,3 +564,10 @@ A execução continuou na branch `feat/publication-provider-execution-contract`,
 - Testes unitários cobrem estabilidade do hash, mudança factual, classificação fail-closed e ausência de dados sensíveis no resultado.
 
 Este bloco não chama Instagram ou YouTube e não marca publicação como concluída. Ele prepara a fronteira para o worker/adaptadores reais, que continuarão separados do claim/finalização SQL. A aplicação das migrations 023–024 em produção segue pendente pelo bloqueio de permissão do Railway.
+
+
+### Correção do CI #491 — relógio fixo do gate 041 — 2026-09-08
+
+O CI #491 falhou no gate 041 porque o teste usava `fixed_now = 2026-09-08T16:30:00Z`. Quando o runner executou às 16:45Z, a claim de 10 minutos já estava expirada antes da finalização. O erro foi determinístico do fixture temporal, não do contrato de finalização nem da implementação TypeScript.
+
+O fixture foi corrigido para `now() + interval '1 hour'`, mantendo a autoridade temporal controlada pelo próprio teste e evitando dependência de horário absoluto. O novo SHA exige o CI completo novamente; nenhuma produção foi afetada.
