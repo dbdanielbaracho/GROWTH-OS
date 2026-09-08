@@ -538,3 +538,8 @@ O gate 041 recebeu a declaração explícita do alias da tabela de attempts. O p
 ### Correção após CI #474
 
 O gate 041 agora declara o rótulo usado para qualificar o workspace do caso de teste. A validação integral será repetida no novo SHA.
+
+
+### Correção após CI #478
+
+O gate 041 passou a validar a persistência do attempt por replay idempotente através do helper, sem ampliar privilégios diretos em tabelas de publicação. O novo SHA aguarda CI completo.
