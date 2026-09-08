@@ -684,3 +684,14 @@ A migration 027 e o gate 044 adicionam a política persistente de retry: somente
 O CI #590 bloqueou no typecheck por narrowing de fixture; após correção, CI #592 passou todos os gates mas revelou uma expectativa matemática errada no teste (1600000ms em vez de 960000ms para 2⁴×60s). A correção do teste levou ao CI #594 verde. Nenhuma produção foi alterada.
 
 Phase 5 permanece In Progress: ainda faltam seleção automática de fila/agenda, dead-letter operacional, reconciliação, cancelamento, notificações, confirmação das migrations no Postgres canônico e publicação real.
+
+
+## Addendum — Phase 5: cancelamento seguro — 2026-09-08
+
+PR #92 foi integrado no commit `7417fd9181de0046a344d30b0415abc66794182b`, após CI #606 SUCCESS no SHA `cab8bea1e2e19b49aa8f841da770e6282daf6d9a`.
+
+A migration 028 e o gate 045 adicionam cancelamento actor-bound para intenções ainda não enviadas. O helper exige tenant e usuário ativos, bloqueia `sending` e `confirmed`, limpa lease/agendamento e registra `cancelled_at/cancelled_by`. A API expõe `POST /v1/publication-intents/:id/cancel`; nenhuma chamada externa é feita.
+
+O CI #604 falhou antes dos gates por declaração duplicada de `PublicationIntentParamsSchema` no `app.ts`; a correção removeu somente a segunda declaração. A produção não foi alterada.
+
+Phase 5 continua In Progress: faltam reconciliação de resultados ambíguos, fila/agenda automática, dead-letter operacional, notificações, confirmação das migrations 023–028 no banco canônico e publicação real com conta conectada.
