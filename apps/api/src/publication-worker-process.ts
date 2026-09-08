@@ -1,24 +1,26 @@
 import process from "node:process";
 
-const servicePrincipalId = process.env.PUBLICATION_WORKER_SERVICE_PRINCIPAL_ID;
-const workerDatabaseUrl = process.env.PUBLICATION_WORKER_DATABASE_URL;
+const configuredServicePrincipalId = process.env.PUBLICATION_WORKER_SERVICE_PRINCIPAL_ID;
+const configuredWorkerDatabaseUrl = process.env.PUBLICATION_WORKER_DATABASE_URL;
 const intervalMs = Math.max(
   1_000,
   Math.min(60_000, Number.parseInt(process.env.PUBLICATION_WORKER_INTERVAL_MS ?? "5000", 10) || 5_000)
 );
 
-if (!servicePrincipalId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(servicePrincipalId)) {
+if (typeof configuredServicePrincipalId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(configuredServicePrincipalId)) {
   console.error("publication worker requires PUBLICATION_WORKER_SERVICE_PRINCIPAL_ID");
   process.exit(2);
 }
 
-if (!workerDatabaseUrl) {
+if (typeof configuredWorkerDatabaseUrl !== "string" || configuredWorkerDatabaseUrl.length === 0) {
   console.error("publication worker requires PUBLICATION_WORKER_DATABASE_URL");
   process.exit(2);
 }
 
 // The worker must use its dedicated database credential. It must never
 // silently fall back to the API runtime credential.
+const servicePrincipalId = configuredServicePrincipalId;
+const workerDatabaseUrl = configuredWorkerDatabaseUrl;
 process.env.DATABASE_URL = workerDatabaseUrl;
 
 const { runPublicationQueueOnce } = await import("./publication-queue-worker.js");
