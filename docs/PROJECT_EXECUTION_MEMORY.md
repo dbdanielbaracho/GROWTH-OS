@@ -3270,3 +3270,10 @@ A revisão posterior do PR #64 encontrou que o endpoint de novas versões usava 
 O follow-up #65 recebeu a correção e CI #420 passou, mas o merge foi bloqueado por conflito porque sua branch continha o histórico do PR #64 já integrado. Para evitar resolução ambígua, foi criada a branch limpa `fix/content-versioning-helper-clean` a partir da main `182f4e575ce5b7cebda2584bda4f851426bb08e9`, reaplicando somente a correção no módulo de conteúdo.
 
 O CI desta branch limpa ainda é obrigatório. Até a integração, a produção continua com o código do PR #64; o follow-up corrigido ainda não foi publicado.
+
+
+## Falha do CI #421 e correção na branch limpa — 2026-09-08
+
+O CI #421 repetiu a falha de typecheck ao validar a branch limpa: a substituição da função de versionamento removeu a exportação existente `contentChecksum`. O log identificou o teste `content.test.ts` e duas chamadas de `content.ts` afetadas.
+
+A exportação foi restaurada na branch limpa. As falhas #417 e #421 foram de compilação, não chegaram a build/deploy e não alteraram produção. O novo SHA exige CI completo novamente.
