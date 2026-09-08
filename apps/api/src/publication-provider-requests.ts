@@ -15,7 +15,7 @@ export const InstagramContainerInputSchema = z.object({
   caption: z.string().max(2_200).default("")
 });
 
-export type InstagramContainerInput = z.infer<typeof InstagramContainerInputSchema>;
+export type InstagramContainerInput = z.input<typeof InstagramContainerInputSchema>;
 
 export function buildInstagramContainerRequest(input: InstagramContainerInput): RequestInit & { url: string } {
   const parsed = InstagramContainerInputSchema.parse(input);
@@ -70,7 +70,7 @@ export const YoutubeVideoInsertInputSchema = z.object({
   privacyStatus: z.enum(["private", "public", "unlisted"]).default("private")
 });
 
-export type YoutubeVideoInsertInput = z.infer<typeof YoutubeVideoInsertInputSchema>;
+export type YoutubeVideoInsertInput = z.input<typeof YoutubeVideoInsertInputSchema>;
 
 export function buildYoutubeVideoInsertRequest(input: YoutubeVideoInsertInput): RequestInit & { url: string } {
   const parsed = YoutubeVideoInsertInputSchema.parse(input);
