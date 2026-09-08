@@ -289,6 +289,33 @@ export type WorkspaceCreateResponse = {
   workspace_id: string;
 };
 
+export type ContentCreateResponse = {
+  status: "created";
+  item: {
+    id: string;
+    workspace_id: string;
+    objective: string | null;
+    market: string;
+    language: string;
+    platform_target: string | null;
+    source_type: string;
+    status: string;
+    created_by: string;
+    created_at: string;
+  };
+  version: {
+    id: string;
+    workspace_id: string;
+    content_item_id: string;
+    version_no: number;
+    body: string;
+    structure_json: Record<string, unknown>;
+    ai_provenance: Record<string, unknown> | null;
+    checksum: string;
+    created_at: string;
+  };
+};
+
 export async function signUp(email: string, password: string): Promise<IdentitySignupResponse> {
   csrfToken = null;
   return requestJson<IdentitySignupResponse>("/v1/auth/signup", {
@@ -335,6 +362,23 @@ export async function createWorkspace(input: {
     method: "POST",
     body: input,
     useDevelopmentIdentity: false
+  });
+}
+
+
+export async function createContent(input: {
+  objective?: string;
+  market: string;
+  language: string;
+  platformTarget?: string;
+  sourceType: string;
+  body: string;
+  structure?: Record<string, unknown>;
+  aiProvenance?: Record<string, unknown>;
+}): Promise<ContentCreateResponse> {
+  return requestJson<ContentCreateResponse>("/v1/content", {
+    method: "POST",
+    body: input
   });
 }
 
