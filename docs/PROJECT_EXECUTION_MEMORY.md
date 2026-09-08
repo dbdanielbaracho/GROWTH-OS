@@ -3431,3 +3431,8 @@ A correção altera somente o fixture do teste para usar `now() + interval '1 ho
 A branch `feat/publication-worker-orchestration` implementa o orquestrador provider-neutral para o próximo limite da Phase 5. O fluxo recebe uma claim, calcula o hash da tentativa, chama um adapter injetável e envia uma única finalização auditável. Exceções de adapter são convertidas para `failed_retryable` ou `needs_user_action` conforme o status HTTP, sem persistir a mensagem do erro.
 
 Os testes unitários confirmam sucesso, falha 429, falha 403, uma chamada do adapter, uma finalização e digest sem vazamento de conteúdo sensível. O bloco não chama provedores reais, não cria serviço worker no Railway, não altera banco/segredos/OAuth e não substitui a pendência de aplicar as migrations 023–024 em produção.
+
+
+## Addendum — correção do CI #503 no worker — 2026-09-08
+
+O CI #503 falhou no typecheck por uma exigência correta de `strictNullChecks`: o teste acessava `finalized[0]` sem provar que o elemento existia. A correção adiciona a asserção de presença antes dos acessos. Não houve alteração de lógica de produção, banco, segredos, OAuth ou Railway.
