@@ -4,7 +4,7 @@
 
 BEGIN;
 
-DO $
+DO $dedup$
 <<test_case>>
 DECLARE
   status_oid oid;
@@ -198,7 +198,7 @@ BEGIN
 
   RESET ROLE;
 END;
-$$;
+$dedup$;
 
 ROLLBACK;
 
