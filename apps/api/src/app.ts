@@ -35,6 +35,9 @@ import {
 import { z } from "zod";
 import { registerIdentityRoutes } from "./identity-routes.js";
 import { CreatePublicationIntentSchema, createPublicationIntent } from "./publishing.js";
+import { createDatabasePublicationExecutionStore } from "./publication-store.js";
+import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
+import { executePublicationIntent } from "./publication-worker.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
   const pgCode =
@@ -74,6 +77,10 @@ function publicSession(view: IdentitySessionView) {
 }
 
 const OpportunityParamsSchema = z.object({
+  id: z.string().uuid()
+});
+
+const PublicationIntentParamsSchema = z.object({
   id: z.string().uuid()
 });
 
@@ -442,6 +449,30 @@ export function buildApp(logger = false) {
         createPublicationIntent(client, principal, parsed.data)
       );
       return reply.code(201).send({ status: "created", publicationIntent: intent });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/publication-intents/:id/execute", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = PublicationIntentParamsSchema.safeParse(request.params);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const store = createDatabasePublicationExecutionStore(
+        principal,
+        parsed.data.id
+      );
+      const publicationIntent = await executePublicationIntent({
+        store,
+        adapterFactory: (claimed) => createPublicationProviderAdapter(claimed)
+      });
+      return { status: "processed", publicationIntent };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
