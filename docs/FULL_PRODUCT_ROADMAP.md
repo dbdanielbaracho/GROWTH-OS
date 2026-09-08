@@ -453,3 +453,13 @@ O CREATE agora avança de gravação isolada para retomada de trabalho: o painel
 A nova rota autenticada `POST /v1/content/:id/versions` usa o contrato existente, isolamento por workspace e lock da linha do conteúdo. Cada edição gera novo `version_no` e checksum. O fluxo segue fail-closed: continua sem publicação automática e sem dados sintéticos.
 
 Este bloco ainda não congela a Phase 4. Permanecem pendentes aprovação, edição completa de metadados, geração assistida com proveniência, publicação, reconciliação e os gates das fases seguintes.
+
+
+## Correção limpa pós-PR #64 — 2026-09-08
+
+O caminho de versionamento está sendo reaplicado em uma branch limpa a partir da main para remover o INSERT direto e chamar o helper canônico `growth.content_new_version`. O PR #65 não pôde ser integrado por conflito de histórico; isso não foi tratado como aprovação implícita. A nova branch precisa passar CI e merge antes de atualizar a produção.
+
+
+## Revalidação após CI #421 — 2026-09-08
+
+O CI #421 encontrou novamente a exportação `contentChecksum` ausente após a limpeza do follow-up. A função foi restaurada e o próximo SHA será o candidato final para CI do PR #66. Nenhuma mudança de produção ocorreu durante a falha.
