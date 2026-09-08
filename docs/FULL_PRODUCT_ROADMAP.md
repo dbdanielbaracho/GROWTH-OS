@@ -414,3 +414,8 @@ A resposta visual mostra a janela efetivamente usada, as linhas retornadas, o ú
 
 Essa entrega também registra a aplicação do design editorial do Growth OS ao controle: baixa fricção, leitura imediata do estado, contraste de seleção e preservação de estados de erro, carregamento e insuficiência de evidência. Ela avança a experiência da Phase 3, mas não congela a fase nem conclui o produto.
 
+
+## Addendum — correção do typecheck da janela YouTube — 2026-09-08
+
+O primeiro CI da entrega de janela de evidência encontrou uma incompatibilidade real entre a UI e o contrato tipado de `YoutubeSyncResponse`. A interface foi corrigida para manter a janela solicitada localmente, sem inventar um campo inexistente no contrato da API. A validação do novo SHA exato permanece obrigatória antes da promoção.
+
