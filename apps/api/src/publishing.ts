@@ -47,3 +47,17 @@ export async function createPublicationIntent(
 
   return result.rows[0];
 }
+
+
+export async function cancelPublicationIntent(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  publicationIntentId: string
+) {
+  const result = await client.query(
+    `select *
+       from growth.cancel_publication_intent($1, $2, $3)`,
+    [principal.workspaceId, publicationIntentId, principal.userId]
+  );
+  return result.rows[0];
+}
