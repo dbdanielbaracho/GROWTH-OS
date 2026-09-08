@@ -3261,3 +3261,12 @@ Foi iniciado o segundo slice de CREATE na branch `feat/content-draft-versioning`
 - O design editorial foi ampliado para biblioteca, seleção, estados vazios e responsividade.
 - Nenhuma migration nova foi necessária: o contrato existente de `content_versions` já suporta versões monotônicas e checksum único.
 - Pendente: CI no SHA exato, merge, deploy, smoke/API checks e validação autenticada de criação/edição.
+
+
+## Correção limpa pós-PR #64 — helper canônico de novas versões — 2026-09-08
+
+A revisão posterior do PR #64 encontrou que o endpoint de novas versões usava INSERT direto em `content_versions`, apesar de o contrato de produção definir `growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb)` como helper SECURITY DEFINER autorizado e responsável pela transição para `ready_for_review`.
+
+O follow-up #65 recebeu a correção e CI #420 passou, mas o merge foi bloqueado por conflito porque sua branch continha o histórico do PR #64 já integrado. Para evitar resolução ambígua, foi criada a branch limpa `fix/content-versioning-helper-clean` a partir da main `182f4e575ce5b7cebda2584bda4f851426bb08e9`, reaplicando somente a correção no módulo de conteúdo.
+
+O CI desta branch limpa ainda é obrigatório. Até a integração, a produção continua com o código do PR #64; o follow-up corrigido ainda não foi publicado.
