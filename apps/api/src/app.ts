@@ -84,10 +84,6 @@ const PublicationIntentParamsSchema = z.object({
   id: z.string().uuid()
 });
 
-const PublicationIntentParamsSchema = z.object({
-  id: z.string().uuid()
-});
-
 export function buildApp(logger = false) {
   const app = Fastify({
     logger: logger ? {
