@@ -653,3 +653,14 @@ O PR #83 foi validado no SHA exato `d4e86150b991fe5f7e3a371f8d634224b73c8087`, c
 A migration forward-only 025 adiciona `publication_intents.media_asset_id` e uma FK composta pelo workspace. O helper de seis argumentos só aceita asset `publishable` da mesma `content_version`, com `storage_ref` e `rights_status` declarados. O helper antigo de cinco argumentos permanece compatível. A rota `POST /v1/publication-intents` aceita `mediaAssetId` opcional.
 
 O gate SQL 042 verifica a fronteira `SECURITY DEFINER`, owner/grants, persistência do vínculo válido e rejeição de asset não publicável. Ainda não há leitura de bytes, worker operacional ou publicação real; migrations 023–025 continuam sem prova no Railway por falta de permissão viewer.
+
+
+## Addendum — Phase 5: contexto protegido e composição dos adapters — 2026-09-08
+
+PR #85 foi integrado no commit `5e014e4205b499f6d418e90d8a99a5a1d5cc3b13`, com CI #547 SUCCESS. O bloco estabeleceu o contexto protegido de execução da publicação: claim ativo, conteúdo aprovado, asset publicável, conta conectada e credencial cifrada são reunidos por helper `SECURITY DEFINER`, sem expor leitura direta de credenciais ao runtime.
+
+PR #86 foi integrado no commit `b90170917766446307303b04c5d5d61721eaa1db`, após CI final #565 SUCCESS no SHA `1ca1e9ab3e6df88c833547862c13e4d7f9071fff`. O bloco compõe esse contexto com os adapters HTTP de Instagram e YouTube: descriptografa a credencial apenas em memória, exige host HTTPS allowlisted para assets, executa os requests específicos do provedor e mantém falhas fail-closed. A migration 026 e o gate SQL 043 foram validados no banco isolado do CI.
+
+O histórico de validação foi preservado: CI #559 falhou por uma edição automática que quebrou a linha da regex em `config.ts` (TS1005); o arquivo foi restaurado integralmente. CI #561 passou typecheck, build e gates, mas encontrou uma asserção de teste incorreta que usava credencial inválida antes de testar a allowlist; o fixture foi corrigido para usar envelope cifrado válido. O CI #565 então passou com 42/42 testes.
+
+Limites: este bloco ainda não constitui publicação real em produção. O worker operacional ainda precisa ser ligado ao store de banco, as migrations 023–026 continuam sem confirmação no Postgres canônico enquanto o Railway exigir o papel `viewer`, e ainda faltam fila/agenda, retry durável, reconciliação, cancelamento, notificações e prova com contas reais. Phase 5 permanece In Progress, não Frozen.
