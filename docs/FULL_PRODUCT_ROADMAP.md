@@ -775,3 +775,17 @@ O PR #99 foi validado no CI #660 no SHA `31ef308c94cc78e8572d2eccc440331e13494e9
 A entrega conecta o job leased ao contexto de principal de serviço, rejeita leases expirados na conclusão e adiciona `runPublicationQueueOnce` para claim → execução → encerramento. O contexto de worker mantém workspace, principal e job juntos durante claim, leitura protegida de publicação, finalização e retry.
 
 O consumidor ainda não foi transformado em processo Railway permanente nem recebeu uma credencial operacional separada. A prova do banco canônico e a publicação em conta real continuam pendentes pelo bloqueio de permissão Railway e pelas configurações reais de provedor.
+
+
+## Addendum — Phase 5: processo consumidor do worker — candidato — 2026-09-08
+
+A branch `feat/publication-worker-process` adiciona o processo contínuo `worker:publication`, que:
+
+- exige `PUBLICATION_WORKER_SERVICE_PRINCIPAL_ID`;
+- exige `PUBLICATION_WORKER_DATABASE_URL` e nunca cai silenciosamente na credencial do API;
+- executa `runPublicationQueueOnce` em intervalo bounded;
+- registra somente classe de erro e identificadores operacionais não secretos;
+- encerra de forma graciosa em SIGTERM/SIGINT;
+- mantém o fluxo claim → execução → completion/retry já validado nos blocos anteriores.
+
+Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a credencial nem configura o principal real. A ativação exige revisão de configuração, criação controlada do serviço/worker e prova de lease/retry em ambiente canônico.
