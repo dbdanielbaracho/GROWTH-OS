@@ -3417,3 +3417,10 @@ A execução foi retomada no ponto posterior ao PR #75 pela branch `feat/publica
 - testes unitários registram estabilidade, conflitos factuais, classificação de erro e não exposição de dados sensíveis.
 
 Nenhuma chamada externa ao Instagram/YouTube, alteração de banco, segredo, OAuth ou produção ocorreu neste bloco. O CI deve validar o SHA exato antes de integração. O próximo limite de implementação é o adaptador/worker real, mantendo o contrato de claim e finalização separado. A permissão do Railway continua sendo o bloqueio para aplicar e provar as migrations 023–024 no Postgres canônico.
+
+
+## Addendum — correção do CI #491 no gate 041 — 2026-09-08
+
+O CI #491 encontrou uma falha real de teste: o gate de finalização usava um horário absoluto já passado pelo relógio do runner, fazendo a claim expirar antes da chamada de finalização. A mensagem do Postgres foi `publication intent claim has expired`.
+
+A correção altera somente o fixture do teste para usar `now() + interval '1 hour'`. O código de produção e as migrations não foram alterados, nenhuma chamada externa ocorreu e nenhuma produção foi afetada. O CI completo será repetido no novo SHA.
