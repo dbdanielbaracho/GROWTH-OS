@@ -19,6 +19,12 @@ BEGIN
     CREATE ROLE app_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
   END IF;
 
+  -- Dedicated worker runtime role. It receives EXECUTE only on narrowly
+  -- scoped worker helper functions; it must never receive table access.
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_worker') THEN
+    CREATE ROLE growth_worker LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+  END IF;
+
   -- RC9 security fix (RC9-FINDING-001/003): a narrowly-scoped, NOLOGIN role
   -- whose sole purpose is to own the two RLS-recursion-breaking helper
   -- functions in 002_rc9_security_policy_fix.sql. It is never granted to

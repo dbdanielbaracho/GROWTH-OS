@@ -3586,3 +3586,26 @@ O gate 042 prova owner `growth_migrator`, `SECURITY DEFINER`, execução para `a
 - Merge: `65246d3035698113c65cea3d7343ee2a7fd72918`.
 - Produção: não alterada; migrations 023–029 permanecem sem confirmação no Postgres canônico por bloqueio Railway `You don't have the required role (viewer) on this resource.`.
 - Limite: a reconciliação atual é controlada/autenticada e não consulta automaticamente o provedor. Ainda faltam worker com principal de serviço explícito, fila/agenda automática, notificações e prova real.
+
+
+## Registro de execução — PR em preparação: principal de serviço e claim da fila — 2026-09-08
+
+A branch `feat/publication-worker-service-principal` implementa a próxima fronteira da Phase 5.
+
+### Entrega
+
+- `db/migrations/030_publication_worker_service_principal.sql`;
+- `db/tests/047_publication_worker_service_principal.sql`;
+- tabela interna de principals de serviço com estado e allowlist de tipos de job;
+- `jobs.service_principal_id` e constraint que torna obrigatório o principal para jobs `publication_intent`;
+- enqueue idempotente e vinculado ao workspace/intenção;
+- claim due com `SKIP LOCKED`, lease bounded e seleção determinística;
+- papel `growth_worker` sem SELECT direto em `growth.jobs`;
+- CI atualizado para provisionar o papel e executar o gate 047;
+- bootstrap de produção atualizado para criar o papel dedicado.
+
+### Segurança e limites
+
+O helper é `SECURITY DEFINER`, pertence a `growth_migrator`, não é executável por `PUBLIC` e concede ao worker somente execução das funções. O gate verifica a ausência de SELECT direto em `growth.jobs` para `growth_worker` e `app_runtime`, além de provar que um job vencido é leased atomicamente.
+
+Esta entrega não altera segredos, OAuth, contas conectadas ou Railway. Ainda falta implementar o processo consumidor no serviço de produção, estabelecer o contexto tenant + principal de serviço durante a execução do intent e provar o fluxo em conta real. O Railway canônico continua retornando `You don't have the required role (viewer) on this resource.`, portanto nenhuma aplicação de migration ou conclusão de produção é afirmada.
