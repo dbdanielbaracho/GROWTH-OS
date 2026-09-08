@@ -3424,3 +3424,10 @@ Nenhuma chamada externa ao Instagram/YouTube, alteração de banco, segredo, OAu
 O CI #491 encontrou uma falha real de teste: o gate de finalização usava um horário absoluto já passado pelo relógio do runner, fazendo a claim expirar antes da chamada de finalização. A mensagem do Postgres foi `publication intent claim has expired`.
 
 A correção altera somente o fixture do teste para usar `now() + interval '1 hour'`. O código de produção e as migrations não foram alterados, nenhuma chamada externa ocorreu e nenhuma produção foi afetada. O CI completo será repetido no novo SHA.
+
+
+## Addendum — orquestração do worker de publicação — candidato — 2026-09-08
+
+A branch `feat/publication-worker-orchestration` implementa o orquestrador provider-neutral para o próximo limite da Phase 5. O fluxo recebe uma claim, calcula o hash da tentativa, chama um adapter injetável e envia uma única finalização auditável. Exceções de adapter são convertidas para `failed_retryable` ou `needs_user_action` conforme o status HTTP, sem persistir a mensagem do erro.
+
+Os testes unitários confirmam sucesso, falha 429, falha 403, uma chamada do adapter, uma finalização e digest sem vazamento de conteúdo sensível. O bloco não chama provedores reais, não cria serviço worker no Railway, não altera banco/segredos/OAuth e não substitui a pendência de aplicar as migrations 023–024 em produção.
