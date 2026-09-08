@@ -50,6 +50,10 @@ export type PublicationProviderAdapter = {
   }) => Promise<PublicationProviderResult>;
 };
 
+export type PublicationProviderAdapterFactory = (
+  claimed: ClaimablePublicationIntent
+) => PublicationProviderAdapter;
+
 function failureResult(error: unknown, startedAt: string) {
   const providerError = error instanceof PublicationProviderError ? error : null;
   return preparePublicationProviderResult({
@@ -65,7 +69,8 @@ function failureResult(error: unknown, startedAt: string) {
 
 export async function executePublicationIntent(input: {
   store: PublicationExecutionStore;
-  adapter: PublicationProviderAdapter;
+  adapter?: PublicationProviderAdapter;
+  adapterFactory?: PublicationProviderAdapterFactory;
 }): Promise<unknown> {
   const claimed = await input.store.claim();
   const startedAt = new Date().toISOString();
@@ -80,7 +85,9 @@ export async function executePublicationIntent(input: {
   });
 
   try {
-    const providerResult = await input.adapter.publish({ claimed, requestHash });
+    const adapter = input.adapterFactory?.(claimed) ?? input.adapter;
+    if (!adapter) throw new Error("publication provider adapter is not configured");
+    const providerResult = await adapter.publish({ claimed, requestHash });
     return input.store.finalize(
       claimed,
       toFinalizationArguments(providerResult, requestHash)
