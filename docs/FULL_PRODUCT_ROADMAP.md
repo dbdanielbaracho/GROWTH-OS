@@ -501,3 +501,10 @@ Essa fatia colocou em produção a fronteira de intenção auditável para conte
 
 A Phase 5 continua **In Progress**. A intenção não publica por si só. Ainda faltam claim/execução idempotente, assets válidos, agendamento, workers Instagram/YouTube, chamadas reais, retries, reconciliação, cancelamento, notificações e validação com publicação real. O próximo bloco é o contrato seguro de claim/transition da intenção, sem acoplar ainda o worker externo.
 
+
+
+## Phase 5 — contrato de claim da intenção de publicação — candidato
+
+A branch feat/publication-intent-claim-contract implementa a migration 023 e o gate SQL 040 para o contrato de claim/lease da publication_intents. O claim é tenant-bound, idempotente, serializado, revalida aprovação e conexão e recupera claims expirados após 10 minutos.
+
+Essa fatia permanece candidata até passar CI no SHA exato, ser integrada e publicada. Ela não chama provedores externos e não conclui a publicação. O próximo limite, depois da promoção, será a finalização auditável do resultado externo, incluindo persistência de attempt imutável e transições seguras de sucesso, retryable, needs_user_action e confirmed.
