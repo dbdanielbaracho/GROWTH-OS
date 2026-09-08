@@ -3468,3 +3468,14 @@ A alteração foi limitada ao contrato dos builders e documentada. Nenhuma chama
 O PR #79 foi integrado por squash no commit `182353c179ca9f7a004e56a52052305e2bacbec3` após o CI #522 passar no SHA `2a5dc17a959fcc45ff394313d2eb04fe6f316d76`. O bloco implementa requests controlados para Instagram e YouTube, com assets HTTPS, tokens fora de URL/corpo e YouTube privado por padrão.
 
 Os builders não executam chamadas externas. O Railway canônico continua bloqueado por falta do papel viewer/member; migrations 023–024 e o worker operacional ainda não podem ser confirmados em produção. Nenhum segredo, OAuth ou banco foi alterado.
+
+
+## Addendum — PR #81 integrado; adaptadores HTTP de publicação — 2026-09-08
+
+O PR #81 foi integrado por squash no commit `1593316ad70c81e5ad9dd25ad2b7b94da286d841` após o CI #531 passar no SHA `bc47a617908c3d5080dbfa0065634531c0e1faad`.
+
+O bloco implementa os adaptadores de execução HTTP do Instagram e YouTube sobre os builders do PR #79. Instagram executa container + `media_publish`; YouTube executa a sessão resumable + upload binário. Falhas preservam status HTTP/request id para a finalização, tokens não entram em URL/body, e a URL de upload do YouTube é validada contra HTTPS/hosts Google permitidos. Os testes cobrem sucesso, autorização negada, SSRF e tamanho de mídia.
+
+Durante a implementação, o tipo `PublicationProviderError` foi centralizado em `publication-execution.ts` e reexportado pelo worker, mantendo compatibilidade com os testes existentes.
+
+Limites preservados: os adaptadores ainda não estão conectados ao worker de produção, não resolvem `media_assets`, não publicam contas reais e não alteram banco/segredos/OAuth. O Railway canônico continua bloqueado por `You don't have the required role (viewer) on this resource.`; migrations 023–024 seguem sem prova de aplicação em produção.
