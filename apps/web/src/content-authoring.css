@@ -222,3 +222,33 @@
   cursor: wait;
   opacity: .5;
 }
+
+
+.content-publish-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 6px;
+}
+.content-publish-controls select {
+  max-width: 150px;
+  border: 1px solid #3b3c35;
+  border-radius: 2px;
+  background: #1a1b18;
+  color: #d7d5cc;
+  padding: 5px 6px;
+  font-size: .62rem;
+}
+.content-publish-hint {
+  color: #777b73;
+  font-size: .65rem;
+  text-align: right;
+}
+.content-publication-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
