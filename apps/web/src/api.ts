@@ -613,3 +613,38 @@ export async function cancelPublicationIntent(
     { method: "POST" }
   );
 }
+
+
+export type MetricAnalyticsSummary = {
+  social_account_id: string;
+  platform: string;
+  provider_account_id: string;
+  handle: string | null;
+  metric_name: string;
+  observation_count: number;
+  total_value: number;
+  latest_observed_at: string;
+  latest_effective_at: string;
+  complete_observations: number;
+  fresh_observations: number;
+};
+
+type MetricAnalyticsResponse = {
+  status: "ok";
+  from: string;
+  to: string;
+  metrics: MetricAnalyticsSummary[];
+};
+
+export async function fetchMetricAnalyticsSummary(
+  from?: string,
+  to?: string
+): Promise<MetricAnalyticsSummary[]> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const response = await requestJson<MetricAnalyticsResponse>(
+    `/v1/analytics/metrics${params.size > 0 ? `?${params.toString()}` : ""}`
+  );
+  return response.metrics;
+}
