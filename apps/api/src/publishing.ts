@@ -98,3 +98,17 @@ export async function recordPublicationReconciliation(
   );
   return result.rows[0];
 }
+
+
+export async function listPublicationIntents(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  limit = 50
+) {
+  const result = await client.query(
+    `select *
+       from growth.list_publication_intents($1, $2)`,
+    [principal.workspaceId, limit]
+  );
+  return result.rows;
+}
