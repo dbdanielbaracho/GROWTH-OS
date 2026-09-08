@@ -516,3 +516,10 @@ A implementação do claim de publicação foi integrada pelo PR #72, mas sua ap
 
 A Phase 5 não avança para produção nesta condição. O CI isolado passou, porém migration 023, lease de claim e função growth.claim_publication_intent ainda não podem ser marcados como disponíveis no ambiente real. O próximo gate é exclusivamente recuperar a permissão Railway, executar a migration uma única vez pelo migrator canônico e obter prova SQL direta.
 
+
+
+## Phase 5 — finalização auditável de publicação — candidato
+
+A migration 024 e o gate 041 implementam o limite de finalização da publicação: attempt imutável, transições de resultado, fechamento do lease e replay idempotente. O código não chama Instagram/YouTube; ele recebe o resultado produzido por um worker futuro.
+
+O bloco permanece candidato até o CI exato passar e a cadeia de migrations 023–024 ser aplicada e confirmada no Postgres canônico. O próximo desenvolvimento posterior será o worker/adapter de provedor, ainda separado da governança de intenção e dos registros imutáveis.
