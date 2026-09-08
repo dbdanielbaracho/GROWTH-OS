@@ -3651,3 +3651,23 @@ A implementação é somente de leitura: não publica, não cancela e não cria 
 - Entrega: projeção tenant-scoped de status, endpoint autenticado `GET /v1/publication-intents`, cliente web tipado e status no Content Authoring.
 - Limite: leitura somente; não cria/publica/cancela intenções. Ainda faltam consumidor do worker, contexto de principal de serviço e prova no Railway canônico.
 
+
+
+## Registro de execução — PR em preparação: contexto e runner do worker — 2026-09-08
+
+A branch `feat/publication-worker-runtime-context` avança a Phase 5 do contrato de fila para a execução controlada.
+
+### Entrega candidata
+
+- migration `032_publication_worker_runtime_context.sql`;
+- aceitação de contexto de principal de serviço em `growth.tenant_context_valid` somente com `app.service_principal_id`, `app.job_id`, workspace coincidente, principal ativo e job leased válido;
+- helper `growth.complete_publication_job` com estados `done/retry_wait/dead`, sanitização de classe de erro e rejeição de lease expirado;
+- `withWorkerSystemTransaction` e `withWorkerTenantTransaction`;
+- `createWorkerDatabasePublicationExecutionStore`;
+- `runPublicationQueueOnce` para claim → execução → finalização do job;
+- gate 049 e step do CI;
+- documentação deste candidato.
+
+### Limites
+
+O bloco ainda aguarda CI. Não altera OAuth, segredos ou Railway. O runner está preparado para uma credencial separada do worker, mas nenhum serviço Railway foi criado nem executado; o banco canônico continua sem prova por bloqueio de permissão. Não enviar ao Claude ainda: a revisão adversarial permanece reservada ao freeze final do produto.
