@@ -203,3 +203,22 @@
   font-size: .7rem;
   line-height: 1.35;
 }
+
+.content-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.content-draft-actions .content-secondary {
+  padding: 5px 6px;
+  font-size: .62rem;
+}
+.content-draft-actions .content-approve {
+  border-color: rgba(101, 174, 116, .5);
+  color: #b8e2bf;
+}
+.content-draft-actions .content-secondary:disabled {
+  cursor: wait;
+  opacity: .5;
+}
