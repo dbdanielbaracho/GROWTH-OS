@@ -3172,3 +3172,14 @@ Nenhum segredo, token ou credencial foi registrado neste documento.
 - O próximo gate ainda é obter observações reais completas suficientes e repetir o sync; somente então será possível comprovar a cadeia observação → sinal factual → evidência/insight → oportunidade → Radar.
 - Nenhum segredo, token, código MFA ou credencial foi registrado.
 
+
+
+## Atualização executada — janela de evidência do sync YouTube — 2026-09-08
+
+- Foi criada a branch `feat/youtube-sync-window-and-design-pass` a partir do `main` no SHA `c79e860df3da5cb0f7bf55ede8a5b62208896c86`.
+- A interface YouTube passou a permitir selecionar uma janela de sincronização de **7 ou 30 dias**, usando o parâmetro já suportado pelo endpoint (1–30 dias).
+- O resultado do sync agora identifica explicitamente a janela solicitada, o número de linhas retornadas, o último dia retornado e as observações reais processadas.
+- O retry continua usando o mesmo `requestNonce`; a seleção da janela permanece parte da mesma tentativa lógica.
+- A mudança inclui um passe visual coerente com o design editorial já definido: controle compacto, estados selecionados, foco no dado e preservação do fail-closed.
+- Nenhum dado sintético, credencial, permissão OAuth ou banco de produção foi alterado por esta entrega.
+- O CI e o deploy ainda precisam ser executados para este SHA; a revisão final do Claude permanece reservada para o estado integral congelado do projeto.
