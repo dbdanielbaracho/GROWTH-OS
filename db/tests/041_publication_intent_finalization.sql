@@ -5,6 +5,7 @@
 BEGIN;
 
 DO $finalize$
+<<test_case>>
 DECLARE
   finalize_oid oid;
   finalize_def text;
