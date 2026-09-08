@@ -143,6 +143,8 @@ BEGIN
 END;
 $enqueue$;
 
+GRANT USAGE ON SCHEMA growth TO growth_worker;
+
 ALTER FUNCTION growth.enqueue_publication_job(uuid,uuid,uuid,timestamptz)
   OWNER TO growth_migrator;
 REVOKE ALL ON FUNCTION growth.enqueue_publication_job(uuid,uuid,uuid,timestamptz)
