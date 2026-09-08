@@ -477,3 +477,10 @@ O healthcheck interno do serviço confirmou banco e processo saudáveis. A valid
 O fluxo CREATE passa a ter controles de governança: versões em `ready_for_review` podem ser aprovadas ou devolvidas para alterações através dos helpers canônicos e do histórico append-only de decisões.
 
 A aprovação não publica conteúdo. A publicação continua sendo uma etapa controlada e independente, conforme o roadmap. Este bloco ainda não congela a Phase 4 e aguarda CI, deploy e validação operacional.
+
+
+## Addendum — Phase 4: governança de revisão publicada — 2026-09-08
+
+O PR #68 adicionou e publicou os controles de aprovação e solicitação de alterações para versões `ready_for_review`, usando os helpers canônicos e o histórico append-only de decisões. CI #434/#435 passou, o merge gerou `50ff3cd887f09f1aa04a41eee02511dbffd46615` e o Railway confirmou deploy SUCCESS `df7c068d-cfcf-477b-b8e2-de3a096d0519`.
+
+A aprovação não publica conteúdo e a validação autenticada da jornada continua pendente; a Phase 4 ainda não está Frozen.

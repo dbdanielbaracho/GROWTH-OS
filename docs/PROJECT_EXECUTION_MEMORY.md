@@ -3303,3 +3303,14 @@ Foi iniciado o bloco de governança de conteúdo na branch `feat/content-review-
 - A UI mostra os controles apenas para a versão atual em `ready_for_review` e mantém publicação como etapa separada.
 - Nenhuma migration nova é necessária: os helpers e grants já existem no contrato canônico.
 - Pendente: CI, merge, deploy, smoke e validação autenticada da jornada.
+
+
+## Addendum — PR #68 revisão e aprovação de conteúdo publicados — 2026-09-08
+
+- O PR #68 foi validado nos runs CI #434 e #435, ambos `SUCCESS`, no SHA `be94dbe9d714c1b8029ee472c4fc4f78a7482916`.
+- O PR foi mergeado por squash no commit `50ff3cd887f09f1aa04a41eee02511dbffd46615`.
+- O deploy Railway canônico `df7c068d-cfcf-477b-b8e2-de3a096d0519` terminou `SUCCESS`.
+- O serviço iniciou normalmente e o healthcheck Railway `GET /health/ready` retornou HTTP 200.
+- O bloco publicado usa `content_approve` e `content_request_changes`, registra decisões append-only e mantém publicação como etapa separada.
+- A validação autenticada no navegador e uma prova de decisão com usuário real ainda não foram executadas nesta sessão; não são inferidas pelo healthcheck.
+- O projeto permanece incompleto até os blocos de publicação, analytics, inteligência, experimentos, automação, comercial/enterprise e hardening.
