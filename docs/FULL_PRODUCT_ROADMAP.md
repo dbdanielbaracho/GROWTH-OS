@@ -533,3 +533,8 @@ O gate 041 foi ajustado para eliminar a ambiguidade PL/pgSQL/coluna e respeitar 
 ### Correção após CI #469
 
 O gate 041 recebeu a declaração explícita do alias da tabela de attempts. O próximo SHA deve repetir o CI completo antes da integração.
+
+
+### Correção após CI #474
+
+O gate 041 agora declara o rótulo usado para qualificar o workspace do caso de teste. A validação integral será repetida no novo SHA.
