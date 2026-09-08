@@ -6,7 +6,7 @@ import { resolvePrincipal, type AuthPrincipal } from "./auth.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
 import { getOpportunityDetail, listInsights, listOpportunities } from "./intelligence.js";
-import { AppendContentVersionSchema, ContentNotFoundError, CreateContentSchema, appendContentVersion, createContent, listContent } from "./content.js";
+import { AppendContentVersionSchema, ContentDecisionSchema, ContentNotFoundError, ContentVersionNotFoundError, CreateContentSchema, appendContentVersion, approveContent, createContent, listContent, requestContentChanges } from "./content.js";
 import {
   CreateCreativeRequestSchema, createCreativeRequest,
   CreateCreativeGenerationSchema, createCreativeGeneration,
@@ -371,6 +371,56 @@ export function buildApp(logger = false) {
       return reply.code(201).send({ status: "created", ...created });
     } catch (error) {
       if (error instanceof ContentNotFoundError) {
+        return reply.code(404).send({ status: "not_found" });
+      }
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/content/versions/:id/approve", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = ContentDecisionSchema.safeParse({
+      ...(request.body as Record<string, unknown>),
+      contentVersionId: (request.params as { id: string }).id
+    });
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const decision = await withTenantTransaction(principal, (client) =>
+        approveContent(client, principal, parsed.data)
+      );
+      return { status: "ok", ...decision };
+    } catch (error) {
+      if (error instanceof ContentVersionNotFoundError) {
+        return reply.code(404).send({ status: "not_found" });
+      }
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/content/versions/:id/request-changes", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = ContentDecisionSchema.safeParse({
+      ...(request.body as Record<string, unknown>),
+      contentVersionId: (request.params as { id: string }).id
+    });
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const decision = await withTenantTransaction(principal, (client) =>
+        requestContentChanges(client, principal, parsed.data)
+      );
+      return { status: "ok", ...decision };
+    } catch (error) {
+      if (error instanceof ContentVersionNotFoundError) {
         return reply.code(404).send({ status: "not_found" });
       }
       app.log.error(error);

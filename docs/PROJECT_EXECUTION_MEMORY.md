@@ -3289,3 +3289,17 @@ A exportação foi restaurada na branch limpa. As falhas #417 e #421 foram de co
 - Os probes externos adicionais via `curl` não puderam ser concluídos nesta sessão porque a autorização de rede do ambiente foi cancelada; esse limite não foi tratado como resultado positivo.
 - O histórico das falhas #417 e #421, do conflito de merge #65 e das correções está registrado acima. Nenhuma dessas falhas chegou a alterar produção.
 - A validação autenticada da jornada CREATE/edição continua pendente de navegador com sessão real. O projeto permanece em execução e não está declarado concluído.
+
+
+## Addendum — aprovação e solicitação de alterações no CREATE — 2026-09-08
+
+Foi iniciado o bloco de governança de conteúdo na branch `feat/content-review-approval`.
+
+- O módulo de conteúdo passou a chamar os helpers canônicos `growth.content_approve` e `growth.content_request_changes`.
+- Foram expostas as rotas autenticadas `POST /v1/content/versions/:id/approve` e `POST /v1/content/versions/:id/request-changes`.
+- A aplicação valida que a versão pertence ao workspace antes de chamar o helper.
+- A aprovação usa o estado oficial `ready_for_review` → `approved`; solicitação de alterações usa `ready_for_review` → `draft`.
+- A decisão gera o registro append-only de `content_approvals`; não há UPDATE/DELETE direto pelo runtime.
+- A UI mostra os controles apenas para a versão atual em `ready_for_review` e mantém publicação como etapa separada.
+- Nenhuma migration nova é necessária: os helpers e grants já existem no contrato canônico.
+- Pendente: CI, merge, deploy, smoke e validação autenticada da jornada.

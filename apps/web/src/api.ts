@@ -390,6 +390,12 @@ type ContentListResponse = {
   content: ContentListItem[];
 };
 
+export type ContentDecisionResponse = {
+  status: "ok";
+  item: ContentCreateResponse["item"];
+  approval: Record<string, unknown>;
+};
+
 export async function createContent(input: {
   objective?: string;
   market: string;
@@ -425,6 +431,26 @@ export async function appendContentVersion(input: {
       aiProvenance: input.aiProvenance
     }
   });
+}
+
+export async function approveContentVersion(
+  contentVersionId: string,
+  notes?: string
+): Promise<ContentDecisionResponse> {
+  return requestJson<ContentDecisionResponse>(
+    `/v1/content/versions/${encodeURIComponent(contentVersionId)}/approve`,
+    { method: "POST", body: { notes } }
+  );
+}
+
+export async function requestContentChanges(
+  contentVersionId: string,
+  notes?: string
+): Promise<ContentDecisionResponse> {
+  return requestJson<ContentDecisionResponse>(
+    `/v1/content/versions/${encodeURIComponent(contentVersionId)}/request-changes`,
+    { method: "POST", body: { notes } }
+  );
 }
 
 export async function signIn(email: string, password: string): Promise<AuthSessionResponse> {

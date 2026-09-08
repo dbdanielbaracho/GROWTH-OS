@@ -470,3 +470,10 @@ O CI #421 encontrou novamente a exportação `contentChecksum` ausente após a l
 O PR #66 corrigiu o caminho de novas versões para usar o helper canônico `growth.content_new_version`, passou no CI #423, foi mergeado no commit `4aee0d8803378066d6d0154ff51ccc01b55b3e4e` e publicado com sucesso no Railway.
 
 O healthcheck interno do serviço confirmou banco e processo saudáveis. A validação externa adicional ficou limitada por bloqueio de autorização de rede do ambiente, e a validação autenticada no navegador continua explicitamente pendente. Nenhum desses limites autoriza marcar a Phase 4 como Frozen.
+
+
+## Addendum — Phase 4: revisão e aprovação de conteúdo — 2026-09-08
+
+O fluxo CREATE passa a ter controles de governança: versões em `ready_for_review` podem ser aprovadas ou devolvidas para alterações através dos helpers canônicos e do histórico append-only de decisões.
+
+A aprovação não publica conteúdo. A publicação continua sendo uma etapa controlada e independente, conforme o roadmap. Este bloco ainda não congela a Phase 4 e aguarda CI, deploy e validação operacional.
