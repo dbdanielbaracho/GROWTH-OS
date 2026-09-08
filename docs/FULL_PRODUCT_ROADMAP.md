@@ -826,3 +826,17 @@ Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a c
 - Documentação: `docs/PUBLICATION_WORKER_RUNBOOK.md` registra configuração, processo, evidência, reinício seguro e checklist de implantação sem valores secretos.
 - Limites: serviço worker ainda não foi criado/deployado no Railway; nenhum segredo/OAuth foi alterado; migrations 023–032 continuam sem confirmação no banco canônico por falta de permissão viewer/member.
 - Próximo bloco: avançar a cobertura de analytics/reporting e observabilidade da jornada de dados, preservando provenance e estados vazios quando não houver evidência real.
+
+
+## Registro de execução — PR #107 integrado — analytics de métricas — 2026-09-08
+
+- PR: #107.
+- Branch: `feat/publication-analytics-summary`.
+- CI final: #704 SUCCESS no SHA `184d58983c460f3218fa00298d4888a9dd689546`.
+- Merge: `afae517b849d0d3286f7e534e4ea892eeaa19e50`.
+- Migration/gate: 033/050.
+- Entrega de dados: helper `growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz)` agrega observações por conta e métrica, preserva contagem, total, última observação, última efetividade e contagens de completude/freshness.
+- Segurança: helper `SECURITY DEFINER` com owner `growth_migrator`, contexto tenant obrigatório, janela máxima de 366 dias, execução apenas por `app_runtime` e sem SELECT direto do runtime em `metric_observations`.
+- Entrega web: endpoint autenticado `GET /v1/analytics/metrics` e painel Analytics com janela padrão de 7 dias, dados agrupados e estado explícito quando não existem observações reais.
+- Limites: não há valores sintéticos, atribuição, experimentos, OGI, anomalia ou exportação nesta etapa. Migrations 023–033 ainda não têm confirmação no Postgres canônico; o Railway permanece bloqueado por falta de permissão viewer/member.
+- Próximo bloco: ampliar analytics com frescor/anomalias e exportação auditável antes de avançar para experimentos e inteligência complementar.
