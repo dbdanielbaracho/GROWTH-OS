@@ -3366,3 +3366,32 @@ Estado real: migration 023 e growth.claim_publication_intent(uuid,uuid,uuid,time
 
 O CI do PR #72 continua sendo evidência válida para o banco isolado, mas não substitui a prova de produção. Próximo ponto de retomada: aplicar e consultar diretamente a migration 023 no banco canônico; depois restaurar/confirmar o estado ocioso do migrator antes de qualquer novo deploy de migration.
 
+
+
+## Addendum — Phase 5: finalização auditável de publicação — candidato — 2026-09-08
+
+Foi implementada a migration forward-only 024 na branch feat/publication-intent-finalization-contract. O helper SECURITY DEFINER growth.finalize_publication_intent recebe o resultado de uma chamada externa, grava um único publication_attempt imutável, fecha o claim ativo e transiciona a intenção para confirmed, failed_retryable ou needs_user_action.
+
+Replays idênticos devolvem a intenção já finalizada; replays com divergência factual são rejeitados. Confirmed exige provider_content_id. O helper mantém tenant isolation e app_runtime sem acesso direto às tabelas de publicação. O gate SQL 041 e o workflow foram adicionados.
+
+Este é somente um candidato de implementação: não há chamada de provedor neste bloco e a migration ainda aguarda CI, merge, aplicação/consulta no Postgres canônico e deploy. A migration 023 continua sem confirmação em produção por bloqueio do Railway registrado no addendum anterior.
+
+
+### Correção do CI #465 — gate 041 — 2026-09-08
+
+O primeiro CI do PR #74 falhou somente no gate 041 por ambiguidade de variável no SQL do teste: workspace_id=workspace_id não qualificava a coluna. A inspeção da tabela também estava posicionada sob app_runtime, que corretamente não possui SELECT direto em publication_attempts. O teste foi corrigido para qualificar pa.workspace_id, retornar ao papel growth_test_harness para a inspeção e voltar a app_runtime para validar o replay pelo helper. A migration 024 permaneceu inalterada; nenhuma produção foi afetada.
+
+
+### Correção do CI #469 — gate 041 — 2026-09-08
+
+O segundo CI falhou porque a correção anterior qualificou pa.workspace_id, mas o alias pa não havia sido declarado no FROM. O teste foi corrigido para declarar explicitamente FROM growth.publication_attempts pa. A migration 024 continua inalterada e a produção permanece sem alteração.
+
+
+### Correção do CI #474 — gate 041 — 2026-09-08
+
+O terceiro CI falhou porque o teste usava test_case.workspace_id para desambiguar a variável PL/pgSQL, mas o bloco DO não tinha o rótulo <<test_case>>. O rótulo foi adicionado. A migration 024 permaneceu inalterada e nenhuma produção foi afetada.
+
+
+### Correção do CI #478 — gate 041 — 2026-09-08
+
+O quarto CI encontrou permission denied para a inspeção direta de publication_attempts pelo teste. Isso é coerente com a fronteira de least privilege: o harness não deve depender de acesso direto à tabela de evidência no caminho de validação do runtime. A consulta foi removida; o replay idêntico pelo helper continua sendo a prova comportamental da persistência do attempt, pois sem a linha o claim já fechado não poderia ser finalizado novamente. A migration 024 permaneceu inalterada.
