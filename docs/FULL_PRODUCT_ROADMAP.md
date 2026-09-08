@@ -523,3 +523,8 @@ A Phase 5 não avança para produção nesta condição. O CI isolado passou, po
 A migration 024 e o gate 041 implementam o limite de finalização da publicação: attempt imutável, transições de resultado, fechamento do lease e replay idempotente. O código não chama Instagram/YouTube; ele recebe o resultado produzido por um worker futuro.
 
 O bloco permanece candidato até o CI exato passar e a cadeia de migrations 023–024 ser aplicada e confirmada no Postgres canônico. O próximo desenvolvimento posterior será o worker/adapter de provedor, ainda separado da governança de intenção e dos registros imutáveis.
+
+
+### Correção após CI #465
+
+O gate 041 foi ajustado para eliminar a ambiguidade PL/pgSQL/coluna e respeitar a fronteira sem acesso direto do app_runtime às tabelas de publicação. O novo SHA precisa passar o CI completo antes de qualquer integração.
