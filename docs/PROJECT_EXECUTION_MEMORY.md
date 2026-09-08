@@ -3572,3 +3572,17 @@ O gate 042 prova owner `growth_migrator`, `SECURITY DEFINER`, execução para `a
 - Merge: `7417fd9181de0046a344d30b0415abc66794182b`.
 - Produção: não alterada; migrations 023–028 permanecem sem confirmação no Postgres canônico devido ao bloqueio Railway `You don't have the required role (viewer) on this resource.`.
 - Próximo limite: reconciliação de resultados ambíguos e fila/agenda automática; publicação real continua não comprovada.
+
+
+## Registro de execução — PR #94 — 2026-09-08
+
+- Branch: `feat/publication-reconciliation`.
+- PR: #94.
+- Migration: `029_publication_reconciliation.sql`.
+- Gate: `046_publication_reconciliation.sql`.
+- Resultado: helper `growth.record_publication_reconciliation(uuid,uuid,integer,text,text,text,text,text)`; classificação limitada por método/confiança/estado, evidência somente por referência sanitizada, correspondência forte com ID podendo confirmar e ambiguidade/escalada sem sucesso artificial.
+- API: `POST /v1/publication-intents/:id/reconcile`, autenticada e tenant-scoped.
+- CI #616: SUCCESS no SHA `24f75db6f7e3c83af7071de1b47c82da709b6c02`, com typecheck, build, migrations, gates e testes.
+- Merge: `65246d3035698113c65cea3d7343ee2a7fd72918`.
+- Produção: não alterada; migrations 023–029 permanecem sem confirmação no Postgres canônico por bloqueio Railway `You don't have the required role (viewer) on this resource.`.
+- Limite: a reconciliação atual é controlada/autenticada e não consulta automaticamente o provedor. Ainda faltam worker com principal de serviço explícito, fila/agenda automática, notificações e prova real.
