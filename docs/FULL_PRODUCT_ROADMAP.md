@@ -571,3 +571,16 @@ Este bloco não chama Instagram ou YouTube e não marca publicação como conclu
 O CI #491 falhou no gate 041 porque o teste usava `fixed_now = 2026-09-08T16:30:00Z`. Quando o runner executou às 16:45Z, a claim de 10 minutos já estava expirada antes da finalização. O erro foi determinístico do fixture temporal, não do contrato de finalização nem da implementação TypeScript.
 
 O fixture foi corrigido para `now() + interval '1 hour'`, mantendo a autoridade temporal controlada pelo próprio teste e evitando dependência de horário absoluto. O novo SHA exige o CI completo novamente; nenhuma produção foi afetada.
+
+
+## Phase 5 — orquestração do worker de publicação — candidato — 2026-09-08
+
+A execução avançou na branch `feat/publication-worker-orchestration`, partindo do main após o PR #76.
+
+- O worker agora orquestra `claim -> adapter -> finalização` por meio de interfaces injetáveis.
+- Uma exceção de provedor é convertida em resultado auditável; 429/5xx permanecem retryable e falhas de autorização viram `needs_user_action`.
+- O worker finaliza exatamente uma vez por execução e reutiliza o hash determinístico do contrato anterior.
+- Mensagens de erro não entram no resultado; somente a classe do erro e o digest do payload controlado são encaminhados.
+- Testes cobrem sucesso, falha transitória, falha de autorização, chamada única do adapter e finalização única.
+
+Este bloco ainda não conecta os adaptadores Instagram/YouTube nem cria um serviço Railway. A migração 023/024 continua sem prova de produção por bloqueio de permissão; nenhum deploy foi feito neste bloco.
