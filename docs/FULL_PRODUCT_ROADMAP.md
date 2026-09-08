@@ -628,3 +628,19 @@ O PR #79 foi validado no SHA exato `2a5dc17a959fcc45ff394313d2eb04fe6f316d76`, a
 A entrega adiciona builders controlados para container/publicação do Instagram e upload resumable do YouTube, exige assets HTTPS, mantém tokens somente no header Authorization e inicia uploads do YouTube com privacidade `private`. O bloco não chama provedores reais e não publica conteúdo.
 
 O Railway canônico continua sem acesso viewer/member para aplicar e provar as migrations 023–024. Nenhuma conclusão de produção foi inferida.
+
+
+## Phase 5 — PR #81 integrado; adaptadores HTTP de publicação — 2026-09-08
+
+O PR #81 foi validado no SHA exato `bc47a617908c3d5080dbfa0065634531c0e1faad`, com CI #531 em success, e integrado por squash no commit `1593316ad70c81e5ad9dd25ad2b7b94da286d841`.
+
+A entrega adiciona adaptadores HTTP controlados para os provedores:
+
+- Instagram: criação de container e chamada posterior de `media_publish`;
+- YouTube: iniciação de upload resumable e envio binário;
+- classificação preservada de erros via HTTP status e provider request id;
+- localização de upload do YouTube limitada a HTTPS em hosts Google permitidos;
+- tokens somente em headers, sem persistência em payloads de evidência;
+- testes de sucesso, autorização negada, SSRF e divergência de bytes.
+
+Esta entrega ainda não lê `media_assets`, não liga um worker operacional às credenciais e não faz publicação real. O contrato de asset publicável, a resolução segura do conteúdo, retries/reconciliação e a ativação dependem das migrations 023–024 e de prova direta no Railway. A permissão canônica continua bloqueando essa validação; nenhuma conclusão de produção foi inferida.
