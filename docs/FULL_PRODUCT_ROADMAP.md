@@ -813,3 +813,16 @@ Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a c
 - Segurança preservada: o clique de preparação cria a intenção, mas não publica automaticamente; execução permanece ação separada e autenticada; tokens, payloads brutos, OAuth e segredos não entram na interface.
 - Limites: a reconciliação continua explícita e ainda não há prova de publicação real. Nenhum serviço Railway foi criado/publicado e nenhuma migration 023–032 foi confirmada no Postgres canônico devido ao bloqueio de permissão.
 - Próximo bloco: fechar a integração operacional do worker com configuração documentada, observabilidade e validação dos estados de execução; depois avançar para analytics e demais fases do roadmap.
+
+
+## Registro de execução — PR #105 integrado — contrato operacional do worker — 2026-09-08
+
+- PR: #105.
+- Branch: `feat/publication-worker-operational-contract`.
+- CI final: #690 SUCCESS no SHA `9ec3593246acf18d30356b9d0e851be2411d2ff7`.
+- Merge: `8d4acb61faa0840513e221b9d92cabf2eba76a47`.
+- Entrega: `loadPublicationWorkerConfig` separado e testável; validação obrigatória do principal de serviço, URL PostgreSQL dedicada e limites do intervalo; derivação bounded do lease; processo contínuo refatorado para usar o contrato.
+- Testes: ausência de principal/URL, URL não PostgreSQL, intervalo mínimo/máximo e valor padrão cobertos no pacote da API.
+- Documentação: `docs/PUBLICATION_WORKER_RUNBOOK.md` registra configuração, processo, evidência, reinício seguro e checklist de implantação sem valores secretos.
+- Limites: serviço worker ainda não foi criado/deployado no Railway; nenhum segredo/OAuth foi alterado; migrations 023–032 continuam sem confirmação no banco canônico por falta de permissão viewer/member.
+- Próximo bloco: avançar a cobertura de analytics/reporting e observabilidade da jornada de dados, preservando provenance e estados vazios quando não houver evidência real.
