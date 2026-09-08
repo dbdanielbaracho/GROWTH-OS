@@ -3210,3 +3210,22 @@ Nenhum segredo, token ou credencial foi registrado neste documento.
 - O smoke test confirma disponibilidade, banco saudável e fronteira de autenticação. A confirmação visual do controle 7/30 dias depende da abertura da interface autenticada no navegador do usuário.
 - Nenhuma migration, credencial, permissão OAuth ou dado de produção foi alterado nesta entrega.
 - O próximo bloco continua sendo o fechamento do ciclo real de dados e a expansão do produto, mantendo o Radar em no-op quando não houver evidência suficiente.
+
+
+## Addendum — primeiro fluxo CREATE exposto na interface — 2026-09-08
+
+Esta entrega continua a execução do escopo original do Growth OS e transforma a fundação de Content Authoring já existente no backend em uma jornada utilizável dentro da mesma superfície principal do produto.
+
+- Branch de implementação: `feat/content-authoring-panel`.
+- Base confirmada: `6721983d232f67e8239ae3e49d4048f7f32da641`, após o PR #61.
+- O backend já possuía `POST /v1/content`, persistência de `content_items` e `content_versions`, status inicial `draft` e checksum SHA-256.
+- A API web recebeu `createContent()` tipado, usando a sessão autenticada existente.
+- A página principal passou a montar `content-authoring-root` e carregar `content-authoring.tsx`.
+- O novo painel permite informar objetivo, mercado, idioma, plataforma Instagram/YouTube e texto do rascunho.
+- A ação salva somente um rascunho manual (`sourceType=manual`) com estrutura/proveniência do editor; nenhuma publicação é disparada.
+- Após salvar, a interface informa versão e prefixo do checksum; em falha, informa que nenhum conteúdo foi publicado.
+- O CSS aplica o design editorial preto/dourado já definido para o Growth OS, mantendo baixa fricção, contraste e responsividade.
+- Arquivos principais: `apps/web/src/api.ts`, `apps/web/index.html`, `apps/web/src/content-authoring.tsx` e `apps/web/src/content-authoring.css`.
+- Nenhuma migration foi criada porque o contrato e as tabelas necessárias já existiam no backend.
+- Nenhuma credencial, OAuth, dado de produção ou publicação real foi alterado nesta etapa.
+- Pendente: CI no SHA final, revisão dos gates, merge, deploy canônico, smoke test e validação autenticada da jornada. O produto continua incompleto até as fases finais do roadmap.
