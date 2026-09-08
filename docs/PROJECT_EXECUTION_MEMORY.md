@@ -3328,3 +3328,18 @@ A execução foi retomada a partir do PR #69 e iniciou a branch `feat/publicatio
 - Rota autenticada: `POST /v1/publication-intents`.
 - A intenção é somente registro controlado; não existe chamada ao provedor, envio de mídia ou publicação automática.
 - Pendente: CI, gate SQL/comportamental, merge, deploy e validação operacional.
+
+
+## Addendum — PR #70 integrado e deploy canônico da intenção de publicação — 2026-09-08
+
+O PR #70 (feat: add approval-gated publication intent foundation) foi validado no SHA exato 22a8bd64f97a756a7a532b8720f1a6073d66b2c0. Os dois runs oficiais do CI associados ao candidato — #444 (push) e #445 (pull_request) — terminaram com conclusão success.
+
+O PR foi integrado por squash no commit 9b51762b1000a46bcff32b89a2c61113744a53a1. O Railway canônico successful-embrace / growth-os publicou esse commit no deployment 134bb6fa-05f9-4fd0-bbb4-057df3e9a10d, com status oficial success e descrição Success - growos.predibeacon.com.
+
+A entrega introduziu a migration forward-only 022 e o helper growth.create_publication_intent, com SECURITY DEFINER, owner growth_migrator, execução para app_runtime, tenant isolation, idempotência, exigência de conteúdo aprovado e conta social conectada. Também introduziu a rota autenticada POST /v1/publication-intents.
+
+O limite funcional foi preservado: essa entrega apenas registra uma intenção auditável em estado ready. Ela não chama Instagram/YouTube, não envia mídia e não publica automaticamente. Agendamento, seleção/validação de assets, workers de provedor, retries, reconciliação, cancelamento, notificações e prova de publicação real continuam pendentes.
+
+A leitura de logs pelo conector Railway ficou temporariamente bloqueada por falta do papel viewer; por isso, a confirmação de deploy foi baseada no status oficial do commit publicado pelo Railway no GitHub. Nenhuma conclusão de sucesso de logs internos foi inventada.
+
+**Próximo ponto de retomada:** implementar o próximo limite controlado da Phase 5 sobre a intenção já persistida, começando pelo contrato de execução/claim idempotente e mantendo chamadas externas aos provedores separadas, auditáveis e fail-closed.
