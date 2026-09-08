@@ -734,3 +734,20 @@ A branch `feat/publication-status-surface` adiciona a primeira projeção user-f
 - gate SQL `048_publication_status_projection.sql`.
 
 A projeção não expõe credenciais, payloads, leases ou tabelas internas diretamente. Ela torna visível o estado auditável que já existe no backend, mas não cria publicação nem altera o contrato de execução. O bloco ainda depende do CI, da aplicação das migrations 023–031 no banco canônico e da implementação do consumidor worker para fechar a jornada operacional.
+
+
+## Addendum — PR #96 integrado: principal de serviço e fila — 2026-09-08
+
+O PR #96 foi validado no CI #635 no SHA `9dfc3509f8e3cc234dc73cb0ecd26b1d67e4babb` e integrado por squash no commit `74a83ef909e32f409bd784a20d64902249302de0`.
+
+A entrega criou a fronteira de principal de serviço para jobs de publicação: tabela interna de principals, vínculo `jobs.service_principal_id`, enqueue idempotente, claim due com `SKIP LOCKED`, lease bounded, papel `growth_worker` sem leitura direta de `growth.jobs`, migration 030 e gate 047. A falha inicial do CI ocorreu porque o gate foi executado com o papel errado; a correção provisionou o papel de testes e executou a chamada somente como `growth_worker`. O CI final confirmou a separação.
+
+Ainda falta o consumidor Railway e a adaptação do contexto tenant para execução por principal de serviço. Migrations 023–030 continuam sem prova no Postgres canônico enquanto a permissão Railway estiver bloqueada.
+
+## Addendum — PR #97 integrado: projeção de status de publicação — 2026-09-08
+
+O PR #97 foi validado no CI #647 no SHA `165cd001e5792a14a770c83a33f790220c57783b` e integrado por squash no commit `81b3ef7dc3070e6d776d010821df92768c1ffc27`.
+
+A entrega adicionou migration 031, gate 048, helper autenticado e bounded `growth.list_publication_intents`, endpoint `GET /v1/publication-intents`, cliente web tipado e status de publicação no Content Authoring. A projeção é somente leitura e não expõe credenciais, payloads ou leases.
+
+Phase 5 segue In Progress. O próximo bloco deve ligar a seleção da fila ao contexto de principal de serviço e ao executor, com recuperação operacional e evidência de produção.
