@@ -23,7 +23,8 @@ DECLARE
   version_id uuid := 'c0000000-0000-4000-8000-000000000956';
   intent_id uuid;
   claim_token uuid := 'd0000000-0000-4000-8000-000000000951';
-  fixed_now timestamptz := '2026-09-08T16:30:00Z';
+  -- Keep the lease in the future on runners whose wall clock changes.
+  fixed_now timestamptz := now() + interval '1 hour';
   v_intent growth.publication_intents;
   v_replay growth.publication_intents;
   direct_update boolean;

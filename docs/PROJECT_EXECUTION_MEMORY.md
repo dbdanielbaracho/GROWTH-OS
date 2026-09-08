@@ -3404,3 +3404,23 @@ O PR #74 foi validado no SHA exato 8275e6ee15811c5b87331520ee795c6f9cb8a628. O C
 O PR foi integrado por squash no commit 3cd448f78f758116a130c68d4f441a0af81f7385. A migration 024 e o gate 041 agora estão no main. Como o Railway marcou o commit sem deployment necessário e o acesso ao projeto canônico continua bloqueado pelo papel member/viewer, as migrations 023 e 024 ainda não foram aplicadas ou confirmadas no Postgres de produção. O CI isolado não substitui essa evidência.
 
 Nenhum serviço novo, segredo, OAuth, networking ou Public Access foi alterado. O próximo gate permanece a aplicação controlada e a consulta SQL direta das migrations 023–024 no Postgres canônico, usando o migrator existente, assim que o acesso Railway for restaurado.
+
+
+## Addendum — contrato de execução de provedor — candidato — 2026-09-08
+
+A execução foi retomada no ponto posterior ao PR #75 pela branch `feat/publication-provider-execution-contract`. O bloco implementa o contrato provider-neutral que antecede o worker real:
+
+- `publicationRequestHash` produz identidade determinística da tentativa e muda quando o conteúdo factual muda;
+- `classifyProviderResponse` é fail-closed e exige identificador do conteúdo para confirmar 2xx;
+- `providerPayloadRef` transforma qualquer payload bruto em digest SHA-256, sem persistir credenciais ou resposta integral;
+- `toFinalizationArguments` prepara apenas campos compatíveis com a fronteira da migration 024;
+- testes unitários registram estabilidade, conflitos factuais, classificação de erro e não exposição de dados sensíveis.
+
+Nenhuma chamada externa ao Instagram/YouTube, alteração de banco, segredo, OAuth ou produção ocorreu neste bloco. O CI deve validar o SHA exato antes de integração. O próximo limite de implementação é o adaptador/worker real, mantendo o contrato de claim e finalização separado. A permissão do Railway continua sendo o bloqueio para aplicar e provar as migrations 023–024 no Postgres canônico.
+
+
+## Addendum — correção do CI #491 no gate 041 — 2026-09-08
+
+O CI #491 encontrou uma falha real de teste: o gate de finalização usava um horário absoluto já passado pelo relógio do runner, fazendo a claim expirar antes da chamada de finalização. A mensagem do Postgres foi `publication intent claim has expired`.
+
+A correção altera somente o fixture do teste para usar `now() + interval '1 hour'`. O código de produção e as migrations não foram alterados, nenhuma chamada externa ocorreu e nenhuma produção foi afetada. O CI completo será repetido no novo SHA.
