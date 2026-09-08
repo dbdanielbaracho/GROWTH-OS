@@ -589,3 +589,14 @@ Este bloco ainda não conecta os adaptadores Instagram/YouTube nem cria um servi
 ### Correção do CI #503 — narrowing do resultado do worker — 2026-09-08
 
 O typecheck do PR #77 encontrou acessos possivelmente `undefined` em `finalized[0]` nos testes do orquestrador. A implementação não foi executada pelo CI além do typecheck. Os testes foram corrigidos com narrowing explícito após confirmar que a coleção possui um resultado. Nenhuma produção foi afetada.
+
+
+## Phase 5 — PR #77 integrado; Railway ainda bloqueado — 2026-09-08
+
+O PR #77 foi validado no SHA exato `ce154abb2984159c3c29894cceed61a9d8721106`, após a correção registrada do CI #503, e integrado por squash no commit `4863f5dc3d5895ec4fb07773232d4b09f3f951bc`. O CI #508 terminou com sucesso.
+
+A entrega adiciona o orquestrador provider-neutral `claim -> adapter -> finalização`, com hash determinístico, uma finalização por execução e conversão segura de falhas do provedor. Ainda não chama Instagram/YouTube reais e não cria o serviço worker no Railway.
+
+Após a integração, uma nova consulta ao projeto canônico `successful-embrace` continuou retornando `required role (viewer)`. Migrations 023–024 permanecem não confirmadas no Postgres de produção. Nenhuma alteração de segredo, OAuth, serviço ou deploy foi inferida.
+
+O próximo gate continua sendo restaurar a permissão Railway, aplicar 023 e 024 pelo migrator canônico, obter prova SQL direta e somente então ligar adaptadores/worker real.
