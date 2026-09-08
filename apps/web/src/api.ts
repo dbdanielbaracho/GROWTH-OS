@@ -577,3 +577,39 @@ export async function fetchPublicationIntents(): Promise<PublicationIntentListIt
   const response = await requestJson<PublicationIntentListResponse>("/v1/publication-intents");
   return response.publicationIntents;
 }
+
+
+export type PublicationIntentMutationResponse = {
+  status: "created" | "processed" | "cancelled";
+  publicationIntent: PublicationIntentListItem;
+};
+
+export async function createPublicationIntent(input: {
+  socialAccountId: string;
+  contentVersionId: string;
+  requestNonce: string;
+  idempotencyKey: string;
+}): Promise<PublicationIntentMutationResponse> {
+  return requestJson<PublicationIntentMutationResponse>("/v1/publication-intents", {
+    method: "POST",
+    body: input
+  });
+}
+
+export async function executePublicationIntent(
+  publicationIntentId: string
+): Promise<PublicationIntentMutationResponse> {
+  return requestJson<PublicationIntentMutationResponse>(
+    `/v1/publication-intents/${encodeURIComponent(publicationIntentId)}/execute`,
+    { method: "POST" }
+  );
+}
+
+export async function cancelPublicationIntent(
+  publicationIntentId: string
+): Promise<PublicationIntentMutationResponse> {
+  return requestJson<PublicationIntentMutationResponse>(
+    `/v1/publication-intents/${encodeURIComponent(publicationIntentId)}/cancel`,
+    { method: "POST" }
+  );
+}

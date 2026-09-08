@@ -8,6 +8,11 @@ import {
   fetchAuthSession,
   fetchContent,
   fetchPublicationIntents,
+  fetchInstagramStatus,
+  fetchYoutubeStatus,
+  createPublicationIntent,
+  executePublicationIntent,
+  cancelPublicationIntent,
   PublicationIntentListItem,
   RadarApiError,
   requestContentChanges
@@ -33,6 +38,12 @@ function publicationLabel(intent: PublicationIntentListItem): string {
   return intent.status.replace(/_/g, " ");
 }
 
+type ConnectedPublicationAccount = {
+  id: string;
+  label: string;
+  platform: "Instagram" | "YouTube";
+};
+
 function ContentAuthoringPanel() {
   const [authenticated, setAuthenticated] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -43,6 +54,9 @@ function ContentAuthoringPanel() {
   const [decisionBusyId, setDecisionBusyId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<ContentListItem[]>([]);
   const [publicationIntents, setPublicationIntents] = useState<PublicationIntentListItem[]>([]);
+  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedPublicationAccount[]>([]);
+  const [publicationBusyId, setPublicationBusyId] = useState<string | null>(null);
+  const [selectedAccountByDraft, setSelectedAccountByDraft] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [market, setMarket] = useState("US");
   const [language, setLanguage] = useState("en-US");
@@ -73,11 +87,48 @@ function ContentAuthoringPanel() {
     }
   }, []);
 
+  const loadConnectedAccounts = useCallback(async () => {
+    const [instagram, youtube] = await Promise.allSettled([
+      fetchInstagramStatus(),
+      fetchYoutubeStatus()
+    ]);
+    const accounts: ConnectedPublicationAccount[] = [];
+    if (instagram.status === "fulfilled") {
+      for (const row of instagram.value.integrations) {
+        if (row.connection_state === "connected" && row.social_account_id) {
+          accounts.push({
+            id: row.social_account_id,
+            label: row.handle || row.provider_account_id || "Instagram account",
+            platform: "Instagram"
+          });
+        }
+      }
+    }
+    if (youtube.status === "fulfilled") {
+      for (const row of youtube.value.integrations) {
+        if (row.connection_state === "connected" && row.social_account_id) {
+          accounts.push({
+            id: row.social_account_id,
+            label: row.handle || row.provider_account_id || "YouTube channel",
+            platform: "YouTube"
+          });
+        }
+      }
+    }
+    if (
+      (instagram.status === "rejected" && instagram.reason instanceof RadarApiError && instagram.reason.httpStatus === 401) ||
+      (youtube.status === "rejected" && youtube.reason instanceof RadarApiError && youtube.reason.httpStatus === 401)
+    ) {
+      setAuthenticated(false);
+    }
+    setConnectedAccounts(accounts);
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
       await fetchAuthSession();
       setAuthenticated(true);
-      await Promise.all([loadDrafts(), loadPublications()]);
+      await Promise.all([loadDrafts(), loadPublications(), loadConnectedAccounts()]);
     } catch (error) {
       if (error instanceof RadarApiError && error.httpStatus === 401) {
         setAuthenticated(false);
@@ -86,7 +137,7 @@ function ContentAuthoringPanel() {
     } finally {
       setChecking(false);
     }
-  }, [loadDrafts, loadPublications]);
+  }, [loadDrafts, loadPublications, loadConnectedAccounts]);
 
   useEffect(() => {
     void refresh();
@@ -96,7 +147,7 @@ function ContentAuthoringPanel() {
   }, [refresh]);
 
   useEffect(() => {
-    const onContentRefresh = () => void Promise.all([loadDrafts(), loadPublications()]);
+    const onContentRefresh = () => void Promise.all([loadDrafts(), loadPublications(), loadConnectedAccounts()]);
     window.addEventListener("growth-os:content-refresh", onContentRefresh);
     return () => window.removeEventListener("growth-os:content-refresh", onContentRefresh);
   }, [loadDrafts, loadPublications]);
@@ -167,6 +218,68 @@ function ContentAuthoringPanel() {
     }
   }
 
+  async function publishDraft(draft: ContentListItem) {
+    if (draft.status !== "approved" || !draft.current_version_id) return;
+    const platform = draft.platform_target?.toLowerCase();
+    const accounts = connectedAccounts.filter((account) => account.platform.toLowerCase() === platform);
+    const socialAccountId = selectedAccountByDraft[draft.id] ?? accounts[0]?.id;
+    if (!socialAccountId) {
+      setMessage("Connect an account for this platform before creating a publication intent.");
+      return;
+    }
+
+    setPublicationBusyId(draft.id);
+    setMessage(null);
+    try {
+      await createPublicationIntent({
+        socialAccountId,
+        contentVersionId: draft.current_version_id,
+        requestNonce: crypto.randomUUID(),
+        idempotencyKey: `content-version:${draft.current_version_id}:account:${socialAccountId}`
+      });
+      setMessage("Publication intent created. Execute it from Publishing status when ready.");
+      await loadPublications();
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
+      setMessage(contentError(error));
+    } finally {
+      setPublicationBusyId(null);
+    }
+  }
+
+  async function executeIntent(intent: PublicationIntentListItem) {
+    if (!["ready", "queued", "failed_retryable", "retrying"].includes(intent.status)) return;
+    setPublicationBusyId(intent.id);
+    setMessage(null);
+    try {
+      await executePublicationIntent(intent.id);
+      setMessage("Publication attempt processed. Review the resulting status and provider id.");
+      await loadPublications();
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
+      setMessage(contentError(error));
+    } finally {
+      setPublicationBusyId(null);
+    }
+  }
+
+  async function cancelIntent(intent: PublicationIntentListItem) {
+    if (!["ready", "scheduled", "queued", "failed_retryable", "retrying", "needs_user_action"].includes(intent.status)) return;
+    if (!window.confirm("Cancel this publication intent? This does not remove provider content already confirmed.")) return;
+    setPublicationBusyId(intent.id);
+    setMessage(null);
+    try {
+      await cancelPublicationIntent(intent.id);
+      setMessage("Publication intent cancelled.");
+      await loadPublications();
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
+      setMessage(contentError(error));
+    } finally {
+      setPublicationBusyId(null);
+    }
+  }
+
   if (checking || !authenticated) return null;
 
   return (
@@ -207,6 +320,34 @@ function ContentAuthoringPanel() {
                       <button className="content-secondary" type="button" disabled={decisionBusyId === draft.id} onClick={() => void decide(draft, "request_changes")}>Changes</button>
                     </>
                   )}
+                  {draft.status === "approved" && draft.current_version_id && (
+                    <div className="content-publish-controls">
+                      {connectedAccounts.filter((account) => account.platform.toLowerCase() === (draft.platform_target ?? "").toLowerCase()).length > 0 ? (
+                        <>
+                          <select
+                            aria-label="Publication account"
+                            value={selectedAccountByDraft[draft.id] ?? ""}
+                            onChange={(event) => setSelectedAccountByDraft((current) => ({ ...current, [draft.id]: event.target.value }))}
+                          >
+                            <option value="">Choose account</option>
+                            {connectedAccounts
+                              .filter((account) => account.platform.toLowerCase() === (draft.platform_target ?? "").toLowerCase())
+                              .map((account) => <option key={account.id} value={account.id}>{account.label}</option>)}
+                          </select>
+                          <button
+                            className="content-secondary content-approve"
+                            type="button"
+                            disabled={publicationBusyId === draft.id}
+                            onClick={() => void publishDraft(draft)}
+                          >
+                            {publicationBusyId === draft.id ? "Creating…" : "Prepare publish"}
+                          </button>
+                        </>
+                      ) : (
+                        <small className="content-publish-hint">Connect {draft.platform_target || "a channel"} first.</small>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -223,7 +364,29 @@ function ContentAuthoringPanel() {
                   <small>Attempt {intent.current_attempt_no ?? "—"} · retry {intent.retry_count}</small>
                   <p>{intent.provider_content_id ? "Provider content id recorded." : "No provider content id recorded."}</p>
                 </div>
-                <span className="content-status">{publicationLabel(intent)}</span>
+                <div className="content-publication-actions">
+                  <span className="content-status">{publicationLabel(intent)}</span>
+                  {["ready", "queued", "failed_retryable", "retrying"].includes(intent.status) && (
+                    <button
+                      className="content-secondary content-approve"
+                      type="button"
+                      disabled={publicationBusyId === intent.id}
+                      onClick={() => void executeIntent(intent)}
+                    >
+                      {publicationBusyId === intent.id ? "Processing…" : "Execute"}
+                    </button>
+                  )}
+                  {["ready", "scheduled", "queued", "failed_retryable", "retrying", "needs_user_action"].includes(intent.status) && (
+                    <button
+                      className="content-secondary"
+                      type="button"
+                      disabled={publicationBusyId === intent.id}
+                      onClick={() => void cancelIntent(intent)}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
