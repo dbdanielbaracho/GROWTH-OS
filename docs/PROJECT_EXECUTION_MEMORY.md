@@ -3245,3 +3245,19 @@ Esta entrega continua a execução do escopo original do Growth OS e transforma 
   - `GET /v1/content` sem sessão → HTTP 401.
 - A fronteira pública/protegida está consistente. A confirmação da jornada de criação com sessão autenticada permanece pendente de navegador autenticado; não foi inferida pelo smoke público.
 - O bloco CREATE está publicado, mas o projeto completo continua incompleto: publicação, reconciliação, analytics, inteligência, experimentos, automação, comercial/enterprise e hardening ainda exigem execução e gates próprios.
+
+
+## Addendum — versionamento e biblioteca de rascunhos — 2026-09-08
+
+Foi iniciado o segundo slice de CREATE na branch `feat/content-draft-versioning`, a partir do estado publicado do PR #62.
+
+- Adicionado `POST /v1/content/:id/versions` autenticado para gravar uma nova versão do mesmo conteúdo.
+- O endpoint usa a mesma transação tenant-scoped, bloqueia `content_items` com `FOR UPDATE` e calcula o próximo `version_no` dentro da linha protegida.
+- A nova versão recalcula o checksum SHA-256; o conteúdo original não é sobrescrito.
+- Conteúdo inexistente ou fora do workspace retorna `404 not_found`; entradas inválidas retornam `400`.
+- A API web recebeu leitura de `GET /v1/content` e gravação de versões.
+- O painel passou a listar até cinco rascunhos do workspace, mostrar versão/plataforma/resumo e carregar um rascunho para edição.
+- “Save new version” cria uma nova versão; “New draft” inicia outro item. Nenhum caminho publica conteúdo.
+- O design editorial foi ampliado para biblioteca, seleção, estados vazios e responsividade.
+- Nenhuma migration nova foi necessária: o contrato existente de `content_versions` já suporta versões monotônicas e checksum único.
+- Pendente: CI no SHA exato, merge, deploy, smoke/API checks e validação autenticada de criação/edição.
