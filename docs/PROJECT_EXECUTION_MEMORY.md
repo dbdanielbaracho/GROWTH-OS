@@ -3759,3 +3759,16 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Entrega: Analytics classifica cada linha como Complete, Stale ou Incomplete a partir das contagens de completude/freshness retornadas pelo helper; o painel permite baixar o snapshot JSON autenticado com `from`, `to` e as métricas exibidas.
 - Limites: o snapshot não substitui dados ausentes nem produz anomalias estatísticas, atribuição, OGI ou experimento. Produção continua sem confirmação das migrations 023–033 porque o Railway canônico ainda nega o papel viewer/member.
 - Próximo bloco: implementar a camada de anomalias determinísticas e a leitura de insights/opportunities com explicação de evidência, mantendo o fail-closed.
+
+
+## Registro de execução — PR #111 integrado — Radar para Content Authoring — 2026-09-08
+
+- PR: #111.
+- Branch: `feat/radar-to-content-authoring`.
+- CI final: #721 SUCCESS no SHA `ca533ab8ac8340a6461f6b1f442211f937af52ec`.
+- Merge: `eec3256ec26d6131f2a491fcacee0508a897a40f`.
+- Entrega: o detalhe de uma oportunidade pode abrir um novo rascunho com mercado, plataforma e objetivo derivados do registro selecionado.
+- Segurança e verdade: nenhum texto é gerado automaticamente, nenhuma oportunidade é convertida em publicação e a exigência de escrita, revisão e aprovação permanece intacta.
+- Correção registrada: o listener de atualização do Content Authoring passou a declarar todas as dependências usadas.
+- Limites: ainda faltam recomendações de ação armazenadas, experimentos, automação, billing/enterprise e prova de produção; Railway canônico continua sem acesso viewer/member.
+- Próximo bloco: fechar os contratos de avaliação/feedback das recomendações e preparar os módulos de experimentação sem perder lineage.
