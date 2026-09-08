@@ -3671,3 +3671,14 @@ A branch `feat/publication-worker-runtime-context` avança a Phase 5 do contrato
 ### Limites
 
 O bloco ainda aguarda CI. Não altera OAuth, segredos ou Railway. O runner está preparado para uma credencial separada do worker, mas nenhum serviço Railway foi criado nem executado; o banco canônico continua sem prova por bloqueio de permissão. Não enviar ao Claude ainda: a revisão adversarial permanece reservada ao freeze final do produto.
+
+
+## Registro de execução — PR #99 integrado — 2026-09-08
+
+- PR: #99.
+- Branch: `feat/publication-worker-runtime-context`.
+- CI final: #660 SUCCESS no SHA `31ef308c94cc78e8572d2eccc440331e13494e90`.
+- Merge: `4577fc6f6487fb7c3823c59e4c5a3145facecda6`.
+- Migration/gate: 032/049.
+- Entrega: contexto tenant de principal de serviço condicionado a job leased, helper de conclusão `done/retry_wait/dead`, transações TypeScript de worker, store worker e `runPublicationQueueOnce`.
+- Limite: não houve criação/deploy de serviço Railway, alteração de OAuth ou segredo, nem prova de produção. O processo consumidor permanente e a credencial separada do worker continuam pendentes.

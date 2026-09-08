@@ -766,3 +766,12 @@ A branch `feat/publication-worker-runtime-context` implementa a ligação contro
 - gate SQL `049_publication_worker_runtime_context.sql`.
 
 Este é um candidato de implementação e ainda não está validado, mergeado ou publicado. O runner usa o papel/credencial do worker, mas não cria automaticamente um serviço Railway nesta etapa. Também permanece pendente a prova do contexto em banco canônico e a publicação com conta real.
+
+
+## Addendum — PR #99 integrado: contexto e runner do worker — 2026-09-08
+
+O PR #99 foi validado no CI #660 no SHA `31ef308c94cc78e8572d2eccc440331e13494e90` e integrado por squash no commit `4577fc6f6487fb7c3823c59e4c5a3145facecda6`.
+
+A entrega conecta o job leased ao contexto de principal de serviço, rejeita leases expirados na conclusão e adiciona `runPublicationQueueOnce` para claim → execução → encerramento. O contexto de worker mantém workspace, principal e job juntos durante claim, leitura protegida de publicação, finalização e retry.
+
+O consumidor ainda não foi transformado em processo Railway permanente nem recebeu uma credencial operacional separada. A prova do banco canônico e a publicação em conta real continuam pendentes pelo bloqueio de permissão Railway e pelas configurações reais de provedor.
