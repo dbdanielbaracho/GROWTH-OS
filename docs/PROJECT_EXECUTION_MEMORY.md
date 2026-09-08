@@ -3016,3 +3016,43 @@ O deployment atual do serviço `growth-os` é `5b5f9f01-19fc-4cb6-a896-3dfbb1b9b
 5. Continuar a cadeia do produto: sincronização real -> sinais -> insights/evidências -> oportunidades -> Radar.
 6. Registrar cada resultado no GitHub antes de avançar ou encerrar a etapa.
 
+
+
+---
+
+## Registro operacional — teste comportamental da deduplicação Instagram — 2026-09-08
+
+### Revisão independente executada
+
+A revisão técnica do PR #51 confirmou que o teste 039 original era apenas estrutural e não era chamado pelo workflow CI atual. Para provar o caso observado pelo usuário, o teste foi ampliado e o workflow passou a executá-lo.
+
+O cenário isolado agora:
+
+1. cria uma conta gerenciada com uma conexão Instagram `connected`;
+2. cria duas conexões antigas em `authorizing`;
+3. chama `growth.instagram_integration_status()` pelo caminho `app_runtime` e exige uma única linha visível, priorizando `connected`;
+4. inicia uma nova autorização pelo helper `growth.instagram_begin_authorization()`;
+5. verifica que o total permanece em três conexões, há somente uma `authorizing` e há uma autorização antiga marcada como `failed` com `error_class='instagram_authorization_superseded'`;
+6. consulta o status novamente e exige uma única linha.
+
+O teste também passou a validar owner, `SECURITY DEFINER`, grants dos dois helpers e ausência de privilégios diretos do runtime em `growth.platform_connections`.
+
+### Falha intermediária do CI e correção
+
+- Run #363, ID `34171916494`, falhou no novo gate porque o delimitador PostgreSQL `$$` foi reduzido a `$` ao gravar o arquivo pela API, gerando erro de sintaxe antes do cenário.
+- A correção substituiu o delimitador por `$dedup$`, sem alterar a lógica testada.
+- O novo gate foi adicionado ao workflow CI com o papel isolado `growth_test_harness`; não houve alteração de produção.
+
+### CI final confirmado
+
+- Run #364, ID `34172028344`.
+- SHA exato: `f0172203b5a72086ee59ec9774cce039ebe43294`.
+- Job `validate`: SUCCESS.
+- Todos os passos passaram, incluindo o novo passo `Run Instagram deduplication gate`.
+- PR #51 permanece draft, aberta e sem revisão formal independente.
+- Nenhuma aplicação da migration 021, merge ou deploy do PR #51 foi feita.
+
+### Próximo gate
+
+A correção agora tem evidência estrutural e comportamental, mas ainda precisa do revisor adversarial independente exigido pelo processo. Depois dessa aprovação, o próximo passo será atualizar a branch se necessário, confirmar o SHA final, fazer merge/deploy controlado e validar no navegador do usuário que aparece um único cartão Instagram.
+
