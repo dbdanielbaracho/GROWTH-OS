@@ -3557,3 +3557,18 @@ O gate 042 prova owner `growth_migrator`, `SECURITY DEFINER`, execução para `a
 - Merge: `1e0bbd392833421a877e0d76dd95cd2d166e40aa`.
 - Produção: não alterada; migrations 023–027 continuam sem confirmação no Postgres canônico devido ao bloqueio Railway `You don't have the required role (viewer) on this resource.`.
 - Próximo limite: reconciliação de resultados ambíguos, cancelamento seguro e seleção/agenda de fila. Ainda não há publicação real comprovada.
+
+
+## Registro de execução — PR #92 — 2026-09-08
+
+- Branch: `feat/publication-cancellation`.
+- PR: #92.
+- Migration: `028_publication_cancellation.sql`.
+- Gate: `045_publication_cancellation.sql`.
+- Resultado: helper `growth.cancel_publication_intent(uuid,uuid,uuid)`, actor-bound e `SECURITY DEFINER`; estados `sending` e `confirmed` não podem ser cancelados; estados canceláveis limpam lease e agenda e registram usuário/data.
+- API: `POST /v1/publication-intents/:id/cancel`, com autenticação e tenant context.
+- CI #604: falhou no typecheck por declaração duplicada de `PublicationIntentParamsSchema` após integração do endpoint do PR #88; a declaração extra foi removida.
+- CI #606: SUCCESS, com typecheck, build, migrations, gates 040–045, integração e testes.
+- Merge: `7417fd9181de0046a344d30b0415abc66794182b`.
+- Produção: não alterada; migrations 023–028 permanecem sem confirmação no Postgres canônico devido ao bloqueio Railway `You don't have the required role (viewer) on this resource.`.
+- Próximo limite: reconciliação de resultados ambíguos e fila/agenda automática; publicação real continua não comprovada.
