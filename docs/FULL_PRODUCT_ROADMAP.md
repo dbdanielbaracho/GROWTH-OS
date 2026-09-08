@@ -704,3 +704,19 @@ PR #94 foi integrado no commit `65246d3035698113c65cea3d7343ee2a7fd72918`, após
 A migration 029 e o gate 046 adicionam registro de reconciliação por método, confiança e estado, sem persistir payload bruto. A correspondência exige confiança forte e ID do provedor antes de confirmar uma intenção; estados ambíguos/escalados não viram sucesso e podem exigir ação do usuário. A API autenticada expõe `POST /v1/publication-intents/:id/reconcile`.
 
 Este bloco fornece a recuperação controlada, mas não é reconciliação automática contra o provedor: ainda faltam um worker de fila com principal de serviço explícito, agenda automática, dead-letter operacional, notificações, confirmação das migrations 023–029 no banco canônico e prova real.
+
+
+## Addendum — Phase 5: principal de serviço e claim da fila — 2026-09-08
+
+Foi implementado na branch `feat/publication-worker-service-principal` o contrato que faltava para uma fila de publicação operar sem identidade anônima:
+
+- migration `030_publication_worker_service_principal.sql`;
+- tabela interna `growth.worker_service_principals`, com estado `active/revoked` e tipos de job autorizados;
+- vínculo explícito `jobs.service_principal_id`;
+- helper `growth.enqueue_publication_job` com idempotência por intenção, validação do principal e rejeição de estados terminais;
+- helper `growth.claim_due_publication_job` com `FOR UPDATE SKIP LOCKED`, ordenação determinística, lease de 30–900 segundos e incremento de tentativas;
+- papel separado `growth_worker`, sem acesso direto às tabelas internas, com execução somente dos helpers;
+- gate SQL `047_publication_worker_service_principal.sql`;
+- provisionamento do papel worker no CI isolado e no bootstrap administrativo de produção.
+
+O bloco resolve o requisito arquitetural de que todo job carregue um principal de serviço explícito. Ele ainda não cria o processo Railway que consome a fila nem habilita execução cross-tenant em produção: a conexão Railway canônica continua bloqueada por falta do papel mínimo, e as migrations 023–030 ainda precisam de aplicação e prova SQL no banco canônico. Portanto Phase 5 permanece In Progress, não Frozen.
