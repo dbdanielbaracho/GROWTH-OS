@@ -34,6 +34,7 @@ import {
 } from "./identity-adapter.js";
 import { z } from "zod";
 import { registerIdentityRoutes } from "./identity-routes.js";
+import { CreatePublicationIntentSchema, createPublicationIntent } from "./publishing.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
   const pgCode =
@@ -423,6 +424,25 @@ export function buildApp(logger = false) {
       if (error instanceof ContentVersionNotFoundError) {
         return reply.code(404).send({ status: "not_found" });
       }
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/publication-intents", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = CreatePublicationIntentSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const intent = await withTenantTransaction(principal, (client) =>
+        createPublicationIntent(client, principal, parsed.data)
+      );
+      return reply.code(201).send({ status: "created", publicationIntent: intent });
+    } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
       return reply.code(mapped.code).send({ status: mapped.status });
