@@ -3609,3 +3609,22 @@ A branch `feat/publication-worker-service-principal` implementa a próxima front
 O helper é `SECURITY DEFINER`, pertence a `growth_migrator`, não é executável por `PUBLIC` e concede ao worker somente execução das funções. O gate verifica a ausência de SELECT direto em `growth.jobs` para `growth_worker` e `app_runtime`, além de provar que um job vencido é leased atomicamente.
 
 Esta entrega não altera segredos, OAuth, contas conectadas ou Railway. Ainda falta implementar o processo consumidor no serviço de produção, estabelecer o contexto tenant + principal de serviço durante a execução do intent e provar o fluxo em conta real. O Railway canônico continua retornando `You don't have the required role (viewer) on this resource.`, portanto nenhuma aplicação de migration ou conclusão de produção é afirmada.
+
+
+## Registro de execução — PR em preparação: status de publicação na superfície web — 2026-09-08
+
+A branch `feat/publication-status-surface` integra o estado de publicação à interface autenticada.
+
+### Entrega
+
+- migration `031_publication_status_projection.sql`;
+- helper `growth.list_publication_intents(uuid,integer)`, com contexto tenant, limite máximo de 100 e projeção sem credenciais/payloads;
+- endpoint `GET /v1/publication-intents`;
+- tipos e cliente web para a lista;
+- painel Content Authoring exibindo status, tentativa, retry e existência do ID do provedor;
+- gate SQL 048 e step correspondente no CI;
+- roadmap e memória atualizados neste mesmo bloco.
+
+### Limites
+
+A implementação é somente de leitura: não publica, não cancela e não cria intenções. Não altera segredos, OAuth ou Railway. O consumidor autônomo da fila, o contexto de principal de serviço durante a execução e a prova em produção continuam pendentes. O Railway canônico segue bloqueado por `You don't have the required role (viewer) on this resource.`.
