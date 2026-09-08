@@ -3436,3 +3436,12 @@ Os testes unitários confirmam sucesso, falha 429, falha 403, uma chamada do ada
 ## Addendum — correção do CI #503 no worker — 2026-09-08
 
 O CI #503 falhou no typecheck por uma exigência correta de `strictNullChecks`: o teste acessava `finalized[0]` sem provar que o elemento existia. A correção adiciona a asserção de presença antes dos acessos. Não houve alteração de lógica de produção, banco, segredos, OAuth ou Railway.
+
+
+## Addendum — PR #77 integrado e nova confirmação do bloqueio Railway — 2026-09-08
+
+O PR #77 foi integrado no commit `4863f5dc3d5895ec4fb07773232d4b09f3f951bc` após o CI #508 passar no SHA candidato `ce154abb2984159c3c29894cceed61a9d8721106`. O bloco implementa a orquestração provider-neutral de publicação: claim, hash, adapter, finalização única e classificação segura de exceções.
+
+Depois do merge, o status do Railway foi consultado novamente para o projeto canônico `successful-embrace` e continuou bloqueado por `You don't have the required role (viewer) on this resource.` Portanto, as migrations 023–024 seguem sem confirmação no banco de produção. Nenhum deploy, segredo, OAuth ou serviço novo foi alterado nessa tentativa.
+
+A execução foi documentada sem transformar CI isolado em prova de produção. O próximo passo operacional permanece a restauração da permissão Railway e a aplicação/consulta direta das migrations 023–024.
