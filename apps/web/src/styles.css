@@ -688,3 +688,18 @@ footer span:first-child { color: #d4d0c5; }
   border-radius: 2px;
   outline-offset: 7px;
 }
+
+.detail-action-button {
+  margin-top: 12px;
+  border: 1px solid #bd9241;
+  border-radius: 2px;
+  background: transparent;
+  color: #f0c96e;
+  padding: 10px 12px;
+  font-size: .76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.detail-action-button:hover {
+  background: rgba(213, 168, 79, .12);
+}
