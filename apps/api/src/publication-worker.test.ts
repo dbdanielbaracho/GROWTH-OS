@@ -100,11 +100,11 @@ test("provider authorization failures finalize as user action", async () => {
 
 test("worker constructs the provider adapter only after the claim", async () => {
   const { store, finalized } = storeForClaim();
-  let factoryClaim: ClaimablePublicationIntent | null = null;
+  const factoryClaims: ClaimablePublicationIntent[] = [];
   const response = await executePublicationIntent({
     store,
     adapterFactory: (claimedIntent) => {
-      factoryClaim = claimedIntent;
+      factoryClaims.push(claimedIntent);
       return {
         publish: async () => ({
           outcome: "confirmed",
@@ -120,6 +120,7 @@ test("worker constructs the provider adapter only after the claim", async () => 
     }
   });
   assert.deepEqual(response, { status: "confirmed" });
+  const factoryClaim = factoryClaims[0];
   assert.ok(factoryClaim);
   assert.equal(factoryClaim.publicationIntentId, claimed.publicationIntentId);
   assert.equal(finalized.length, 1);
