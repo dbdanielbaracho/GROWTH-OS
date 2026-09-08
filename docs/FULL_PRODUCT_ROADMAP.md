@@ -458,3 +458,8 @@ Este bloco ainda não congela a Phase 4. Permanecem pendentes aprovação, ediç
 ## Correção de contrato — versionamento CREATE — 2026-09-08
 
 Durante a revisão da implementação, foi identificado que a nova versão precisava usar o helper canônico `growth.content_new_version`, já definido pela migration 003 e autorizado pelos grants de produção. O caminho direto de INSERT foi removido antes do merge. A versão final preserva o checksum, o isolamento por workspace e a transição oficial para `ready_for_review`.
+
+
+## Falha corrigida no follow-up de versionamento — 2026-09-08
+
+O CI #417 encontrou uma falha de compilação causada pela remoção acidental de `contentChecksum` durante a refatoração do caminho de versionamento. A exportação foi restaurada antes da nova validação. Nenhum deploy ou dado de produção foi afetado por essa falha.
