@@ -249,6 +249,19 @@ function DetailPanel({
           This opportunity currently contains ranking and evidence, but the database does not yet store a verified action prescription for it.
           Growth OS therefore leaves this area explicit rather than generating an unsupported instruction.
         </p>
+        <button
+          className="detail-action-button"
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("growth-os:create-draft", {
+            detail: {
+              objective: `${opportunity.market} opportunity`,
+              market: opportunity.market,
+              platform: titleCase(opportunity.platform)
+            }
+          }))}
+        >
+          Start a draft from this opportunity
+        </button>
       </section>
     </section>
   );
