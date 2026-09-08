@@ -614,3 +614,8 @@ A execução avançou na branch `feat/publication-provider-request-builders`, pa
 - Testes unitários verificam URLs, método, headers, corpo, validação de asset e validação de metadados.
 
 O bloco prepara as chamadas oficiais, mas ainda não as executa contra contas reais nem as conecta ao worker/credenciais. A produção continua bloqueada pela falta de acesso Railway e as migrations 023–024 permanecem sem prova no banco canônico.
+
+
+### Correção do CI #517 — tipos de inputs com defaults — 2026-09-08
+
+O typecheck do PR #79 encontrou que `z.default()` altera o tipo de saída, mas não torna os campos opcionais no tipo de entrada inferido automaticamente. Os testes omitindo `caption`, `tags` e `privacyStatus` falharam por isso. Os tipos públicos dos builders foram corrigidos para usar `z.input`, preservando os defaults em runtime. Nenhuma produção foi afetada.
