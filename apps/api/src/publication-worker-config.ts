@@ -1,5 +1,3 @@
-import type { ProcessEnv } from "node:process";
-
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type PublicationWorkerConfig = {
@@ -9,7 +7,7 @@ export type PublicationWorkerConfig = {
   leaseSeconds: number;
 };
 
-export function loadPublicationWorkerConfig(environment: ProcessEnv): PublicationWorkerConfig {
+export function loadPublicationWorkerConfig(environment: NodeJS.ProcessEnv): PublicationWorkerConfig {
   const servicePrincipalId = environment.PUBLICATION_WORKER_SERVICE_PRINCIPAL_ID;
   if (typeof servicePrincipalId !== "string" || !UUID_PATTERN.test(servicePrincipalId)) {
     throw new Error("publication worker requires PUBLICATION_WORKER_SERVICE_PRINCIPAL_ID");
