@@ -3146,3 +3146,13 @@ Nenhum segredo, token ou credencial foi registrado neste documento.
 - O Google selecionou a conta `dbdanielbaracho@gmail.com` e exibiu a etapa **Verify it’s you**, solicitando código enviado por SMS.
 - Nenhuma senha, código MFA, token ou segredo foi enviado ao chat ou registrado neste documento.
 - Estado atual: aguardando a verificação direta do usuário na tela do Google. Após a confirmação, será validada a autorização, o canal real, o primeiro sync e a proveniência dos dados.
+
+
+## Bloqueio encontrado no OAuth YouTube — 2026-09-08
+
+- Ao reiniciar a autorização YouTube, o Google retornou `Error 403: access_denied`.
+- A mensagem informa: `predibeacon.com has not completed the Google verification process` e que o app está em teste e só pode ser acessado por usuários de teste aprovados.
+- Diagnóstico: o projeto OAuth está configurado como aplicativo externo em modo de teste, mas `dbdanielbaracho@gmail.com` ainda não está confirmado na lista **Test users** do projeto Google Cloud correto.
+- A correção de teste é adicionar esse e-mail em **Google Auth Platform → Audience → Test users** (ou **APIs & Services → OAuth consent screen → Test users**, conforme a interface exibida), salvar e repetir a autorização.
+- Não é necessário publicar o app nem iniciar a verificação pública para este teste interno do projeto.
+- Nenhuma senha, código MFA, Client Secret ou token foi registrado.
