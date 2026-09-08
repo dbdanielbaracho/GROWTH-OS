@@ -9,6 +9,7 @@
   "scripts": {
     "dev:api": "npm run dev -w @growth-os/api",
     "dev:web": "npm run dev -w @growth-os/web",
+    "worker:publication": "npm run worker:publication -w @growth-os/api",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

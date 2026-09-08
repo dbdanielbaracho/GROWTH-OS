@@ -3682,3 +3682,18 @@ O bloco ainda aguarda CI. Não altera OAuth, segredos ou Railway. O runner está
 - Migration/gate: 032/049.
 - Entrega: contexto tenant de principal de serviço condicionado a job leased, helper de conclusão `done/retry_wait/dead`, transações TypeScript de worker, store worker e `runPublicationQueueOnce`.
 - Limite: não houve criação/deploy de serviço Railway, alteração de OAuth ou segredo, nem prova de produção. O processo consumidor permanente e a credencial separada do worker continuam pendentes.
+
+
+## Registro de execução — candidato: processo consumidor do worker — 2026-09-08
+
+A branch `feat/publication-worker-process` adiciona o comando de processo contínuo:
+
+- `apps/api/src/publication-worker-process.ts`;
+- script `worker:publication` no pacote da API e no pacote raiz;
+- exigência explícita de `PUBLICATION_WORKER_DATABASE_URL`;
+- exigência e validação de UUID do `PUBLICATION_WORKER_SERVICE_PRINCIPAL_ID`;
+- intervalo limitado entre 1 e 60 segundos;
+- shutdown gracioso;
+- logs sem token, payload bruto ou mensagem de erro sensível.
+
+O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker, do claim e dos helpers das migrations 030–032. Ainda não há serviço Railway nem segredo operacional configurado. A produção não foi alterada e o bloco aguarda CI.
