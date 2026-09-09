@@ -3877,3 +3877,11 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Safety boundary: evidence-bound requests, approval_required default, daily quota, kill switch, no provider execution.
 - Exact green CI SHA: c3bf22f012ff9ece934165f38434ddb8a6d7c1aa.
 - No Railway promotion or merge yet. Next: canonical Railway validation, launch hardening and final adversarial review by Claude only after the full material cycle.
+
+
+## Current execution checkpoint — commercial/enterprise and hardening — 2026-09-09
+
+- Completed: migration 038, gate 055, commercial service/routes, governance panel, release hardening script and Railway runbook.
+- Exact green CI SHA before this documentation commit: 22c7c7afaa6a0b318beab821945c5bba97f4b1a0.
+- Railway production read-only validation: canonical source is GitHub main; app, migrator and Postgres were SUCCESS; migrator remains at migrations 030–033.
+- Required next operation after final approval: merge reviewed SHA, update canonical Railway migrator to 034–038, redeploy migrator, then redeploy app from main and execute production-truth checks.
