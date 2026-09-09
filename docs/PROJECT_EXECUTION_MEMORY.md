@@ -3868,3 +3868,12 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Lineage rule: variant plans linked to an opportunity must carry source_opportunity_id; winner/loser feedback must carry a stored evidence reference; autonomous publishing remains false.
 - No merge, Railway promotion or production migration was performed.
 - Next implementation block: bounded automation/Copilot contracts with approval, quotas and emergency stop.
+
+
+## Current execution checkpoint — automation control block — 2026-09-09
+
+- PR #113 branch feat/analytics-anomaly-quality.
+- Completed: migration 037, gate 054, API service/routes, web client and approval panel.
+- Safety boundary: evidence-bound requests, approval_required default, daily quota, kill switch, no provider execution.
+- Exact green CI SHA: c3bf22f012ff9ece934165f38434ddb8a6d7c1aa.
+- No Railway promotion or merge yet. Next: canonical Railway validation, launch hardening and final adversarial review by Claude only after the full material cycle.
