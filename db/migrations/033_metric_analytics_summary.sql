@@ -61,7 +61,10 @@ BEGIN
   GROUP BY sa.id, sa.platform, sa.provider_account_id, sa.handle, mo.metric_name
   ORDER BY sa.platform, sa.handle NULLS LAST, mo.metric_name;
 END;
-$$;
+$;
+
+ALTER FUNCTION growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz)
+  OWNER TO growth_migrator;
 
 REVOKE ALL ON FUNCTION growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz) TO app_runtime;
