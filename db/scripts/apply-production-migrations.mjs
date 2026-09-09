@@ -44,7 +44,64 @@ async function tableExists(qualifiedName) {
   return result.rows[0].present;
 }
 
+async function columnExists(tableName, columnName) {
+  const result = await client.query(
+    'select exists(select 1 from information_schema.columns where table_schema = $1 and table_name = $2 and column_name = $3) as present',
+    ['growth', tableName, columnName],
+  );
+  return result.rows[0].present;
+}
+
 const steps = [
+  {
+    file: '023_publication_intent_claim.sql',
+    present: async () =>
+      (await columnExists('publication_intents', 'current_attempt_no'))
+      && (await columnExists('publication_intents', 'claim_token')),
+  },
+  {
+    file: '024_publication_intent_finalization.sql',
+    present: async () => {
+      const result = await client.query("select exists(select 1 from pg_proc where pronamespace = 'growth'::regnamespace and proname = 'finalize_publication_intent') as present");
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '025_publication_asset_binding.sql',
+    present: () => columnExists('publication_intents', 'media_asset_id'),
+  },
+  {
+    file: '026_publication_execution_context.sql',
+    present: async () => {
+      const result = await client.query("select exists(select 1 from pg_proc where pronamespace = 'growth'::regnamespace and proname = 'get_publication_execution_context') as present");
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '027_publication_retry_scheduling.sql',
+    present: async () =>
+      (await columnExists('publication_intents', 'retry_count'))
+      && (await columnExists('publication_intents', 'last_error_class')),
+  },
+  {
+    file: '028_publication_cancellation.sql',
+    present: async () =>
+      (await columnExists('publication_intents', 'cancelled_at'))
+      && (await columnExists('publication_intents', 'cancelled_by')),
+  },
+  {
+    file: '029_publication_reconciliation.sql',
+    present: async () => {
+      const result = await client.query("select exists(select 1 from pg_proc where pronamespace = 'growth'::regnamespace and proname = 'record_publication_reconciliation') as present");
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '030_publication_worker_service_principal.sql',
+    present: async () =>
+      (await tableExists('growth.worker_service_principals'))
+      && (await columnExists('jobs', 'service_principal_id')),
+  },
   {
     file: '031_publication_status_projection.sql',
     present: () => functionExists('growth.list_publication_intents(uuid,integer)'),
