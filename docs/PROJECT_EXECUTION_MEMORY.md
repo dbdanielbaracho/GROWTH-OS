@@ -3857,3 +3857,53 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - App deployment `dd50fa5b-1893-4bc8-bd11-7a229863a2de` succeeded from the exact same SHA. Live evidence: readiness 200/database ok, root 200, system 200, unauthenticated identity/tenant routes 401.
 - PR #113 CI #751 passed all gates on head SHA `72d8e9ee5abc86dc8bb06e62cee8490d66c44e01`; it remains unmerged pending adversarial Claude review.
 - Next permitted action after that review: merge only the reviewed SHA, let Railway promote main, apply migration 034 through the canonical migrator, then run live authenticated analytics evidence with a real tenant and no synthetic production data.
+
+## Current execution checkpoint — recommendation feedback block — 2026-09-09
+
+- PR #113 branch feat/analytics-anomaly-quality now contains migration 035, SQL gate 052, tenant-scoped recommendation service, authenticated API routes and the web feedback surface.
+- Exact CI candidate SHA: 99c2ff7f3d1949573c0302618ca02105cad75717; both official validation jobs completed SUCCESS.
+- The recommendation boundary requires stored opportunity evidence and explicitly records unsupported_inference=false and autonomous_execution=false.
+- No Railway promotion, production migration or merge was performed. Claude remains the final adversarial gate for the consolidated material cycle.
+- Next implementation block: experiment planning/multiplication with explicit lineage and no autonomous publishing.
+
+
+## Current execution checkpoint — experiment lineage block — 2026-09-09
+
+- PR #113 now contains migration 036, SQL gate 053, experiment planning endpoints and the web planning surface.
+- The canonical experiments/hypotheses tables from migration 001 were preserved; new variant plans and feedback tables are tenant-scoped with RLS + FORCE RLS.
+- Exact green CI candidate SHA: 8d75286282aff9d53f278fd312d8bc4cd0b7b688.
+- Lineage rule: variant plans linked to an opportunity must carry source_opportunity_id; winner/loser feedback must carry a stored evidence reference; autonomous publishing remains false.
+- No merge, Railway promotion or production migration was performed.
+- Next implementation block: bounded automation/Copilot contracts with approval, quotas and emergency stop.
+
+
+## Current execution checkpoint — automation control block — 2026-09-09
+
+- PR #113 branch feat/analytics-anomaly-quality.
+- Completed: migration 037, gate 054, API service/routes, web client and approval panel.
+- Safety boundary: evidence-bound requests, approval_required default, daily quota, kill switch, no provider execution.
+- Exact green CI SHA: c3bf22f012ff9ece934165f38434ddb8a6d7c1aa.
+- No Railway promotion or merge yet. Next: canonical Railway validation, launch hardening and final adversarial review by Claude only after the full material cycle.
+
+
+## Current execution checkpoint — commercial/enterprise and hardening — 2026-09-09
+
+- Completed: migration 038, gate 055, commercial service/routes, governance panel, release hardening script and Railway runbook.
+- Exact green CI SHA before this documentation commit: 22c7c7afaa6a0b318beab821945c5bba97f4b1a0.
+- Railway production read-only validation: canonical source is GitHub main; app, migrator and Postgres were SUCCESS; migrator remains at migrations 030–033.
+- Required next operation after final approval: merge reviewed SHA, update canonical Railway migrator to 034–038, redeploy migrator, then redeploy app from main and execute production-truth checks.
+
+
+
+## Registro de execução — correção do BLOCK adversarial e candidato para nova revisão — 2026-09-09
+
+- O relatório adversarial do Claude para o SHA `1e6cdc81312f4b9175af026e20a8fac72de2dc86` terminou em `BLOCK`.
+- Bloqueador corrigido na migration 038: `growth.record_usage` agora inicializa `v_used` com zero e usa `coalesce(v_used, 0)` no limite, impedindo o bypass do limite free-plan no primeiro uso do mês, quando ainda não existe linha em `growth.usage_counters`.
+- O gate 055 deixou de ser somente estático: executa o caminho comportamental com fixtures tenant válidos, prova que 101 unidades no primeiro uso são rejeitadas, que 100 são aceitas e que a unidade seguinte é rejeitada; tudo ocorre em transação com `ROLLBACK`.
+- A migration 033 agora declara explicitamente `OWNER TO growth_migrator` para `growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz)`.
+- Houve uma falha intermediária de CI por UUID de fixture incorreto no teste 055 e outra por delimitador dollar-quote incorreto no primeiro patch da migration 033; ambas foram corrigidas. O candidato final foi aplicado somente após os dois problemas serem observados nos logs.
+- Candidato atual do PR #113: `b62be6654abad9c9a5fc33a28e6da52d00df333b`.
+- Os dois checks oficiais `validate` desse SHA terminaram `SUCCESS`; a migration completa e os gates 001–055, typecheck, build e release hardening passaram.
+- Railway canônico somente leitura: projeto `successful-embrace`, produção; Postgres SUCCESS, app SUCCESS e migrator SUCCESS. O migrator continua com source `dbdanielbaracho/GROWTH-OS`, branch `main`, mas o comando atual é diagnóstico e consulta o CI de um SHA antigo; ele não promove as migrations 034–038.
+- A promoção Railway e o freeze permanecem bloqueados até uma decisão final `APPROVE` do Claude. Não foi feita promoção das migrations 034–038 nem merge do PR.
+- Próximo ponto exato: enviar o SHA `b62be6654abad9c9a5fc33a28e6da52d00df333b` e o diff corrigido para nova revisão adversarial; somente com `APPROVE` executar merge, configurar o migrator para a cadeia 034–038 a partir de `main`, promover pelo Railway, confirmar logs e executar as provas de produção/recuperação.

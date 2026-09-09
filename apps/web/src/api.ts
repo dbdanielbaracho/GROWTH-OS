@@ -661,3 +661,270 @@ export async function fetchMetricAnalyticsSnapshot(
 ): Promise<MetricAnalyticsResponse> {
   return fetchMetricAnalyticsResponse(from, to);
 }
+
+
+export type MetricQualityAnomaly = {
+  social_account_id: string;
+  platform: string;
+  provider_account_id: string;
+  handle: string | null;
+  metric_name: string;
+  observation_count: number;
+  latest_observed_at: string;
+  latest_effective_at: string;
+  complete_observations: number;
+  fresh_observations: number;
+  quality_status: "incomplete" | "stale";
+  anomaly_reason: "incomplete_observations" | "stale_observations";
+  completeness_ratio: number;
+  freshness_ratio: number;
+};
+
+export type MetricQualityAnomalyResponse = {
+  status: "ok";
+  from: string;
+  to: string;
+  anomalies: MetricQualityAnomaly[];
+};
+
+export async function fetchMetricQualityAnomalies(
+  from?: string,
+  to?: string
+): Promise<MetricQualityAnomaly[]> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const response = await requestJson<MetricQualityAnomalyResponse>(
+    `/v1/analytics/anomalies${params.size > 0 ? `?${params.toString()}` : ""}`
+  );
+  return response.anomalies;
+}
+
+
+export type Recommendation = {
+  id: string;
+  opportunity_id: string;
+  action_code: "draft_content" | "review_evidence" | "plan_experiment";
+  status: "proposed" | "accepted" | "dismissed" | "completed";
+  rationale: Record<string, unknown>;
+  feedback_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type RecommendationListResponse = {
+  status: "ok";
+  recommendations: Recommendation[];
+};
+
+export async function fetchRecommendations(opportunityId?: string): Promise<Recommendation[]> {
+  const query = opportunityId ? `?opportunity_id=${encodeURIComponent(opportunityId)}` : "";
+  const response = await requestJson<RecommendationListResponse>(`/v1/recommendations${query}`);
+  return response.recommendations;
+}
+
+export async function createRecommendation(
+  opportunityId: string,
+  actionCode: Recommendation["action_code"]
+): Promise<Recommendation> {
+  const response = await requestJson<{ status: "created"; recommendation: Recommendation }>(
+    `/v1/opportunities/${encodeURIComponent(opportunityId)}/recommendations`,
+    { method: "POST", body: { action_code: actionCode } }
+  );
+  return response.recommendation;
+}
+
+export async function recordRecommendationFeedback(
+  recommendationId: string,
+  feedback: "accepted" | "dismissed" | "completed" | "irrelevant",
+  note?: string
+): Promise<{ status: "recorded"; feedback: { recommendation_status: Recommendation["status"] } }> {
+  return requestJson<{ status: "recorded"; feedback: { recommendation_status: Recommendation["status"] } }>(
+    `/v1/recommendations/${encodeURIComponent(recommendationId)}/feedback`,
+    { method: "POST", body: { feedback, note } }
+  );
+}
+
+
+export type Experiment = {
+  id: string;
+  opportunity_id: string | null;
+  name: string;
+  hypothesis: string;
+  decision_rule: string;
+  status: "draft" | "running" | "completed" | "archived";
+  variant_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ExperimentVariant = {
+  id: string;
+  experiment_id: string;
+  label: string;
+  lineage: Record<string, unknown>;
+  status: "candidate" | "active" | "winner" | "loser" | "archived";
+  created_at: string;
+};
+
+export async function createExperiment(input: {
+  opportunityId: string;
+  name: string;
+  hypothesis: string;
+  decisionRule: string;
+}): Promise<Experiment> {
+  const response = await requestJson<{ status: "created"; experiment: Experiment }>("/v1/experiments", {
+    method: "POST",
+    body: {
+      opportunity_id: input.opportunityId,
+      name: input.name,
+      hypothesis: input.hypothesis,
+      decision_rule: input.decisionRule
+    }
+  });
+  return response.experiment;
+}
+
+export async function addExperimentVariant(
+  experimentId: string,
+  label: string,
+  opportunityId: string
+): Promise<ExperimentVariant> {
+  const response = await requestJson<{ status: "created"; variant: ExperimentVariant }>(
+    `/v1/experiments/${encodeURIComponent(experimentId)}/variants`,
+    {
+      method: "POST",
+      body: { label, lineage: { source_opportunity_id: opportunityId, autonomous_publishing: false } }
+    }
+  );
+  return response.variant;
+}
+
+
+export type AutomationPolicy = {
+  id: string | null;
+  workspace_id: string;
+  mode: "approval_required" | "disabled";
+  daily_request_limit: number;
+  kill_switch: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AutomationActionRequest = {
+  id: string;
+  policy_id: string;
+  action_code: "draft_content" | "review_evidence" | "plan_experiment" | "publish_content" | "multiply_variant";
+  target_ref: string;
+  evidence_ref: string | null;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  requested_by: string;
+  approved_by: string | null;
+  note: string | null;
+  created_at: string;
+  decided_at: string | null;
+};
+
+export async function fetchAutomationPolicy(): Promise<AutomationPolicy> {
+  const response = await requestJson<{ status: "ok"; policy: AutomationPolicy }>("/v1/automation/policy");
+  return response.policy;
+}
+
+export async function updateAutomationPolicy(input: {
+  mode: AutomationPolicy["mode"];
+  dailyRequestLimit: number;
+  killSwitch: boolean;
+}): Promise<AutomationPolicy> {
+  const response = await requestJson<{ status: "updated"; policy: AutomationPolicy }>("/v1/automation/policy", {
+    method: "PUT",
+    body: {
+      mode: input.mode,
+      daily_request_limit: input.dailyRequestLimit,
+      kill_switch: input.killSwitch
+    }
+  });
+  return response.policy;
+}
+
+export async function fetchAutomationRequests(): Promise<AutomationActionRequest[]> {
+  const response = await requestJson<{ status: "ok"; requests: AutomationActionRequest[] }>("/v1/automation/requests");
+  return response.requests;
+}
+
+export async function createAutomationRequest(input: {
+  actionCode: AutomationActionRequest["action_code"];
+  targetRef: string;
+  evidenceRef: string;
+  note?: string;
+}): Promise<AutomationActionRequest> {
+  const response = await requestJson<{ status: "created"; request: AutomationActionRequest }>("/v1/automation/requests", {
+    method: "POST",
+    body: {
+      action_code: input.actionCode,
+      target_ref: input.targetRef,
+      evidence_ref: input.evidenceRef,
+      note: input.note
+    }
+  });
+  return response.request;
+}
+
+export async function decideAutomationRequest(
+  requestId: string,
+  decision: "approve" | "reject" | "cancel",
+  note?: string
+): Promise<AutomationActionRequest> {
+  const response = await requestJson<{ status: "decided"; request: AutomationActionRequest }>(
+    "/v1/automation/requests/" + encodeURIComponent(requestId) + "/decision",
+    { method: "POST", body: { decision, note } }
+  );
+  return response.request;
+}
+
+
+export type WorkspaceEntitlements = {
+  plan_code: "free" | "pro" | "enterprise";
+  plan_name: string;
+  subscription_status: "trialing" | "active" | "past_due" | "cancelled";
+  monthly_action_limit: number;
+  used_automation_requests: number;
+  period_start: string;
+  period_end: string;
+};
+
+export type EnterprisePolicy = {
+  id: string | null;
+  workspace_id: string;
+  data_retention_days: number;
+  support_tier: "standard" | "priority" | "dedicated";
+  legal_acceptance_ref: string | null;
+  deletion_requested_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function fetchWorkspaceEntitlements(): Promise<WorkspaceEntitlements> {
+  const response = await requestJson<{ status: "ok"; entitlements: WorkspaceEntitlements }>("/v1/commercial/entitlements");
+  return response.entitlements;
+}
+
+export async function fetchEnterprisePolicy(): Promise<EnterprisePolicy> {
+  const response = await requestJson<{ status: "ok"; policy: EnterprisePolicy }>("/v1/commercial/enterprise-policy");
+  return response.policy;
+}
+
+export async function updateEnterprisePolicy(input: {
+  dataRetentionDays: number;
+  supportTier: EnterprisePolicy["support_tier"];
+  legalAcceptanceRef?: string;
+}): Promise<EnterprisePolicy> {
+  const response = await requestJson<{ status: "updated"; policy: EnterprisePolicy }>("/v1/commercial/enterprise-policy", {
+    method: "PUT",
+    body: {
+      data_retention_days: input.dataRetentionDays,
+      support_tier: input.supportTier,
+      legal_acceptance_ref: input.legalAcceptanceRef
+    }
+  });
+  return response.policy;
+}

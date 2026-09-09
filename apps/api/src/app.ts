@@ -37,7 +37,22 @@ import { registerIdentityRoutes } from "./identity-routes.js";
 import { CreatePublicationIntentSchema, PublicationReconciliationSchema, cancelPublicationIntent, createPublicationIntent, listPublicationIntents, recordPublicationReconciliation } from "./publishing.js";
 import { createDatabasePublicationExecutionStore } from "./publication-store.js";
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
-import { listMetricAnalyticsSummary } from "./analytics.js";
+import { listMetricAnalyticsSummary, listMetricQualityAnomalies } from "./analytics.js";
+import { createRecommendation, listRecommendations, recordRecommendationFeedback } from "./recommendations.js";
+import { addExperimentVariant, createExperiment, listExperiments, recordExperimentFeedback } from "./experiments.js";
+import {
+  createAutomationActionRequest,
+  decideAutomationActionRequest,
+  getAutomationPolicy,
+  listAutomationActionRequests,
+  setAutomationPolicy
+} from "./automation.js";
+import {
+  getEnterprisePolicy,
+  getWorkspaceEntitlements,
+  setEnterprisePolicy,
+  setWorkspaceSubscription
+} from "./commercial.js";
 import { executePublicationIntent } from "./publication-worker.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
@@ -88,6 +103,77 @@ const PublicationIntentParamsSchema = z.object({
 const AnalyticsQuerySchema = z.object({
   from: z.string().trim().optional(),
   to: z.string().trim().optional()
+});
+
+const RecommendationQuerySchema = z.object({
+  opportunity_id: z.string().uuid().optional()
+});
+
+const RecommendationParamsSchema = z.object({
+  id: z.string().uuid()
+});
+
+const RecommendationCreateSchema = z.object({
+  action_code: z.enum(["draft_content", "review_evidence", "plan_experiment"])
+});
+
+const RecommendationFeedbackSchema = z.object({
+  feedback: z.enum(["accepted", "dismissed", "completed", "irrelevant"]),
+  note: z.string().trim().max(1000).nullable().optional()
+});
+
+const ExperimentCreateSchema = z.object({
+  opportunity_id: z.string().uuid().nullable().optional(),
+  name: z.string().trim().min(1).max(160),
+  hypothesis: z.string().trim().min(1).max(2000),
+  decision_rule: z.string().trim().min(1).max(2000)
+});
+
+const ExperimentVariantSchema = z.object({
+  label: z.string().trim().min(1).max(120),
+  lineage: z.record(z.string(), z.unknown())
+});
+
+const ExperimentFeedbackSchema = z.object({
+  variant_id: z.string().uuid(),
+  outcome: z.enum(["winner", "loser", "inconclusive"]),
+  evidence_ref: z.string().trim().max(1000).nullable().optional(),
+  note: z.string().trim().max(1000).nullable().optional()
+});
+
+const AutomationRequestParamsSchema = z.object({
+  id: z.string().uuid()
+});
+
+const AutomationPolicySchema = z.object({
+  mode: z.enum(["approval_required", "disabled"]),
+  daily_request_limit: z.number().int().min(0).max(1000),
+  kill_switch: z.boolean()
+});
+
+const AutomationRequestSchema = z.object({
+  action_code: z.enum(["draft_content", "review_evidence", "plan_experiment", "publish_content", "multiply_variant"]),
+  target_ref: z.string().trim().min(1).max(500),
+  evidence_ref: z.string().trim().min(1).max(1000),
+  note: z.string().trim().max(1000).nullable().optional()
+});
+
+const AutomationDecisionSchema = z.object({
+  decision: z.enum(["approve", "reject", "cancel"]),
+  note: z.string().trim().max(1000).nullable().optional()
+});
+
+const CommercialSubscriptionSchema = z.object({
+  plan_code: z.enum(["free", "pro", "enterprise"]),
+  status: z.enum(["trialing", "active", "past_due", "cancelled"]),
+  provider_customer_ref: z.string().trim().max(200).nullable().optional(),
+  provider_subscription_ref: z.string().trim().max(200).nullable().optional()
+});
+
+const EnterprisePolicySchema = z.object({
+  data_retention_days: z.number().int().min(30).max(3650),
+  support_tier: z.enum(["standard", "priority", "dedicated"]),
+  legal_acceptance_ref: z.string().trim().max(500).nullable().optional()
 });
 
 export function buildApp(logger = false) {
@@ -317,6 +403,165 @@ export function buildApp(logger = false) {
     }
   });
 
+
+
+  app.get("/v1/recommendations", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = RecommendationQuerySchema.safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const recommendations = await withTenantTransaction(principal, (client) =>
+        listRecommendations(client, principal, parsed.data.opportunity_id ?? null)
+      );
+      return { status: "ok", recommendations };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/opportunities/:id/recommendations", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    const body = RecommendationCreateSchema.safeParse(request.body);
+    if (!params.success || !body.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const recommendation = await withTenantTransaction(principal, (client) =>
+        createRecommendation(client, principal, params.data.id, body.data.action_code)
+      );
+      return reply.code(201).send({ status: "created", recommendation });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/recommendations/:id/feedback", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    const body = RecommendationFeedbackSchema.safeParse(request.body);
+    if (!params.success || !body.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const feedback = await withTenantTransaction(principal, (client) =>
+        recordRecommendationFeedback(
+          client,
+          principal,
+          params.data.id,
+          body.data.feedback,
+          body.data.note ?? null
+        )
+      );
+      return { status: "recorded", feedback };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+
+  app.get("/v1/experiments", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const experiments = await withTenantTransaction(principal, (client) =>
+        listExperiments(client, principal)
+      );
+      return { status: "ok", experiments };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/experiments", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = ExperimentCreateSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const experiment = await withTenantTransaction(principal, (client) =>
+        createExperiment(
+          client,
+          principal,
+          parsed.data.opportunity_id ?? null,
+          parsed.data.name,
+          parsed.data.hypothesis,
+          parsed.data.decision_rule
+        )
+      );
+      return reply.code(201).send({ status: "created", experiment });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/experiments/:id/variants", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    const parsed = ExperimentVariantSchema.safeParse(request.body);
+    if (!params.success || !parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const variant = await withTenantTransaction(principal, (client) =>
+        addExperimentVariant(client, principal, params.data.id, parsed.data.label, parsed.data.lineage)
+      );
+      return reply.code(201).send({ status: "created", variant });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/experiments/:id/feedback", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    const parsed = ExperimentFeedbackSchema.safeParse(request.body);
+    if (!params.success || !parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const feedback = await withTenantTransaction(principal, (client) =>
+        recordExperimentFeedback(
+          client,
+          principal,
+          params.data.id,
+          parsed.data.variant_id,
+          parsed.data.outcome,
+          parsed.data.evidence_ref ?? null,
+          parsed.data.note ?? null
+        )
+      );
+      return { status: "recorded", feedback };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
   app.get("/v1/insights", async (request, reply) => {
     const principal = await requestPrincipal(request, reply);
     if (!principal) return;
@@ -364,6 +609,46 @@ export function buildApp(logger = false) {
         from: from.toISOString(),
         to: to.toISOString(),
         metrics
+      };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+  app.get("/v1/analytics/anomalies", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = AnalyticsQuerySchema.safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    const to = parsed.data.to ? new Date(parsed.data.to) : new Date();
+    const from = parsed.data.from
+      ? new Date(parsed.data.from)
+      : new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const windowMs = to.getTime() - from.getTime();
+
+    if (
+      Number.isNaN(from.getTime()) ||
+      Number.isNaN(to.getTime()) ||
+      windowMs <= 0 ||
+      windowMs > 366 * 24 * 60 * 60 * 1000
+    ) {
+      return reply.code(400).send({ status: "invalid_analytics_window" });
+    }
+
+    try {
+      const anomalies = await withTenantTransaction(principal, (client) =>
+        listMetricQualityAnomalies(client, principal, from.toISOString(), to.toISOString())
+      );
+      return {
+        status: "ok",
+        from: from.toISOString(),
+        to: to.toISOString(),
+        anomalies
       };
     } catch (error) {
       app.log.error(error);
@@ -712,6 +997,192 @@ export function buildApp(logger = false) {
         createLineageEdge(client, principal, parsed.data)
       );
       return reply.code(201).send({ status: "created", lineageEdge: created });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+  app.get("/v1/automation/policy", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const policy = await withTenantTransaction(principal, (client) =>
+        getAutomationPolicy(client, principal)
+      );
+      return { status: "ok", policy };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.put("/v1/automation/policy", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = AutomationPolicySchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const policy = await withTenantTransaction(principal, (client) =>
+        setAutomationPolicy(client, principal, {
+          mode: parsed.data.mode,
+          dailyRequestLimit: parsed.data.daily_request_limit,
+          killSwitch: parsed.data.kill_switch
+        })
+      );
+      return { status: "updated", policy };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/automation/requests", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const requests = await withTenantTransaction(principal, (client) =>
+        listAutomationActionRequests(client, principal)
+      );
+      return { status: "ok", requests };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/automation/requests", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = AutomationRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const created = await withTenantTransaction(principal, (client) =>
+        createAutomationActionRequest(client, principal, {
+          actionCode: parsed.data.action_code,
+          targetRef: parsed.data.target_ref,
+          evidenceRef: parsed.data.evidence_ref,
+          note: parsed.data.note ?? null
+        })
+      );
+      return reply.code(201).send({ status: "created", request: created });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/automation/requests/:id/decision", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = AutomationRequestParamsSchema.safeParse(request.params);
+    const body = AutomationDecisionSchema.safeParse(request.body);
+    if (!params.success || !body.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const decided = await withTenantTransaction(principal, (client) =>
+        decideAutomationActionRequest(
+          client,
+          principal,
+          params.data.id,
+          body.data.decision,
+          body.data.note ?? null
+        )
+      );
+      return { status: "decided", request: decided };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+  app.get("/v1/commercial/entitlements", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const entitlements = await withTenantTransaction(principal, (client) =>
+        getWorkspaceEntitlements(client, principal)
+      );
+      return { status: "ok", entitlements };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.put("/v1/commercial/subscription", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = CommercialSubscriptionSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const subscription = await withTenantTransaction(principal, (client) =>
+        setWorkspaceSubscription(client, principal, {
+          planCode: parsed.data.plan_code,
+          status: parsed.data.status,
+          providerCustomerRef: parsed.data.provider_customer_ref ?? null,
+          providerSubscriptionRef: parsed.data.provider_subscription_ref ?? null
+        })
+      );
+      return { status: "updated", subscription };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/commercial/enterprise-policy", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const policy = await withTenantTransaction(principal, (client) =>
+        getEnterprisePolicy(client, principal)
+      );
+      return { status: "ok", policy };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.put("/v1/commercial/enterprise-policy", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = EnterprisePolicySchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const policy = await withTenantTransaction(principal, (client) =>
+        setEnterprisePolicy(client, principal, {
+          retentionDays: parsed.data.data_retention_days,
+          supportTier: parsed.data.support_tier,
+          legalAcceptanceRef: parsed.data.legal_acceptance_ref ?? null
+        })
+      );
+      return { status: "updated", policy };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);

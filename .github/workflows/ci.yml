@@ -49,6 +49,9 @@ jobs:
       - name: Test Integrity Gate
         run: node db/scripts/test-integrity-gate.mjs
 
+      - name: Release hardening gate
+        run: node db/scripts/release-hardening-gate.mjs
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -216,6 +219,30 @@ jobs:
           PGPASSWORD: growth_migrator
         run: |
           psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/050_metric_analytics_summary.sql
+
+      - name: Run metric quality anomaly gate
+        env:
+          PGPASSWORD: growth_migrator
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/051_metric_quality_anomalies.sql
+
+      - name: Run experiment lineage gate
+        env:
+          PGPASSWORD: growth_migrator
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/053_experiment_lineage.sql
+
+      - name: Run automation policy control gate
+        env:
+          PGPASSWORD: growth_migrator
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/054_automation_policy_control.sql
+
+      - name: Run commercial entitlements gate
+        env:
+          PGPASSWORD: growth_migrator
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/055_commercial_entitlements.sql
 
       - name: Run Growth Intelligence integration test
         env:

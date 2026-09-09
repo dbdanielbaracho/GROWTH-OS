@@ -877,3 +877,45 @@ The previously recorded Railway permission blocker is superseded by the canonica
 - Live Railway evidence: `GET /health/ready` returned 200 with database `ok`; `GET /` and `GET /v1/system` returned 200; unauthenticated session and tenant routes returned 401. Railway HTTP logs confirmed the responses.
 - The deployment rule is now explicit: GitHub `main` SHA → Railway source promotion → build/deploy success → live HTTP evidence → documentation. Local execution is not accepted as production proof.
 - PR #113, “deterministic analytics quality anomalies”, has CI #751 `SUCCESS` on head SHA `72d8e9ee5abc86dc8bb06e62cee8490d66c44e01`. It adds migration 034, gate 051, an authenticated anomaly endpoint and real-data quality alerts. It is not merged or promoted yet; adversarial Claude review remains the freeze gate.
+
+## Registro de execução — recomendações e feedback — 2026-09-09
+
+- O PR acumulado #113 agora inclui a migration forward-only 035_recommendation_feedback.sql e o gate SQL 052_recommendation_feedback.sql.
+- A entrega armazena ações estruturadas ligadas a oportunidades existentes (draft_content, review_evidence, plan_experiment) e registra feedback (accepted, dismissed, completed, irrelevant).
+- A fronteira de verdade permanece fechada: a recomendação exige evidência de oportunidade armazenada, não gera texto, não cria evidência sintética e não executa ações automaticamente.
+- Foram adicionados helpers SECURITY DEFINER tenant-scoped, RLS + FORCE RLS, grants mínimos, endpoints autenticados e superfície web para aceitar, concluir ou marcar uma ação como irrelevante.
+- CI oficial passou em ambos os jobs no SHA exato 99c2ff7f3d1949573c0302618ca02105cad75717.
+- O bloco ainda não está congelado nem promovido; a aplicação da migration 035 no Railway será feita somente depois da revisão adversarial final consolidada.
+- Próximo bloco de implementação: experimentos/multiplicação preservando lineage e sem publicação automática.
+
+
+## Registro de execução — experimentos e multiplicação — 2026-09-09
+
+- O PR acumulado #113 agora inclui a migration forward-only 036_experiment_lineage.sql e o gate SQL 053_experiment_lineage.sql.
+- O bloco reutiliza o modelo canônico de hipóteses/experimentos da migration 001 e adiciona planos de variantes com lineage explícita e feedback de resultado.
+- Um plano de experimento pode nascer de uma oportunidade com evidência armazenada; uma variante precisa referenciar a oportunidade de origem quando ela existe.
+- Vencedor ou perdedor exige referência de evidência armazenada; resultado inconclusivo permanece permitido sem inventar conclusão.
+- Foram adicionados endpoints autenticados e superfície web de planejamento. Não há publicação automática, promoção automática de vencedor nem dado sintético.
+- CI oficial passou no SHA exato 8d75286282aff9d53f278fd312d8bc4cd0b7b688.
+- O bloco ainda não está congelado, mesclado ou promovido para Railway. A aplicação das migrations 035–036 será feita no fechamento material após o gate adversarial final.
+- Próximo bloco: políticas de automação/Copilot com aprovação, limites e emergency stop.
+
+
+## Registro de execução — automação/Copilot controlado — 2026-09-09
+
+- Migration 037 e gate 054 adicionam políticas por workspace, limite diário, kill switch e fila de solicitações auditáveis.
+- Toda solicitação exige referência a evidência persistida e nasce como pending; aprovação/rejeição exige owner/admin.
+- API e UI foram adicionadas sem execução de provedor, publicação autônoma ou multiplicação autônoma.
+- CI verde no SHA exato c3bf22f012ff9ece934165f38434ddb8a6d7c1aa.
+- Railway ainda não foi promovido; a promoção canônica virá somente após o ciclo material completo e a revisão adversarial final.
+
+
+## Registro de execução — comercial/enterprise e hardening — 2026-09-09
+
+- Migration 038 e gate 055 adicionam planos, subscriptions, entitlements, metering de uso e política enterprise de retenção/suporte.
+- API e painel web expõem o estado de governança por workspace; a cobrança externa permanece explicitamente dependente de um provedor configurado.
+- O gate de release hardening valida a presença ordenada das migrations 001–038 e dos gates 053–055.
+- Runbook registrado em docs/RELEASE_HARDENING_CHECKLIST.md.
+- CI verde no SHA exato 22c7c7afaa6a0b318beab821945c5bba97f4b1a0.
+- Railway production lido com Postgres, migrator e app SUCCESS; o migrator canônico ainda está em 030–033, sem promoção deste candidato.
+

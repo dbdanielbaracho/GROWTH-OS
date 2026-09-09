@@ -9,6 +9,17 @@ import {
   verifyEmail,
   fetchOpportunities,
   fetchOpportunityDetail,
+  fetchRecommendations,
+  createRecommendation,
+  recordRecommendationFeedback,
+  createExperiment,
+  addExperimentVariant,
+  fetchAutomationPolicy,
+  fetchAutomationRequests,
+  createAutomationRequest,
+  decideAutomationRequest,
+  fetchWorkspaceEntitlements,
+  fetchEnterprisePolicy,
   hasDevelopmentIdentity,
   selectWorkspace,
   signIn,
@@ -17,7 +28,14 @@ import {
   type AuthSessionResponse,
   type OpportunityDetail,
   type OpportunitySummary,
-  type RelatedInsight
+  type RelatedInsight,
+  type Recommendation,
+  type Experiment,
+  type ExperimentVariant,
+  type AutomationPolicy,
+  type AutomationActionRequest,
+  type WorkspaceEntitlements,
+  type EnterprisePolicy
 } from "./api.js";
 import "./styles.css";
 import "./auth.css";
@@ -106,6 +124,319 @@ function OpportunityCard({
         <span aria-hidden="true">→</span>
       </div>
     </button>
+  );
+}
+
+
+function recommendationLabel(code: Recommendation["action_code"]) {
+  if (code === "draft_content") return "Start a content draft";
+  if (code === "review_evidence") return "Review the evidence";
+  return "Plan an experiment";
+}
+
+function RecommendationPanel({ opportunityId }: { opportunityId: string }) {
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setMessage(null);
+    try {
+      setRecommendations(await fetchRecommendations(opportunityId));
+    } catch {
+      setMessage("No stored recommendation could be loaded for this opportunity.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [opportunityId]);
+
+  async function add(actionCode: Recommendation["action_code"]) {
+    setBusy(actionCode);
+    setMessage(null);
+    try {
+      const created = await createRecommendation(opportunityId, actionCode);
+      setRecommendations((current) => {
+        const withoutDuplicate = current.filter((item) => item.id !== created.id);
+        return [created, ...withoutDuplicate];
+      });
+    } catch {
+      setMessage("This action remains unavailable until stored evidence passes the recommendation boundary.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function giveFeedback(id: string, feedback: "accepted" | "dismissed" | "completed" | "irrelevant") {
+    setBusy(id);
+    setMessage(null);
+    try {
+      await recordRecommendationFeedback(id, feedback);
+      setRecommendations((current) => current.map((item) => item.id === id ? {
+        ...item,
+        status: feedback === "accepted" ? "accepted" : feedback === "completed" ? "completed" : "dismissed",
+        feedback_count: item.feedback_count + 1
+      } : item));
+    } catch {
+      setMessage("Feedback was not recorded. The recommendation state was left unchanged.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="detail-section action-section">
+      <p className="section-kicker">Recommended action</p>
+      <h3>Evidence-linked next actions</h3>
+      <p>
+        Actions are stored only when this opportunity has persisted evidence. Growth OS never invents a recommendation or executes it automatically.
+      </p>
+      <div className="recommendation-actions">
+        {(["draft_content", "review_evidence", "plan_experiment"] as const).map((actionCode) => (
+          <button key={actionCode} className="detail-action-button" type="button" disabled={busy !== null} onClick={() => void add(actionCode)}>
+            {busy === actionCode ? "Saving…" : recommendationLabel(actionCode)}
+          </button>
+        ))}
+      </div>
+      {loading && <p className="recommendation-muted">Loading stored recommendations…</p>}
+      {!loading && recommendations.length === 0 && <p className="recommendation-muted">No action has been stored for this opportunity yet.</p>}
+      {recommendations.length > 0 && (
+        <div className="recommendation-list">
+          {recommendations.map((recommendation) => (
+            <article className="recommendation-card" key={recommendation.id}>
+              <div>
+                <strong>{recommendationLabel(recommendation.action_code)}</strong>
+                <span>{titleCase(recommendation.status)} · {recommendation.feedback_count} feedback item{recommendation.feedback_count === 1 ? "" : "s"}</span>
+              </div>
+              <div className="recommendation-feedback">
+                <button type="button" disabled={busy !== null} onClick={() => void giveFeedback(recommendation.id, "accepted")}>Accept</button>
+                <button type="button" disabled={busy !== null} onClick={() => void giveFeedback(recommendation.id, "completed")}>Complete</button>
+                <button type="button" disabled={busy !== null} onClick={() => void giveFeedback(recommendation.id, "irrelevant")}>Not relevant</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+      {message && <p className="recommendation-error" role="alert">{message}</p>}
+    </section>
+  );
+}
+
+
+function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
+  const [name, setName] = useState("");
+  const [hypothesis, setHypothesis] = useState("");
+  const [decisionRule, setDecisionRule] = useState("");
+  const [variantLabel, setVariantLabel] = useState("");
+  const [experiment, setExperiment] = useState<Experiment | null>(null);
+  const [variants, setVariants] = useState<ExperimentVariant[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submitExperiment(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage(null);
+    try {
+      setExperiment(await createExperiment({ opportunityId, name, hypothesis, decisionRule }));
+    } catch {
+      setMessage("The experiment plan could not be stored. Evidence and tenant checks remain enforced.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitVariant(event: React.FormEvent) {
+    event.preventDefault();
+    if (!experiment || !variantLabel.trim()) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const variant = await addExperimentVariant(experiment.id, variantLabel, opportunityId);
+      setVariants((current) => [...current, variant]);
+      setVariantLabel("");
+    } catch {
+      setMessage("The variant lineage could not be stored.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="detail-section experiment-planner">
+      <p className="section-kicker">Experiments</p>
+      <h3>Plan a measurable next test</h3>
+      <p>Planning is stored with the source opportunity. Growth OS does not publish variants or declare a winner without outcome evidence.</p>
+      {!experiment ? (
+        <form className="experiment-form" onSubmit={submitExperiment}>
+          <label><span>Experiment name</span><input value={name} onChange={(event) => setName(event.target.value)} required maxLength={160} /></label>
+          <label><span>Hypothesis</span><textarea value={hypothesis} onChange={(event) => setHypothesis(event.target.value)} required maxLength={2000} /></label>
+          <label><span>Decision rule</span><textarea value={decisionRule} onChange={(event) => setDecisionRule(event.target.value)} required maxLength={2000} /></label>
+          <button className="detail-action-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Save experiment plan"}</button>
+        </form>
+      ) : (
+        <>
+          <div className="experiment-summary">
+            <strong>{experiment.name}</strong>
+            <span>{titleCase(experiment.status)} · {experiment.hypothesis}</span>
+            <small>Decision rule: {experiment.decision_rule}</small>
+          </div>
+          <form className="experiment-variant-form" onSubmit={submitVariant}>
+            <label><span>Variant label</span><input value={variantLabel} onChange={(event) => setVariantLabel(event.target.value)} required maxLength={120} /></label>
+            <button className="detail-action-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Add lineage-preserving variant"}</button>
+          </form>
+          {variants.length > 0 && (
+            <ul className="experiment-variant-list">
+              {variants.map((variant) => <li key={variant.id}><strong>{variant.label}</strong><span>{titleCase(variant.status)} · source opportunity preserved</span></li>)}
+            </ul>
+          )}
+        </>
+      )}
+      {message && <p className="recommendation-error" role="alert">{message}</p>}
+    </section>
+  );
+}
+
+function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string; evidenceRef: string | null }) {
+  const [policy, setPolicy] = useState<AutomationPolicy | null>(null);
+  const [requests, setRequests] = useState<AutomationActionRequest[]>([]);
+  const [actionCode, setActionCode] = useState<AutomationActionRequest["action_code"]>("plan_experiment");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function load() {
+    try {
+      const [nextPolicy, nextRequests] = await Promise.all([
+        fetchAutomationPolicy(),
+        fetchAutomationRequests()
+      ]);
+      setPolicy(nextPolicy);
+      setRequests(nextRequests.filter((request) => request.target_ref === opportunityId));
+    } catch {
+      setMessage("Automation controls are unavailable; no action was queued.");
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [opportunityId]);
+
+  async function queueRequest() {
+    if (!evidenceRef) {
+      setMessage("An action needs a stored evidence item before it can be queued.");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const created = await createAutomationRequest({
+        actionCode,
+        targetRef: opportunityId,
+        evidenceRef,
+        note: "Requested from the evidence-linked opportunity view."
+      });
+      setRequests((current) => [created, ...current]);
+    } catch {
+      setMessage("The request was blocked by policy, evidence, quota, or tenant controls.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function decide(requestId: string, decision: "approve" | "reject") {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const updated = await decideAutomationRequest(requestId, decision);
+      setRequests((current) => current.map((item) => item.id === updated.id ? updated : item));
+    } catch {
+      setMessage("Only an owner or admin can approve or reject, and the kill switch always wins.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="detail-section automation-panel">
+      <p className="section-kicker">Automation control</p>
+      <h3>Queue a bounded action for approval</h3>
+      <p>Requests are never executed here. They remain auditable and pending until an owner or admin approves them.</p>
+      <div className="automation-status">
+        <span>Mode: {policy ? titleCase(policy.mode) : "Loading"}</span>
+        <span>Daily limit: {policy?.daily_request_limit ?? "—"}</span>
+        <span className={policy?.kill_switch ? "automation-stop" : "automation-ready"}>
+          {policy?.kill_switch ? "Kill switch active" : "Kill switch off"}
+        </span>
+      </div>
+      <div className="automation-request-form">
+        <select value={actionCode} onChange={(event) => setActionCode(event.target.value as AutomationActionRequest["action_code"])}>
+          <option value="draft_content">Draft content</option>
+          <option value="review_evidence">Review evidence</option>
+          <option value="plan_experiment">Plan experiment</option>
+          <option value="publish_content">Publish content</option>
+          <option value="multiply_variant">Multiply variant</option>
+        </select>
+        <button className="detail-action-button" type="button" disabled={busy || !evidenceRef} onClick={() => void queueRequest()}>
+          {busy ? "Saving…" : "Queue for approval"}
+        </button>
+      </div>
+      {requests.length > 0 && (
+        <div className="automation-request-list">
+          {requests.map((request) => (
+            <article className="automation-request-card" key={request.id}>
+              <div>
+                <strong>{titleCase(request.action_code)}</strong>
+                <span>{titleCase(request.status)} · evidence stored</span>
+              </div>
+              {request.status === "pending" && (
+                <div className="recommendation-feedback">
+                  <button type="button" disabled={busy} onClick={() => void decide(request.id, "approve")}>Approve</button>
+                  <button type="button" disabled={busy} onClick={() => void decide(request.id, "reject")}>Reject</button>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+      {!evidenceRef && <p className="recommendation-muted">No stored evidence is available, so automation remains unavailable.</p>}
+      {message && <p className="recommendation-error" role="alert">{message}</p>}
+    </section>
+  );
+}
+
+function CommercialPanel() {
+  const [entitlements, setEntitlements] = useState<WorkspaceEntitlements | null>(null);
+  const [policy, setPolicy] = useState<EnterprisePolicy | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([fetchWorkspaceEntitlements(), fetchEnterprisePolicy()])
+      .then(([nextEntitlements, nextPolicy]) => {
+        setEntitlements(nextEntitlements);
+        setPolicy(nextPolicy);
+      })
+      .catch(() => setMessage("Commercial and enterprise controls are unavailable."));
+  }, []);
+
+  return (
+    <section className="detail-section commercial-panel">
+      <p className="section-kicker">Workspace governance</p>
+      <h3>Entitlements and retention</h3>
+      <p>Usage is measured against the workspace plan. Provider billing references remain auditable state; no external charge is created from this screen.</p>
+      <div className="commercial-status">
+        <span>Plan: {entitlements ? titleCase(entitlements.plan_name) : "Loading"}</span>
+        <span>Status: {entitlements ? titleCase(entitlements.subscription_status) : "Loading"}</span>
+        <span>Automation usage: {entitlements ? entitlements.used_automation_requests + " / " + entitlements.monthly_action_limit : "—"}</span>
+        <span>Retention: {policy ? policy.data_retention_days + " days" : "—"}</span>
+        <span>Support: {policy ? titleCase(policy.support_tier) : "—"}</span>
+      </div>
+      {message && <p className="recommendation-error" role="alert">{message}</p>}
+    </section>
   );
 }
 
@@ -242,27 +573,10 @@ function DetailPanel({
         )}
       </section>
 
-      <section className="detail-section action-section">
-        <p className="section-kicker">Recommended action</p>
-        <h3>No approved action is stored yet</h3>
-        <p>
-          This opportunity currently contains ranking and evidence, but the database does not yet store a verified action prescription for it.
-          Growth OS therefore leaves this area explicit rather than generating an unsupported instruction.
-        </p>
-        <button
-          className="detail-action-button"
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("growth-os:create-draft", {
-            detail: {
-              objective: `${opportunity.market} opportunity`,
-              market: opportunity.market,
-              platform: titleCase(opportunity.platform)
-            }
-          }))}
-        >
-          Start a draft from this opportunity
-        </button>
-      </section>
+      <RecommendationPanel opportunityId={opportunity.id} />
+      <ExperimentPlanner opportunityId={opportunity.id} />
+      <AutomationPanel opportunityId={opportunity.id} evidenceRef={evidence[0]?.evidence_ref ?? null} />
+      <CommercialPanel />
     </section>
   );
 }
