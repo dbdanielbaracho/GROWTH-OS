@@ -32,7 +32,7 @@ function AnalyticsPanel() {
   const [authenticated, setAuthenticated] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<MetricAnalyticsSummary[]>([]);
+  const [rows, setRows] = useState<MetricAnalyticsSummary[]>([]);\n  const [anomalies, setAnomalies] = useState<MetricQualityAnomaly[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -108,6 +108,12 @@ function AnalyticsPanel() {
             <div className="analytics-empty">
               <strong>No real observations in this window.</strong>
               <span>Connect a provider and run a sync before interpreting performance.</span>
+            </div>
+          )}
+          {!loading && !message && anomalies.length > 0 && (
+            <div className="analytics-anomalies" role="status">
+              <strong>Data quality alerts ({anomalies.length})</strong>
+              <span>{anomalies.slice(0, 5).map((row) => `${row.handle || row.provider_account_id} · ${row.metric_name} · ${row.quality_status}`).join(" | ")}</span>
             </div>
           )}
           {!loading && rows.length > 0 && (
