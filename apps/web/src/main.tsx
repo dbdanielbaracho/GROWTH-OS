@@ -18,6 +18,8 @@ import {
   fetchAutomationRequests,
   createAutomationRequest,
   decideAutomationRequest,
+  fetchWorkspaceEntitlements,
+  fetchEnterprisePolicy,
   hasDevelopmentIdentity,
   selectWorkspace,
   signIn,
@@ -31,7 +33,9 @@ import {
   type Experiment,
   type ExperimentVariant,
   type AutomationPolicy,
-  type AutomationActionRequest
+  type AutomationActionRequest,
+  type WorkspaceEntitlements,
+  type EnterprisePolicy
 } from "./api.js";
 import "./styles.css";
 import "./auth.css";
@@ -405,6 +409,37 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
   );
 }
 
+function CommercialPanel() {
+  const [entitlements, setEntitlements] = useState<WorkspaceEntitlements | null>(null);
+  const [policy, setPolicy] = useState<EnterprisePolicy | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([fetchWorkspaceEntitlements(), fetchEnterprisePolicy()])
+      .then(([nextEntitlements, nextPolicy]) => {
+        setEntitlements(nextEntitlements);
+        setPolicy(nextPolicy);
+      })
+      .catch(() => setMessage("Commercial and enterprise controls are unavailable."));
+  }, []);
+
+  return (
+    <section className="detail-section commercial-panel">
+      <p className="section-kicker">Workspace governance</p>
+      <h3>Entitlements and retention</h3>
+      <p>Usage is measured against the workspace plan. Provider billing references remain auditable state; no external charge is created from this screen.</p>
+      <div className="commercial-status">
+        <span>Plan: {entitlements ? titleCase(entitlements.plan_name) : "Loading"}</span>
+        <span>Status: {entitlements ? titleCase(entitlements.subscription_status) : "Loading"}</span>
+        <span>Automation usage: {entitlements ? entitlements.used_automation_requests + " / " + entitlements.monthly_action_limit : "—"}</span>
+        <span>Retention: {policy ? policy.data_retention_days + " days" : "—"}</span>
+        <span>Support: {policy ? titleCase(policy.support_tier) : "—"}</span>
+      </div>
+      {message && <p className="recommendation-error" role="alert">{message}</p>}
+    </section>
+  );
+}
+
 function DetailPanel({
   detail,
   loading,
@@ -541,6 +576,7 @@ function DetailPanel({
       <RecommendationPanel opportunityId={opportunity.id} />
       <ExperimentPlanner opportunityId={opportunity.id} />
       <AutomationPanel opportunityId={opportunity.id} evidenceRef={evidence[0]?.evidence_ref ?? null} />
+      <CommercialPanel />
     </section>
   );
 }
