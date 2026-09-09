@@ -106,7 +106,9 @@ function InstagramIntegrationPanel() {
     setBusyId(row.managed_account_id);
     setMessage(null);
     const controller = new AbortController();
+    let timedOut = false;
     const timeout = window.setTimeout(() => {
+      timedOut = true;
       controller.abort();
       setBusyId((current) => current === row.managed_account_id ? null : current);
       setMessage("Instagram authorization did not respond. Try again.");
@@ -115,14 +117,16 @@ function InstagramIntegrationPanel() {
       const result = row.connection_state
         ? await reconnectInstagram(row.managed_account_id, controller.signal)
         : await authorizeInstagram(row.managed_account_id, controller.signal);
+      if (timedOut) return;
       window.location.assign(result.authorizationUrl);
     } catch (error) {
+      if (timedOut) return;
       if (error instanceof Error && error.name === "AbortError") {
         setMessage("Instagram authorization did not respond. Try again.");
       } else {
         setMessage(friendlyError(error));
       }
-      setBusyId(null);
+      setBusyId((current) => current === row.managed_account_id ? null : current);
     } finally {
       window.clearTimeout(timeout);
     }
