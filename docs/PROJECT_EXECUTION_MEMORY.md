@@ -3923,3 +3923,19 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Após a aplicação, o migrator foi deixado em modo congelado não-operacional para impedir reaplicação acidental das migrations em futuro redeploy.
 - Recuperação completa ainda não pode ser declarada: o runbook exige restore drill/backup evidence e prova autenticada real antes do freeze final. Esses itens permanecem `PENDENTE`, não são tratados como PASS por inferência.
 - Estado de governança: código mergeado e migrations promovidas; freeze final do produto ainda depende da evidência autenticada de produção e do restore drill documentado.
+
+
+## 2026-09-09 — Correção da sincronização de mídia Instagram após APPROVE do Claude
+
+- Sintoma de produção: o botão "Sync media & metrics" retornava a mensagem "O caminho do provedor Instagram está temporariamente indisponível.".
+- Evidência Railway antes da correção: POST autenticado `/v1/integrations/instagram/sync` retornando HTTP 502; autenticação e `/v1/integrations/instagram/status` permaneciam HTTP 200.
+- Causa identificada: o conector usava Instagram Login, mas solicitava o campo `media_product_type`, incompatível com esse caminho da API. O campo foi removido somente da lista de campos solicitados; a tipagem, o armazenamento nullable e o restante do fluxo permaneceram intactos.
+- PR #114: `https://github.com/dbdanielbaracho/GROWTH-OS/pull/114`.
+- Claude fez a revisão adversarial linha a linha e decidiu `APPROVE` no SHA exato `a5780dcebd2d5f1ba5f4d807d42e80103904eb93`.
+- CI #833 no SHA exato: sucesso em typecheck, build, gates SQL, teste de integração, same-origin gate e 49 testes runtime.
+- Merge realizado na `main`: `a9f7c896f39a09600475615338df15ddd20dda0b`.
+- Promoção Railway feita exclusivamente pela `main`: app deployment `6e61aa5e-34e2-4990-8987-d9a7f7b9d9be` em `SUCCESS`; build e healthcheck concluídos.
+- Migrator Railway vinculado ao mesmo commit: deployment `4332940e-a61a-4b17-b6b8-e93d7cda440f` em `SUCCESS`; nenhuma migration nova foi necessária para esta correção.
+- Production Truth pós-promoção: `https://growos.predibeacon.com/health/ready` retornou HTTP 200 e `{"status":"ready","database":"ok"}`.
+- Sem dados sintéticos e sem alteração de credenciais de produção.
+- Pendência operacional: executar um novo clique autenticado em "Sync media & metrics" para confirmar a resposta real da conta Instagram após a nova versão; essa confirmação depende da sessão autenticada do operador e não foi simulada.
