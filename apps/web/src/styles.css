@@ -858,3 +858,21 @@ footer span:first-child { color: #d4d0c5; }
 @media (max-width: 620px) {
   .automation-request-card { align-items: flex-start; flex-direction: column; }
 }
+
+
+.commercial-panel p { max-width: 760px; }
+.commercial-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.commercial-status span {
+  padding: 8px 10px;
+  border: 1px solid #e1e6df;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.58);
+  color: #596059;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
