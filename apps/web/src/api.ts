@@ -880,3 +880,51 @@ export async function decideAutomationRequest(
   );
   return response.request;
 }
+
+
+export type WorkspaceEntitlements = {
+  plan_code: "free" | "pro" | "enterprise";
+  plan_name: string;
+  subscription_status: "trialing" | "active" | "past_due" | "cancelled";
+  monthly_action_limit: number;
+  used_automation_requests: number;
+  period_start: string;
+  period_end: string;
+};
+
+export type EnterprisePolicy = {
+  id: string | null;
+  workspace_id: string;
+  data_retention_days: number;
+  support_tier: "standard" | "priority" | "dedicated";
+  legal_acceptance_ref: string | null;
+  deletion_requested_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function fetchWorkspaceEntitlements(): Promise<WorkspaceEntitlements> {
+  const response = await requestJson<{ status: "ok"; entitlements: WorkspaceEntitlements }>("/v1/commercial/entitlements");
+  return response.entitlements;
+}
+
+export async function fetchEnterprisePolicy(): Promise<EnterprisePolicy> {
+  const response = await requestJson<{ status: "ok"; policy: EnterprisePolicy }>("/v1/commercial/enterprise-policy");
+  return response.policy;
+}
+
+export async function updateEnterprisePolicy(input: {
+  dataRetentionDays: number;
+  supportTier: EnterprisePolicy["support_tier"];
+  legalAcceptanceRef?: string;
+}): Promise<EnterprisePolicy> {
+  const response = await requestJson<{ status: "updated"; policy: EnterprisePolicy }>("/v1/commercial/enterprise-policy", {
+    method: "PUT",
+    body: {
+      data_retention_days: input.dataRetentionDays,
+      support_tier: input.supportTier,
+      legal_acceptance_ref: input.legalAcceptanceRef
+    }
+  });
+  return response.policy;
+}
