@@ -216,6 +216,151 @@ BEGIN
   IF p_evidence_ref IS NULL OR char_length(trim(p_evidence_ref)) NOT BETWEEN 1 AND 1000 THEN
     RAISE EXCEPTION 'automation request requires stored evidence reference';
   END IF;
+  IF NOT EXISTS (
+    SELECT 1
+      FROM growth.opportunity_evidence oe
+     WHERE oe.workspace_id = p_workspace_id
+       AND (oe.evidence_ref = trim(p_evidence_ref) OR oe.id::text = trim(p_evidence_ref))
+       AND (
+         p_target_ref !~ '^[0-9a-fA-F-]{36}
+    RAISE EXCEPTION 'automation request note is too long';
+  END IF;
+
+  INSERT INTO growth.automation_policies (workspace_id)
+  VALUES (p_workspace_id)
+  ON CONFLICT (workspace_id) DO NOTHING;
+
+  SELECT * INTO v_policy
+    FROM growth.automation_policies
+   WHERE workspace_id = p_workspace_id
+   FOR UPDATE;
+
+  IF v_policy.mode = 'disabled' OR v_policy.kill_switch THEN
+    RAISE EXCEPTION 'automation is disabled by policy or kill switch';
+  END IF;
+
+  SELECT count(*)::integer INTO v_used
+    FROM growth.automation_action_requests r
+   WHERE r.workspace_id = p_workspace_id
+     AND r.created_at >= date_trunc('day', now())
+     AND r.status IN ('pending','approved');
+
+  IF v_used >= v_policy.daily_request_limit THEN
+    RAISE EXCEPTION 'automation daily request limit reached';
+  END IF;
+
+  INSERT INTO growth.automation_action_requests (
+    workspace_id, policy_id, action_code, target_ref, evidence_ref,
+    status, requested_by, note
+  ) VALUES (
+    p_workspace_id, v_policy.id, p_action_code, trim(p_target_ref),
+    trim(p_evidence_ref), 'pending', growth.current_app_user_id(),
+    nullif(trim(p_note), '')
+  )
+  RETURNING * INTO v_row;
+
+  RETURN v_row;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION growth.decide_automation_action_request(
+  p_workspace_id uuid,
+  p_request_id uuid,
+  p_decision text,
+  p_note text
+)
+RETURNS growth.automation_action_requests
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path = pg_catalog, growth
+AS $$
+DECLARE
+  v_request growth.automation_action_requests;
+  v_policy growth.automation_policies;
+  v_is_admin boolean;
+BEGIN
+  IF growth.current_workspace_id() IS DISTINCT FROM p_workspace_id
+     OR NOT growth.tenant_context_valid(p_workspace_id)
+  THEN
+    RAISE EXCEPTION 'automation workspace context mismatch';
+  END IF;
+  IF p_decision NOT IN ('approve','reject','cancel') THEN
+    RAISE EXCEPTION 'automation decision is invalid';
+  END IF;
+  IF p_note IS NOT NULL AND char_length(p_note) > 1000 THEN
+    RAISE EXCEPTION 'automation decision note is too long';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM growth.memberships m
+     WHERE m.workspace_id = p_workspace_id
+       AND m.user_id = growth.current_app_user_id()
+       AND m.status = 'active'
+       AND m.role IN ('owner','admin')
+  ) INTO v_is_admin;
+
+  SELECT * INTO v_request
+    FROM growth.automation_action_requests
+   WHERE workspace_id = p_workspace_id AND id = p_request_id
+   FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'automation request not found';
+  END IF;
+  IF v_request.status <> 'pending' THEN
+    RAISE EXCEPTION 'automation request is already decided';
+  END IF;
+  IF p_decision IN ('approve','reject') AND NOT v_is_admin THEN
+    RAISE EXCEPTION 'automation approval requires owner or admin';
+  END IF;
+  IF p_decision = 'cancel'
+     AND NOT (v_is_admin OR v_request.requested_by = growth.current_app_user_id())
+  THEN
+    RAISE EXCEPTION 'automation cancellation requires requester or admin';
+  END IF;
+
+  IF p_decision = 'approve' THEN
+    SELECT * INTO v_policy FROM growth.automation_policies
+     WHERE workspace_id = p_workspace_id FOR UPDATE;
+    IF v_policy.kill_switch OR v_policy.mode = 'disabled' THEN
+      RAISE EXCEPTION 'automation approval blocked by policy or kill switch';
+    END IF;
+  END IF;
+
+  UPDATE growth.automation_action_requests
+     SET status = CASE p_decision WHEN 'approve' THEN 'approved' WHEN 'reject' THEN 'rejected' ELSE 'cancelled' END,
+         approved_by = CASE WHEN p_decision = 'approve' THEN growth.current_app_user_id() ELSE approved_by END,
+         note = coalesce(nullif(trim(p_note), ''), note),
+         decided_at = now()
+   WHERE workspace_id = p_workspace_id AND id = p_request_id
+  RETURNING * INTO v_request;
+
+  RETURN v_request;
+END;
+$$;
+
+ALTER FUNCTION growth.get_automation_policy(uuid) OWNER TO growth_migrator;
+ALTER FUNCTION growth.set_automation_policy(uuid,text,integer,boolean) OWNER TO growth_migrator;
+ALTER FUNCTION growth.list_automation_action_requests(uuid,integer) OWNER TO growth_migrator;
+ALTER FUNCTION growth.create_automation_action_request(uuid,text,text,text,text) OWNER TO growth_migrator;
+ALTER FUNCTION growth.decide_automation_action_request(uuid,uuid,text,text) OWNER TO growth_migrator;
+
+REVOKE ALL ON FUNCTION growth.get_automation_policy(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION growth.set_automation_policy(uuid,text,integer,boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION growth.list_automation_action_requests(uuid,integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION growth.create_automation_action_request(uuid,text,text,text,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION growth.decide_automation_action_request(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION growth.get_automation_policy(uuid) TO app_runtime;
+GRANT EXECUTE ON FUNCTION growth.set_automation_policy(uuid,text,integer,boolean) TO app_runtime;
+GRANT EXECUTE ON FUNCTION growth.list_automation_action_requests(uuid,integer) TO app_runtime;
+GRANT EXECUTE ON FUNCTION growth.create_automation_action_request(uuid,text,text,text,text) TO app_runtime;
+GRANT EXECUTE ON FUNCTION growth.decide_automation_action_request(uuid,uuid,text,text) TO app_runtime;
+
+COMMIT;
+
+         OR oe.opportunity_id::text = trim(p_target_ref)
+       )
+  ) THEN
+    RAISE EXCEPTION 'automation request evidence is not stored for the target';
+  END IF;
   IF p_note IS NOT NULL AND char_length(p_note) > 1000 THEN
     RAISE EXCEPTION 'automation request note is too long';
   END IF;
