@@ -3835,3 +3835,11 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 
 - Deployment `a2c41c68-c08a-4536-b84a-fcbe5b48c453` SUCCESS confirmou as dependências `003` e `004` no database `railway` do Postgres canônico.
 - O migrator foi preparado novamente para executar `026_publication_execution_context.sql` até `033_metric_analytics_summary.sql`, em ordem, sem reaplicar `025` nem as fundações já confirmadas.
+
+
+## Provisionamento oficial do worker — 2026-09-09
+
+- A cadeia `026–029` terminou SUCCESS no deployment Railway `056f4c59-79c0-48a7-8025-fbe24169f72b`.
+- `030_publication_worker_service_principal.sql` parou porque o role `growth_worker` não existia.
+- O GitHub confirma o provisionamento oficial em `db/provisioning/production/01_roles.sql`; o arquivo cria `growth_worker` sem SUPERUSER, CREATEDB, CREATEROLE ou BYPASSRLS.
+- A próxima promoção Railway foi preparada para executar esse provisioning oficial antes de repetir `030–033`.
