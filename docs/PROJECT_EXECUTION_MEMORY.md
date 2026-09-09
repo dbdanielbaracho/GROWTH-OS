@@ -3939,3 +3939,17 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Production Truth pós-promoção: `https://growos.predibeacon.com/health/ready` retornou HTTP 200 e `{"status":"ready","database":"ok"}`.
 - Sem dados sintéticos e sem alteração de credenciais de produção.
 - Pendência operacional: executar um novo clique autenticado em "Sync media & metrics" para confirmar a resposta real da conta Instagram após a nova versão; essa confirmação depende da sessão autenticada do operador e não foi simulada.
+
+
+## 2026-09-09 — reconciliação final do banco canônico e promoção pós-Instagram
+
+- PR #116 adicionou o reconciliador idempotente de produção para as migrations 031–038. O CI #839 terminou SUCCESS no SHA `8708c29a9debaeb10128d2381846fabf2df0733f`.
+- A primeira promoção pela main detectou e registrou dois problemas reais: o filtro da diretiva `\\set` estava super-escapado e o comando temporário consultava a conexão legada `growth_os_797f0a3`.
+- PR #117 corrigiu o escape do runner; CI #841 terminou SUCCESS no SHA `542212e8f03e6757f310a278f0aa03be590891a6`.
+- A inspeção seguinte mostrou que a baseline de publicação 023–030 também precisava ser reconciliada antes de 031. PR #118 ampliou o runner para verificar e aplicar 023–030 antes de 031–038; CI #843 terminou SUCCESS no SHA `8d812ce3e1009d918df2ecfa8815267c8004ffd4`.
+- PR #118 foi mergeado na main no SHA `3e227c318329907f7a3a21f9bd2955d3d6286e34`.
+- Migrator Railway deployment `29735ed6-048a-452c-8731-9ab13a10dd84`: SUCCESS. O log confirma alvo `database: railway` e reconciliação concluída; 023–038 foram reconhecidas como presentes sem reaplicação destrutiva.
+- App Railway deployment `f18564c0-8cc2-4702-909b-cd53512f4f39`: SUCCESS, promovido da main no mesmo SHA.
+- Prova HTTP pública pós-promoção: `/v1/analytics/metrics` e `/v1/publication-intents` retornaram `401 unauthorized` sem sessão, não `500`; o caminho autenticado precisa ser confirmado com a sessão do operador.
+- Prova operacional Instagram: após a autorização ativa da conta profissional, a tela de produção mostrou Connected/LIVE e Last sync `3 media / 6 metrics`; os logs Railway registraram POST autenticado de sync com HTTP 200.
+- O reconciliador permanece idempotente e configurado no serviço migrator; não cria dados sintéticos nem publica conteúdo externo.
