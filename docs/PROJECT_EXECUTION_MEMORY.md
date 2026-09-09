@@ -3815,3 +3815,10 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Deployment Railway `20348333-5d73-4561-b048-b7f0bc8a072f` terminou SUCCESS e confirmou nos logs: `002_rc9_security_policy_fix.sql`, `012_youtube_rls_helper_execute.sql` e `013_youtube_observation_idempotency_hardening.sql` aplicadas no database `railway` do Postgres canônico.
 - Com os deployments anteriores, `010` e `011` também estão confirmadas; `025` permanece confirmada.
 - O migrator foi preparado para retomar a partir de `026_publication_execution_context.sql`, seguindo em ordem até `033_metric_analytics_summary.sql`, sem reaplicar migrations já confirmadas.
+
+
+## Correção de baseline Creative Production — 2026-09-09
+
+- A retomada de `026–033` foi promovida pelo Railway e parou em `026` com `column ma.content_version_id does not exist`.
+- O GitHub confirmou que `004_creative_production.sql` cria `media_assets.content_version_id`, `creative_generation_id`, `purpose` e o contrato de assets necessário para o contexto de publicação.
+- O migrator foi preparado para aplicar somente `004_creative_production.sql` antes de repetir `026–033`; as migrations `002`, `010–013` e `025` permanecem confirmadas.
