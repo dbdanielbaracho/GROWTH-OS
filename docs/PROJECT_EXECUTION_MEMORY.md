@@ -3907,3 +3907,19 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Railway canônico somente leitura: projeto `successful-embrace`, produção; Postgres SUCCESS, app SUCCESS e migrator SUCCESS. O migrator continua com source `dbdanielbaracho/GROWTH-OS`, branch `main`, mas o comando atual é diagnóstico e consulta o CI de um SHA antigo; ele não promove as migrations 034–038.
 - A promoção Railway e o freeze permanecem bloqueados até uma decisão final `APPROVE` do Claude. Não foi feita promoção das migrations 034–038 nem merge do PR.
 - Próximo ponto exato: enviar o SHA `b62be6654abad9c9a5fc33a28e6da52d00df333b` e o diff corrigido para nova revisão adversarial; somente com `APPROVE` executar merge, configurar o migrator para a cadeia 034–038 a partir de `main`, promover pelo Railway, confirmar logs e executar as provas de produção/recuperação.
+
+
+## Registro de execução — PR #113 aprovado, mergeado e promoção Railway 034–038 — 2026-09-09
+
+- Claude reavaliou o SHA `532323fac51a191ab214c5577ca225ebc33e5e84` e retornou decisão final `APPROVE`.
+- O PR #113 foi mergeado com expected head SHA exato.
+- Merge commit em `main`: `41353a03ac6dd17d83788a6d7d1813cbab679681`.
+- O serviço Railway canônico `migrator`, projeto `successful-embrace`, produção, permaneceu ligado ao repositório `dbdanielbaracho/GROWTH-OS`, branch `main`.
+- Deployment Railway do migrator: `ab99f07d-8212-467a-bf17-3ca5e60aeff2`, `SUCCESS`.
+- Logs confirmam, no banco `railway`, em ordem: `034_metric_quality_anomalies.sql`, `035_recommendation_feedback.sql`, `036_experiment_lineage.sql`, `037_automation_policy_control.sql` e `038_commercial_entitlements.sql`.
+- O serviço app recebeu deployment Railway `76c539a6-3ac5-4a1b-920c-f080a3fc2dbd`, `SUCCESS`, a partir da configuração canônica em `main`.
+- Production Truth público confirmado na URL canônica `https://growth-os-production-d120.up.railway.app`: `/health/live` retornou 200 `{"status":"ok"}`; `/health/ready` retornou 200 com database `ok`; `/v1/system` retornou 200 com Growth OS `0.1.0` em `production`.
+- Nenhum dado sintético foi criado em produção. A superfície autenticada permaneceu sem alteração de dados; não foi possível executar prova autenticada de tenant, quota, kill switch e entitlement sem uma sessão/tenant de produção fornecidos pelo operador.
+- Após a aplicação, o migrator foi deixado em modo congelado não-operacional para impedir reaplicação acidental das migrations em futuro redeploy.
+- Recuperação completa ainda não pode ser declarada: o runbook exige restore drill/backup evidence e prova autenticada real antes do freeze final. Esses itens permanecem `PENDENTE`, não são tratados como PASS por inferência.
+- Estado de governança: código mergeado e migrations promovidas; freeze final do produto ainda depende da evidência autenticada de produção e do restore drill documentado.
