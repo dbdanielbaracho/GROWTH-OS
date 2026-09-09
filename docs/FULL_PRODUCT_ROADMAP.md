@@ -866,6 +866,18 @@ Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a c
 - Próximo bloco: fechar os contratos de avaliação/feedback das recomendações e preparar os módulos de experimentação sem perder lineage.
 
 
+## Correction — canonical Railway promotion and current status — 2026-09-09
+
+The previously recorded Railway permission blocker is superseded by the canonical production evidence below.
+
+- Canonical project: Railway `successful-embrace`, production environment.
+- Migrator service source: `dbdanielbaracho/GROWTH-OS`, branch `main`; database reference is the canonical Postgres service.
+- Migrator deployment `cab9600f-49e4-41ec-aafc-7392439dedbb` reached `SUCCESS` from commit `e1d991807bc23ade6791cf6541de57286a9649a7` and logged successful application of migrations 030, 031, 032 and 033 to database `railway`.
+- Application deployment `dd50fa5b-1893-4bc8-bd11-7a229863a2de` reached `SUCCESS` from the same commit.
+- Live Railway evidence: `GET /health/ready` returned 200 with database `ok`; `GET /` and `GET /v1/system` returned 200; unauthenticated session and tenant routes returned 401. Railway HTTP logs confirmed the responses.
+- The deployment rule is now explicit: GitHub `main` SHA → Railway source promotion → build/deploy success → live HTTP evidence → documentation. Local execution is not accepted as production proof.
+- PR #113, “deterministic analytics quality anomalies”, has CI #751 `SUCCESS` on head SHA `72d8e9ee5abc86dc8bb06e62cee8490d66c44e01`. It adds migration 034, gate 051, an authenticated anomaly endpoint and real-data quality alerts. It is not merged or promoted yet; adversarial Claude review remains the freeze gate.
+
 ## Registro de execução — recomendações e feedback — 2026-09-09
 
 - O PR acumulado #113 agora inclui a migration forward-only 035_recommendation_feedback.sql e o gate SQL 052_recommendation_feedback.sql.
@@ -906,3 +918,4 @@ Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a c
 - Runbook registrado em docs/RELEASE_HARDENING_CHECKLIST.md.
 - CI verde no SHA exato 22c7c7afaa6a0b318beab821945c5bba97f4b1a0.
 - Railway production lido com Postgres, migrator e app SUCCESS; o migrator canônico ainda está em 030–033, sem promoção deste candidato.
+
