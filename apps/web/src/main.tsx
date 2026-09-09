@@ -9,6 +9,9 @@ import {
   verifyEmail,
   fetchOpportunities,
   fetchOpportunityDetail,
+  fetchRecommendations,
+  createRecommendation,
+  recordRecommendationFeedback,
   hasDevelopmentIdentity,
   selectWorkspace,
   signIn,
@@ -17,7 +20,8 @@ import {
   type AuthSessionResponse,
   type OpportunityDetail,
   type OpportunitySummary,
-  type RelatedInsight
+  type RelatedInsight,
+  type Recommendation
 } from "./api.js";
 import "./styles.css";
 import "./auth.css";
@@ -106,6 +110,106 @@ function OpportunityCard({
         <span aria-hidden="true">→</span>
       </div>
     </button>
+  );
+}
+
+
+function recommendationLabel(code: Recommendation["action_code"]) {
+  if (code === "draft_content") return "Start a content draft";
+  if (code === "review_evidence") return "Review the evidence";
+  return "Plan an experiment";
+}
+
+function RecommendationPanel({ opportunityId }: { opportunityId: string }) {
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setMessage(null);
+    try {
+      setRecommendations(await fetchRecommendations(opportunityId));
+    } catch {
+      setMessage("No stored recommendation could be loaded for this opportunity.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [opportunityId]);
+
+  async function add(actionCode: Recommendation["action_code"]) {
+    setBusy(actionCode);
+    setMessage(null);
+    try {
+      const created = await createRecommendation(opportunityId, actionCode);
+      setRecommendations((current) => {
+        const withoutDuplicate = current.filter((item) => item.id !== created.id);
+        return [created, ...withoutDuplicate];
+      });
+    } catch {
+      setMessage("This action remains unavailable until stored evidence passes the recommendation boundary.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function giveFeedback(id: string, feedback: "accepted" | "dismissed" | "completed" | "irrelevant") {
+    setBusy(id);
+    setMessage(null);
+    try {
+      await recordRecommendationFeedback(id, feedback);
+      setRecommendations((current) => current.map((item) => item.id === id ? {
+        ...item,
+        status: feedback === "accepted" ? "accepted" : feedback === "completed" ? "completed" : "dismissed",
+        feedback_count: item.feedback_count + 1
+      } : item));
+    } catch {
+      setMessage("Feedback was not recorded. The recommendation state was left unchanged.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="detail-section action-section">
+      <p className="section-kicker">Recommended action</p>
+      <h3>Evidence-linked next actions</h3>
+      <p>
+        Actions are stored only when this opportunity has persisted evidence. Growth OS never invents a recommendation or executes it automatically.
+      </p>
+      <div className="recommendation-actions">
+        {(["draft_content", "review_evidence", "plan_experiment"] as const).map((actionCode) => (
+          <button key={actionCode} className="detail-action-button" type="button" disabled={busy !== null} onClick={() => void add(actionCode)}>
+            {busy === actionCode ? "Saving…" : recommendationLabel(actionCode)}
+          </button>
+        ))}
+      </div>
+      {loading && <p className="recommendation-muted">Loading stored recommendations…</p>}
+      {!loading && recommendations.length === 0 && <p className="recommendation-muted">No action has been stored for this opportunity yet.</p>}
+      {recommendations.length > 0 && (
+        <div className="recommendation-list">
+          {recommendations.map((recommendation) => (
+            <article className="recommendation-card" key={recommendation.id}>
+              <div>
+                <strong>{recommendationLabel(recommendation.action_code)}</strong>
+                <span>{titleCase(recommendation.status)} · {recommendation.feedback_count} feedback item{recommendation.feedback_count === 1 ? "" : "s"}</span>
+              </div>
+              <div className="recommendation-feedback">
+                <button type="button" disabled={busy !== null} onClick={() => void giveFeedback(recommendation.id, "accepted")}>Accept</button>
+                <button type="button" disabled={busy !== null} onClick={() => void giveFeedback(recommendation.id, "completed")}>Complete</button>
+                <button type="button" disabled={busy !== null} onClick={() => void giveFeedback(recommendation.id, "irrelevant")}>Not relevant</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+      {message && <p className="recommendation-error" role="alert">{message}</p>}
+    </section>
   );
 }
 
@@ -242,27 +346,7 @@ function DetailPanel({
         )}
       </section>
 
-      <section className="detail-section action-section">
-        <p className="section-kicker">Recommended action</p>
-        <h3>No approved action is stored yet</h3>
-        <p>
-          This opportunity currently contains ranking and evidence, but the database does not yet store a verified action prescription for it.
-          Growth OS therefore leaves this area explicit rather than generating an unsupported instruction.
-        </p>
-        <button
-          className="detail-action-button"
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("growth-os:create-draft", {
-            detail: {
-              objective: `${opportunity.market} opportunity`,
-              market: opportunity.market,
-              platform: titleCase(opportunity.platform)
-            }
-          }))}
-        >
-          Start a draft from this opportunity
-        </button>
-      </section>
+      <RecommendationPanel opportunityId={opportunity.id} />
     </section>
   );
 }
