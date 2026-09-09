@@ -3849,3 +3849,12 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 
 - Deployment Railway `0194ad8c-92e6-4300-9226-5e6d5a806244` SUCCESS confirmou `db/provisioning/production/01_roles.sql` no Postgres canônico e a criação do role `growth_worker` conforme o contrato oficial.
 - O migrator foi preparado para executar `030_publication_worker_service_principal.sql` → `031_publication_status_projection.sql` → `032_publication_worker_runtime_context.sql` → `033_metric_analytics_summary.sql`.
+
+
+## Current execution checkpoint — recommendation feedback block — 2026-09-09
+
+- PR #113 branch feat/analytics-anomaly-quality now contains migration 035, SQL gate 052, tenant-scoped recommendation service, authenticated API routes and the web feedback surface.
+- Exact CI candidate SHA: 99c2ff7f3d1949573c0302618ca02105cad75717; both official validation jobs completed SUCCESS.
+- The recommendation boundary requires stored opportunity evidence and explicitly records unsupported_inference=false and autonomous_execution=false.
+- No Railway promotion, production migration or merge was performed. Claude remains the final adversarial gate for the consolidated material cycle.
+- Next implementation block: experiment planning/multiplication with explicit lineage and no autonomous publishing.
