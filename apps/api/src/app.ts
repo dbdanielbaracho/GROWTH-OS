@@ -118,7 +118,7 @@ const ExperimentCreateSchema = z.object({
 
 const ExperimentVariantSchema = z.object({
   label: z.string().trim().min(1).max(120),
-  lineage: z.record(z.unknown())
+  lineage: z.record(z.string(), z.unknown())
 });
 
 const ExperimentFeedbackSchema = z.object({
