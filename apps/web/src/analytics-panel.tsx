@@ -4,8 +4,10 @@ import {
   fetchAuthSession,
   fetchMetricAnalyticsSummary,
   fetchMetricAnalyticsSnapshot,
+  fetchMetricQualityAnomalies,
   RadarApiError,
-  type MetricAnalyticsSummary
+  type MetricAnalyticsSummary,
+  type MetricQualityAnomaly
 } from "./api.js";
 import "./analytics-panel.css";
 
