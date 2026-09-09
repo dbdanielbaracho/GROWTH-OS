@@ -703,3 +703,53 @@ footer span:first-child { color: #d4d0c5; }
 .detail-action-button:hover {
   background: rgba(213, 168, 79, .12);
 }
+
+
+.recommendation-actions,
+.recommendation-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recommendation-actions {
+  margin: 16px 0;
+}
+
+.recommendation-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line, #d9dedb);
+}
+
+.recommendation-card > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.recommendation-card span,
+.recommendation-muted {
+  color: var(--muted, #68736e);
+  font-size: 0.9rem;
+}
+
+.recommendation-feedback button {
+  border: 1px solid var(--line, #d9dedb);
+  background: transparent;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.recommendation-feedback button:disabled,
+.recommendation-actions button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.recommendation-error {
+  color: #a33131;
+}
