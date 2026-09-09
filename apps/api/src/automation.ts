@@ -33,7 +33,9 @@ export async function getAutomationPolicy(
     "select * from growth.get_automation_policy($1)",
     [principal.workspaceId]
   );
-  return result.rows[0];
+  const row = result.rows[0];
+  if (!row) throw new Error("automation helper returned no row");
+  return row;
 }
 
 export async function setAutomationPolicy(
@@ -49,7 +51,9 @@ export async function setAutomationPolicy(
     "select * from growth.set_automation_policy($1, $2, $3, $4)",
     [principal.workspaceId, input.mode, input.dailyRequestLimit, input.killSwitch]
   );
-  return result.rows[0];
+  const row = result.rows[0];
+  if (!row) throw new Error("automation helper returned no row");
+  return row;
 }
 
 export async function listAutomationActionRequests(
@@ -84,7 +88,9 @@ export async function createAutomationActionRequest(
       input.note ?? null
     ]
   );
-  return result.rows[0];
+  const row = result.rows[0];
+  if (!row) throw new Error("automation helper returned no row");
+  return row;
 }
 
 export async function decideAutomationActionRequest(
@@ -98,5 +104,7 @@ export async function decideAutomationActionRequest(
     "select * from growth.decide_automation_action_request($1, $2, $3, $4)",
     [principal.workspaceId, requestId, decision, note ?? null]
   );
-  return result.rows[0];
+  const row = result.rows[0];
+  if (!row) throw new Error("automation helper returned no row");
+  return row;
 }
