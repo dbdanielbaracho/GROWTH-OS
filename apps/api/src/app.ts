@@ -38,6 +38,7 @@ import { CreatePublicationIntentSchema, PublicationReconciliationSchema, cancelP
 import { createDatabasePublicationExecutionStore } from "./publication-store.js";
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
 import { listMetricAnalyticsSummary, listMetricQualityAnomalies } from "./analytics.js";
+import { createRecommendation, listRecommendations, recordRecommendationFeedback } from "./recommendations.js";
 import { executePublicationIntent } from "./publication-worker.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
@@ -88,6 +89,23 @@ const PublicationIntentParamsSchema = z.object({
 const AnalyticsQuerySchema = z.object({
   from: z.string().trim().optional(),
   to: z.string().trim().optional()
+});
+
+const RecommendationQuerySchema = z.object({
+  opportunity_id: z.string().uuid().optional()
+});
+
+const RecommendationParamsSchema = z.object({
+  id: z.string().uuid()
+});
+
+const RecommendationCreateSchema = z.object({
+  action_code: z.enum(["draft_content", "review_evidence", "plan_experiment"])
+});
+
+const RecommendationFeedbackSchema = z.object({
+  feedback: z.enum(["accepted", "dismissed", "completed", "irrelevant"]),
+  note: z.string().trim().max(1000).nullable().optional()
 });
 
 export function buildApp(logger = false) {
@@ -310,6 +328,73 @@ export function buildApp(logger = false) {
       );
       if (!detail) return reply.code(404).send({ status: "not_found" });
       return { status: "ok", ...detail };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+
+  app.get("/v1/recommendations", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = RecommendationQuerySchema.safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const recommendations = await withTenantTransaction(principal, (client) =>
+        listRecommendations(client, principal, parsed.data.opportunity_id ?? null)
+      );
+      return { status: "ok", recommendations };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/opportunities/:id/recommendations", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    const body = RecommendationCreateSchema.safeParse(request.body);
+    if (!params.success || !body.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const recommendation = await withTenantTransaction(principal, (client) =>
+        createRecommendation(client, principal, params.data.id, body.data.action_code)
+      );
+      return reply.code(201).send({ status: "created", recommendation });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/recommendations/:id/feedback", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    const body = RecommendationFeedbackSchema.safeParse(request.body);
+    if (!params.success || !body.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const feedback = await withTenantTransaction(principal, (client) =>
+        recordRecommendationFeedback(
+          client,
+          principal,
+          params.data.id,
+          body.data.feedback,
+          body.data.note ?? null
+        )
+      );
+      return { status: "recorded", feedback };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
