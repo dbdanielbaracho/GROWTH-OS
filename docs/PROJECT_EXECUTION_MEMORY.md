@@ -3772,3 +3772,14 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Correção registrada: o listener de atualização do Content Authoring passou a declarar todas as dependências usadas.
 - Limites: ainda faltam recomendações de ação armazenadas, experimentos, automação, billing/enterprise e prova de produção; Railway canônico continua sem acesso viewer/member.
 - Próximo bloco: fechar os contratos de avaliação/feedback das recomendações e preparar os módulos de experimentação sem perder lineage.
+
+
+## Registro de execução — correção do migrator Railway canônico — 2026-09-09
+
+- Serviço: `migrator`, projeto Railway canônico `successful-embrace`, ambiente `production`.
+- Correção aplicada: a imagem incompatível `postgres:18-alpine` foi desconectada e o serviço foi ligado ao repositório `dbdanielbaracho/GROWTH-OS`, branch `main`, com o runner Node versionado no GitHub.
+- O primeiro deploy do runner falhou porque a variável `DATABASE_URL` ainda apontava para o banco de teste `growth_os_test`; o log registrou `database "growth_os_test" does not exist`.
+- Correção aplicada sem expor segredo: `migrator.DATABASE_URL` passou a referenciar `${{Postgres.DATABASE_URL}}` do Postgres canônico do mesmo projeto.
+- Deployment Railway `55d462e0-63eb-425d-9d2a-9275202d39a3`: SUCCESS, SHA `4afad79f39e68e6fbfce83bd83c00239c1a02dc8`, PostgreSQL 18.6, database `railway`, migration `023_publication_intent_claim.sql` aplicada.
+- Ao trocar o start command para a migration 024, dois redeploys mantiveram o comando antigo 023 no runtime apesar da configuração declarada já mostrar 024; isso foi identificado como divergência de snapshot do Railway e não foi contado como aplicação de 024.
+- Próximo passo obrigatório: promover um novo SHA de `main` pelo Railway, confirmar no log o comando `024_publication_intent_finalization.sql`, e continuar a cadeia 024–033 somente após cada deployment SUCCESS e evidência correspondente.
