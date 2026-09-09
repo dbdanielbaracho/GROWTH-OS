@@ -661,3 +661,41 @@ export async function fetchMetricAnalyticsSnapshot(
 ): Promise<MetricAnalyticsResponse> {
   return fetchMetricAnalyticsResponse(from, to);
 }
+
+
+export type MetricQualityAnomaly = {
+  social_account_id: string;
+  platform: string;
+  provider_account_id: string;
+  handle: string | null;
+  metric_name: string;
+  observation_count: number;
+  latest_observed_at: string;
+  latest_effective_at: string;
+  complete_observations: number;
+  fresh_observations: number;
+  quality_status: "incomplete" | "stale";
+  anomaly_reason: "incomplete_observations" | "stale_observations";
+  completeness_ratio: number;
+  freshness_ratio: number;
+};
+
+export type MetricQualityAnomalyResponse = {
+  status: "ok";
+  from: string;
+  to: string;
+  anomalies: MetricQualityAnomaly[];
+};
+
+export async function fetchMetricQualityAnomalies(
+  from?: string,
+  to?: string
+): Promise<MetricQualityAnomaly[]> {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const response = await requestJson<MetricQualityAnomalyResponse>(
+    `/v1/analytics/anomalies${params.size > 0 ? `?${params.toString()}` : ""}`
+  );
+  return response.anomalies;
+}
