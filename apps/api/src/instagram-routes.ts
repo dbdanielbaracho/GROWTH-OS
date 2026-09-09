@@ -64,6 +64,13 @@ async function principalOrReply(request: FastifyRequest, reply: FastifyReply) {
 
 async function integrationError(app: FastifyInstance, reply: FastifyReply, error: unknown) {
   if (error instanceof InstagramConnectorError) {
+    app.log.error({
+      instagramConnector: {
+        code: error.code,
+        httpStatus: error.httpStatus,
+        provider: error.provider
+      }
+    }, "Instagram connector failed");
     return reply.code(error.httpStatus).send({ status: error.code });
   }
   const pgCode = error && typeof error === "object" && "code" in error
