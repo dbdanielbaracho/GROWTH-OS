@@ -3858,3 +3858,13 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - The recommendation boundary requires stored opportunity evidence and explicitly records unsupported_inference=false and autonomous_execution=false.
 - No Railway promotion, production migration or merge was performed. Claude remains the final adversarial gate for the consolidated material cycle.
 - Next implementation block: experiment planning/multiplication with explicit lineage and no autonomous publishing.
+
+
+## Current execution checkpoint — experiment lineage block — 2026-09-09
+
+- PR #113 now contains migration 036, SQL gate 053, experiment planning endpoints and the web planning surface.
+- The canonical experiments/hypotheses tables from migration 001 were preserved; new variant plans and feedback tables are tenant-scoped with RLS + FORCE RLS.
+- Exact green CI candidate SHA: 8d75286282aff9d53f278fd312d8bc4cd0b7b688.
+- Lineage rule: variant plans linked to an opportunity must carry source_opportunity_id; winner/loser feedback must carry a stored evidence reference; autonomous publishing remains false.
+- No merge, Railway promotion or production migration was performed.
+- Next implementation block: bounded automation/Copilot contracts with approval, quotas and emergency stop.
