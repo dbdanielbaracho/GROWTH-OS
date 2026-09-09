@@ -12,6 +12,8 @@ import {
   fetchRecommendations,
   createRecommendation,
   recordRecommendationFeedback,
+  createExperiment,
+  addExperimentVariant,
   hasDevelopmentIdentity,
   selectWorkspace,
   signIn,
@@ -21,7 +23,9 @@ import {
   type OpportunityDetail,
   type OpportunitySummary,
   type RelatedInsight,
-  type Recommendation
+  type Recommendation,
+  type Experiment,
+  type ExperimentVariant
 } from "./api.js";
 import "./styles.css";
 import "./auth.css";
@@ -213,6 +217,81 @@ function RecommendationPanel({ opportunityId }: { opportunityId: string }) {
   );
 }
 
+
+function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
+  const [name, setName] = useState("");
+  const [hypothesis, setHypothesis] = useState("");
+  const [decisionRule, setDecisionRule] = useState("");
+  const [variantLabel, setVariantLabel] = useState("");
+  const [experiment, setExperiment] = useState<Experiment | null>(null);
+  const [variants, setVariants] = useState<ExperimentVariant[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function submitExperiment(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage(null);
+    try {
+      setExperiment(await createExperiment({ opportunityId, name, hypothesis, decisionRule }));
+    } catch {
+      setMessage("The experiment plan could not be stored. Evidence and tenant checks remain enforced.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitVariant(event: React.FormEvent) {
+    event.preventDefault();
+    if (!experiment || !variantLabel.trim()) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const variant = await addExperimentVariant(experiment.id, variantLabel, opportunityId);
+      setVariants((current) => [...current, variant]);
+      setVariantLabel("");
+    } catch {
+      setMessage("The variant lineage could not be stored.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="detail-section experiment-planner">
+      <p className="section-kicker">Experiments</p>
+      <h3>Plan a measurable next test</h3>
+      <p>Planning is stored with the source opportunity. Growth OS does not publish variants or declare a winner without outcome evidence.</p>
+      {!experiment ? (
+        <form className="experiment-form" onSubmit={submitExperiment}>
+          <label><span>Experiment name</span><input value={name} onChange={(event) => setName(event.target.value)} required maxLength={160} /></label>
+          <label><span>Hypothesis</span><textarea value={hypothesis} onChange={(event) => setHypothesis(event.target.value)} required maxLength={2000} /></label>
+          <label><span>Decision rule</span><textarea value={decisionRule} onChange={(event) => setDecisionRule(event.target.value)} required maxLength={2000} /></label>
+          <button className="detail-action-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Save experiment plan"}</button>
+        </form>
+      ) : (
+        <>
+          <div className="experiment-summary">
+            <strong>{experiment.name}</strong>
+            <span>{titleCase(experiment.status)} · {experiment.hypothesis}</span>
+            <small>Decision rule: {experiment.decision_rule}</small>
+          </div>
+          <form className="experiment-variant-form" onSubmit={submitVariant}>
+            <label><span>Variant label</span><input value={variantLabel} onChange={(event) => setVariantLabel(event.target.value)} required maxLength={120} /></label>
+            <button className="detail-action-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Add lineage-preserving variant"}</button>
+          </form>
+          {variants.length > 0 && (
+            <ul className="experiment-variant-list">
+              {variants.map((variant) => <li key={variant.id}><strong>{variant.label}</strong><span>{titleCase(variant.status)} · source opportunity preserved</span></li>)}
+            </ul>
+          )}
+        </>
+      )}
+      {message && <p className="recommendation-error" role="alert">{message}</p>}
+    </section>
+  );
+}
+
 function DetailPanel({
   detail,
   loading,
@@ -347,6 +426,7 @@ function DetailPanel({
       </section>
 
       <RecommendationPanel opportunityId={opportunity.id} />
+      <ExperimentPlanner opportunityId={opportunity.id} />
     </section>
   );
 }
