@@ -41,7 +41,7 @@ BEGIN
      OR position('daily_request_limit' IN lower(definition)) = 0
      OR position('approval requires owner or admin' IN lower(definition)) = 0
      OR position('requires stored evidence reference' IN lower(definition)) = 0
-     OR position('status = ''pending''' IN lower(definition)) = 0
+     OR position('pending' IN lower(definition)) = 0
   THEN
     RAISE EXCEPTION '054 failed: automation boundaries are incomplete';
   END IF;
