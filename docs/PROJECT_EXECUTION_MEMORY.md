@@ -3808,3 +3808,10 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - `012_youtube_rls_helper_execute.sql` falhou porque `growth.workspace_row_visible(uuid)` não existia no Postgres canônico.
 - O GitHub confirma que essa função é criada por `002_rc9_security_policy_fix.sql`; essa migration também está ausente no baseline real.
 - A próxima promoção foi preparada para aplicar `002` → `012` → `013`, sem reaplicar `010` ou `011`.
+
+
+## Fundação YouTube e retomada da cadeia de publicação — 2026-09-09
+
+- Deployment Railway `20348333-5d73-4561-b048-b7f0bc8a072f` terminou SUCCESS e confirmou nos logs: `002_rc9_security_policy_fix.sql`, `012_youtube_rls_helper_execute.sql` e `013_youtube_observation_idempotency_hardening.sql` aplicadas no database `railway` do Postgres canônico.
+- Com os deployments anteriores, `010` e `011` também estão confirmadas; `025` permanece confirmada.
+- O migrator foi preparado para retomar a partir de `026_publication_execution_context.sql`, seguindo em ordem até `033_metric_analytics_summary.sql`, sem reaplicar migrations já confirmadas.
