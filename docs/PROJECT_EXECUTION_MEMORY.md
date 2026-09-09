@@ -3800,3 +3800,11 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - A origem foi confirmada no GitHub: a tabela e as colunas fazem parte das migrations `010_youtube_connector_foundation.sql` e `013_youtube_observation_idempotency_hardening.sql`, com hardening/grant intermediários `011` e `012`.
 - A próxima promoção Railway foi preparada para aplicar somente `010` → `011` → `012` → `013`, sob o mesmo Postgres canônico, antes de retomar `026`.
 - O catálogo também registrou uma falha legada de inspeção em `growth.users.email_ci`; isso não alterou dados nem foi usado como aprovação.
+
+
+## Correção da dependência RC9 — 2026-09-09
+
+- A promoção Railway de `010` e `011` terminou SUCCESS.
+- `012_youtube_rls_helper_execute.sql` falhou porque `growth.workspace_row_visible(uuid)` não existia no Postgres canônico.
+- O GitHub confirma que essa função é criada por `002_rc9_security_policy_fix.sql`; essa migration também está ausente no baseline real.
+- A próxima promoção foi preparada para aplicar `002` → `012` → `013`, sem reaplicar `010` ou `011`.
