@@ -3851,6 +3851,13 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - O migrator foi preparado para executar `030_publication_worker_service_principal.sql` → `031_publication_status_projection.sql` → `032_publication_worker_runtime_context.sql` → `033_metric_analytics_summary.sql`.
 
 
+## Current execution checkpoint — 2026-09-09
+
+- Canonical Railway promotion is operational again. Migrator `cab9600f-49e4-41ec-aafc-7392439dedbb` succeeded from main SHA `e1d991807bc23ade6791cf6541de57286a9649a7` and applied migrations 030–033 to the canonical `railway` database.
+- App deployment `dd50fa5b-1893-4bc8-bd11-7a229863a2de` succeeded from the exact same SHA. Live evidence: readiness 200/database ok, root 200, system 200, unauthenticated identity/tenant routes 401.
+- PR #113 CI #751 passed all gates on head SHA `72d8e9ee5abc86dc8bb06e62cee8490d66c44e01`; it remains unmerged pending adversarial Claude review.
+- Next permitted action after that review: merge only the reviewed SHA, let Railway promote main, apply migration 034 through the canonical migrator, then run live authenticated analytics evidence with a real tenant and no synthetic production data.
+
 ## Current execution checkpoint — recommendation feedback block — 2026-09-09
 
 - PR #113 branch feat/analytics-anomaly-quality now contains migration 035, SQL gate 052, tenant-scoped recommendation service, authenticated API routes and the web feedback surface.
@@ -3885,3 +3892,4 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Exact green CI SHA before this documentation commit: 22c7c7afaa6a0b318beab821945c5bba97f4b1a0.
 - Railway production read-only validation: canonical source is GitHub main; app, migrator and Postgres were SUCCESS; migrator remains at migrations 030–033.
 - Required next operation after final approval: merge reviewed SHA, update canonical Railway migrator to 034–038, redeploy migrator, then redeploy app from main and execute production-truth checks.
+
