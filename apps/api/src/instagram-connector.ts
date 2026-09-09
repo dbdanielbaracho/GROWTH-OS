@@ -18,7 +18,6 @@ const SOURCE_SCHEMA_VERSION = "instagram.media.v1";
 const INSTAGRAM_MEDIA_FIELDS = [
   "id",
   "media_type",
-  "media_product_type",
   "permalink",
   "caption",
   "timestamp",

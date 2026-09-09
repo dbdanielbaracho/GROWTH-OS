@@ -50,6 +50,7 @@ test("Instagram media request is tenant-neutral and bounded to provider fields",
   assert.equal(url.searchParams.get("limit"), "100");
   assert.equal(url.searchParams.get("after"), "cursor value");
   assert.equal(url.searchParams.get("fields")?.includes("like_count"), true);
+  assert.equal(url.searchParams.get("fields")?.includes("media_product_type"), false);
   assert.equal(url.searchParams.has("access_token"), false);
 });
 
