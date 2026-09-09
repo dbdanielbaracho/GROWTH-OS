@@ -1,27 +1,12 @@
 -- Growth OS — experiment planning, variants and outcome lineage.
 -- Forward-only migration 036.
+-- Reuses the canonical hypotheses/experiments model from migration 001.
 -- This block stores plans and evidence-backed outcomes only. It does not publish.
 
 BEGIN;
 SET search_path = growth, public;
 
-CREATE TABLE growth.experiments (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid NOT NULL REFERENCES growth.workspaces(id),
-  opportunity_id uuid,
-  name text NOT NULL CHECK (char_length(trim(name)) BETWEEN 1 AND 160),
-  hypothesis text NOT NULL CHECK (char_length(trim(hypothesis)) BETWEEN 1 AND 2000),
-  decision_rule text NOT NULL CHECK (char_length(trim(decision_rule)) BETWEEN 1 AND 2000),
-  status text NOT NULL DEFAULT 'draft'
-    CHECK (status IN ('draft','running','completed','archived')),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (workspace_id, id),
-  FOREIGN KEY (workspace_id, opportunity_id)
-    REFERENCES growth.opportunities(workspace_id, id)
-);
-
-CREATE TABLE growth.experiment_variants (
+CREATE TABLE growth.experiment_variant_plans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES growth.workspaces(id),
   experiment_id uuid NOT NULL,
@@ -34,7 +19,7 @@ CREATE TABLE growth.experiment_variants (
   UNIQUE (workspace_id, experiment_id, label),
   FOREIGN KEY (workspace_id, experiment_id)
     REFERENCES growth.experiments(workspace_id, id),
-  CONSTRAINT experiment_variant_lineage_object
+  CONSTRAINT experiment_variant_plan_lineage_object
     CHECK (jsonb_typeof(lineage) = 'object')
 );
 
@@ -42,15 +27,15 @@ CREATE TABLE growth.experiment_feedback (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid NOT NULL REFERENCES growth.workspaces(id),
   experiment_id uuid NOT NULL,
-  variant_id uuid NOT NULL,
+  variant_plan_id uuid NOT NULL,
   outcome text NOT NULL CHECK (outcome IN ('winner','loser','inconclusive')),
   evidence_ref text,
   note text,
   created_at timestamptz NOT NULL DEFAULT now(),
   FOREIGN KEY (workspace_id, experiment_id)
     REFERENCES growth.experiments(workspace_id, id),
-  FOREIGN KEY (workspace_id, variant_id)
-    REFERENCES growth.experiment_variants(workspace_id, id),
+  FOREIGN KEY (workspace_id, variant_plan_id)
+    REFERENCES growth.experiment_variant_plans(workspace_id, id),
   CONSTRAINT experiment_feedback_evidence_required
     CHECK (
       outcome = 'inconclusive'
@@ -60,15 +45,9 @@ CREATE TABLE growth.experiment_feedback (
     CHECK (note IS NULL OR char_length(note) <= 1000)
 );
 
-ALTER TABLE growth.experiments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE growth.experiments FORCE ROW LEVEL SECURITY;
-CREATE POLICY experiments_workspace_isolation ON growth.experiments
-  USING (workspace_id = growth.current_workspace_id() AND growth.tenant_context_valid(workspace_id))
-  WITH CHECK (workspace_id = growth.current_workspace_id() AND growth.tenant_context_valid(workspace_id));
-
-ALTER TABLE growth.experiment_variants ENABLE ROW LEVEL SECURITY;
-ALTER TABLE growth.experiment_variants FORCE ROW LEVEL SECURITY;
-CREATE POLICY experiment_variants_workspace_isolation ON growth.experiment_variants
+ALTER TABLE growth.experiment_variant_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE growth.experiment_variant_plans FORCE ROW LEVEL SECURITY;
+CREATE POLICY experiment_variant_plans_workspace_isolation ON growth.experiment_variant_plans
   USING (workspace_id = growth.current_workspace_id() AND growth.tenant_context_valid(workspace_id))
   WITH CHECK (workspace_id = growth.current_workspace_id() AND growth.tenant_context_valid(workspace_id));
 
@@ -78,17 +57,15 @@ CREATE POLICY experiment_feedback_workspace_isolation ON growth.experiment_feedb
   USING (workspace_id = growth.current_workspace_id() AND growth.tenant_context_valid(workspace_id))
   WITH CHECK (workspace_id = growth.current_workspace_id() AND growth.tenant_context_valid(workspace_id));
 
-CREATE INDEX experiments_workspace_status_idx ON growth.experiments(workspace_id, status, updated_at DESC);
-CREATE INDEX experiment_variants_experiment_idx ON growth.experiment_variants(workspace_id, experiment_id, created_at);
-CREATE INDEX experiment_feedback_variant_idx ON growth.experiment_feedback(workspace_id, variant_id, created_at DESC);
+CREATE INDEX experiment_variant_plans_experiment_idx
+  ON growth.experiment_variant_plans(workspace_id, experiment_id, created_at);
+CREATE INDEX experiment_feedback_variant_idx
+  ON growth.experiment_feedback(workspace_id, variant_plan_id, created_at DESC);
 
-ALTER TABLE growth.experiments OWNER TO growth_migrator;
-ALTER TABLE growth.experiment_variants OWNER TO growth_migrator;
+ALTER TABLE growth.experiment_variant_plans OWNER TO growth_migrator;
 ALTER TABLE growth.experiment_feedback OWNER TO growth_migrator;
-REVOKE ALL ON TABLE growth.experiments FROM PUBLIC;
-REVOKE ALL ON TABLE growth.experiments FROM app_runtime;
-REVOKE ALL ON TABLE growth.experiment_variants FROM PUBLIC;
-REVOKE ALL ON TABLE growth.experiment_variants FROM app_runtime;
+REVOKE ALL ON TABLE growth.experiment_variant_plans FROM PUBLIC;
+REVOKE ALL ON TABLE growth.experiment_variant_plans FROM app_runtime;
 REVOKE ALL ON TABLE growth.experiment_feedback FROM PUBLIC;
 REVOKE ALL ON TABLE growth.experiment_feedback FROM app_runtime;
 
@@ -121,14 +98,23 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  SELECT e.id, e.opportunity_id, e.name, e.hypothesis, e.decision_rule, e.status,
-         count(v.id)::bigint, e.created_at, e.updated_at
+  SELECT e.id,
+         nullif(e.eligibility_rule->>'source_opportunity_id','')::uuid,
+         coalesce(nullif(e.eligibility_rule->>'name',''), 'Experiment plan'),
+         h.question,
+         coalesce(e.eligibility_rule->>'decision_rule', ''),
+         e.status,
+         count(v.id)::bigint,
+         e.created_at,
+         coalesce(e.ended_at, e.created_at)
     FROM growth.experiments e
-    LEFT JOIN growth.experiment_variants v
+    JOIN growth.hypotheses h
+      ON h.workspace_id = e.workspace_id AND h.id = e.hypothesis_id
+    LEFT JOIN growth.experiment_variant_plans v
       ON v.workspace_id = e.workspace_id AND v.experiment_id = e.id
    WHERE e.workspace_id = p_workspace_id
-   GROUP BY e.id
-   ORDER BY e.updated_at DESC, e.id
+   GROUP BY e.id, h.question
+   ORDER BY e.created_at DESC, e.id
    LIMIT p_limit;
 END;
 $$;
@@ -153,6 +139,8 @@ RETURNS TABLE (
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER
 SET search_path = pg_catalog, growth
 AS $$
+DECLARE
+  v_hypothesis_id uuid;
 BEGIN
   IF growth.current_workspace_id() IS DISTINCT FROM p_workspace_id
      OR NOT growth.tenant_context_valid(p_workspace_id)
@@ -180,15 +168,38 @@ BEGIN
     RAISE EXCEPTION 'experiment opportunity requires stored evidence';
   END IF;
 
+  INSERT INTO growth.hypotheses (
+    id, workspace_id, question, expected_direction, primary_metric, practical_effect_threshold
+  ) VALUES (
+    gen_random_uuid(), p_workspace_id, trim(p_hypothesis), 'user_defined',
+    'user_defined', NULL
+  )
+  RETURNING hypotheses.id INTO v_hypothesis_id;
+
   RETURN QUERY
   INSERT INTO growth.experiments (
-    workspace_id, opportunity_id, name, hypothesis, decision_rule
+    id, workspace_id, hypothesis_id, design_type, status, eligibility_rule
   ) VALUES (
-    p_workspace_id, p_opportunity_id, trim(p_name), trim(p_hypothesis), trim(p_decision_rule)
+    gen_random_uuid(),
+    p_workspace_id,
+    v_hypothesis_id,
+    'manual_plan',
+    'draft',
+    jsonb_build_object(
+      'name', trim(p_name),
+      'decision_rule', trim(p_decision_rule),
+      'source_opportunity_id', coalesce(p_opportunity_id::text, ''),
+      'autonomous_publishing', false
+    )
   )
-  RETURNING experiments.id, experiments.opportunity_id, experiments.name,
-            experiments.hypothesis, experiments.decision_rule, experiments.status,
-            experiments.created_at, experiments.updated_at;
+  RETURNING experiments.id,
+            nullif(experiments.eligibility_rule->>'source_opportunity_id','')::uuid,
+            experiments.eligibility_rule->>'name',
+            trim(p_hypothesis),
+            experiments.eligibility_rule->>'decision_rule',
+            experiments.status,
+            experiments.created_at,
+            experiments.created_at;
 END;
 $$;
 
@@ -223,7 +234,8 @@ BEGIN
     RAISE EXCEPTION 'experiment variant fields are invalid';
   END IF;
 
-  SELECT e.opportunity_id INTO v_opportunity_id
+  SELECT nullif(e.eligibility_rule->>'source_opportunity_id','')::uuid
+    INTO v_opportunity_id
     FROM growth.experiments e
    WHERE e.workspace_id = p_workspace_id
      AND e.id = p_experiment_id
@@ -240,14 +252,14 @@ BEGIN
   END IF;
 
   RETURN QUERY
-  INSERT INTO growth.experiment_variants (
+  INSERT INTO growth.experiment_variant_plans (
     workspace_id, experiment_id, label, lineage
   ) VALUES (
     p_workspace_id, p_experiment_id, trim(p_label), p_lineage
   )
-  RETURNING experiment_variants.id, experiment_variants.experiment_id,
-            experiment_variants.label, experiment_variants.lineage,
-            experiment_variants.status, experiment_variants.created_at;
+  RETURNING experiment_variant_plans.id, experiment_variant_plans.experiment_id,
+            experiment_variant_plans.label, experiment_variant_plans.lineage,
+            experiment_variant_plans.status, experiment_variant_plans.created_at;
 END;
 $$;
 
@@ -286,7 +298,7 @@ BEGIN
     RAISE EXCEPTION 'experiment outcome requires stored evidence reference';
   END IF;
   IF NOT EXISTS (
-    SELECT 1 FROM growth.experiment_variants v
+    SELECT 1 FROM growth.experiment_variant_plans v
      WHERE v.workspace_id = p_workspace_id
        AND v.id = p_variant_id
        AND v.experiment_id = p_experiment_id
@@ -294,15 +306,19 @@ BEGIN
     RAISE EXCEPTION 'experiment variant is not available';
   END IF;
 
+  UPDATE growth.experiment_variant_plans
+     SET status = CASE p_outcome WHEN 'winner' THEN 'winner' WHEN 'loser' THEN 'loser' ELSE 'active' END
+   WHERE workspace_id = p_workspace_id AND id = p_variant_id;
+
   RETURN QUERY
   INSERT INTO growth.experiment_feedback (
-    workspace_id, experiment_id, variant_id, outcome, evidence_ref, note
+    workspace_id, experiment_id, variant_plan_id, outcome, evidence_ref, note
   ) VALUES (
     p_workspace_id, p_experiment_id, p_variant_id, p_outcome,
     nullif(trim(p_evidence_ref), ''), nullif(trim(p_note), '')
   )
   RETURNING experiment_feedback.id, experiment_feedback.experiment_id,
-            experiment_feedback.variant_id, experiment_feedback.outcome,
+            experiment_feedback.variant_plan_id, experiment_feedback.outcome,
             experiment_feedback.evidence_ref, experiment_feedback.note,
             experiment_feedback.created_at;
 END;
