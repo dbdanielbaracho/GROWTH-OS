@@ -34,7 +34,8 @@ function AnalyticsPanel() {
   const [authenticated, setAuthenticated] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<MetricAnalyticsSummary[]>([]);\n  const [anomalies, setAnomalies] = useState<MetricQualityAnomaly[]>([]);
+  const [rows, setRows] = useState<MetricAnalyticsSummary[]>([]);
+  const [anomalies, setAnomalies] = useState<MetricQualityAnomaly[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
