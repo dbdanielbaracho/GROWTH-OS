@@ -5,7 +5,7 @@ const root = process.cwd();
 const migrationDir = join(root, "db", "migrations");
 const files = await readdir(migrationDir);
 const migrationNumbers = files
-  .map((file) => /^([0-9]{3})_.*\\.sql$/.exec(file)?.[1])
+  .map((file) => /^([0-9]{3})_.*\.sql$/.exec(file)?.[1])
   .filter((value) => value !== undefined);
 
 for (let number = 1; number <= 38; number += 1) {
