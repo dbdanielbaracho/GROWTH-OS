@@ -791,7 +791,7 @@ export async function addExperimentVariant(
   opportunityId: string
 ): Promise<ExperimentVariant> {
   const response = await requestJson<{ status: "created"; variant: ExperimentVariant }>(
-    \`/v1/experiments/\${encodeURIComponent(experimentId)}/variants\`,
+    `/v1/experiments/${encodeURIComponent(experimentId)}/variants`,
     {
       method: "POST",
       body: { label, lineage: { source_opportunity_id: opportunityId, autonomous_publishing: false } }
