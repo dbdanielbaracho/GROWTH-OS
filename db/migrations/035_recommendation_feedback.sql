@@ -16,6 +16,7 @@ CREATE TABLE growth.recommendations (
   rationale jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, id),
   UNIQUE (workspace_id, opportunity_id, action_code),
   FOREIGN KEY (workspace_id, opportunity_id)
     REFERENCES growth.opportunities(workspace_id, id)
