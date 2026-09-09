@@ -47,6 +47,12 @@ import {
   listAutomationActionRequests,
   setAutomationPolicy
 } from "./automation.js";
+import {
+  getEnterprisePolicy,
+  getWorkspaceEntitlements,
+  setEnterprisePolicy,
+  setWorkspaceSubscription
+} from "./commercial.js";
 import { executePublicationIntent } from "./publication-worker.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
@@ -155,6 +161,19 @@ const AutomationRequestSchema = z.object({
 const AutomationDecisionSchema = z.object({
   decision: z.enum(["approve", "reject", "cancel"]),
   note: z.string().trim().max(1000).nullable().optional()
+});
+
+const CommercialSubscriptionSchema = z.object({
+  plan_code: z.enum(["free", "pro", "enterprise"]),
+  status: z.enum(["trialing", "active", "past_due", "cancelled"]),
+  provider_customer_ref: z.string().trim().max(200).nullable().optional(),
+  provider_subscription_ref: z.string().trim().max(200).nullable().optional()
+});
+
+const EnterprisePolicySchema = z.object({
+  data_retention_days: z.number().int().min(30).max(3650),
+  support_tier: z.enum(["standard", "priority", "dedicated"]),
+  legal_acceptance_ref: z.string().trim().max(500).nullable().optional()
 });
 
 export function buildApp(logger = false) {
@@ -1084,6 +1103,86 @@ export function buildApp(logger = false) {
         )
       );
       return { status: "decided", request: decided };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+  app.get("/v1/commercial/entitlements", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const entitlements = await withTenantTransaction(principal, (client) =>
+        getWorkspaceEntitlements(client, principal)
+      );
+      return { status: "ok", entitlements };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.put("/v1/commercial/subscription", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = CommercialSubscriptionSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const subscription = await withTenantTransaction(principal, (client) =>
+        setWorkspaceSubscription(client, principal, {
+          planCode: parsed.data.plan_code,
+          status: parsed.data.status,
+          providerCustomerRef: parsed.data.provider_customer_ref ?? null,
+          providerSubscriptionRef: parsed.data.provider_subscription_ref ?? null
+        })
+      );
+      return { status: "updated", subscription };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/commercial/enterprise-policy", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const policy = await withTenantTransaction(principal, (client) =>
+        getEnterprisePolicy(client, principal)
+      );
+      return { status: "ok", policy };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.put("/v1/commercial/enterprise-policy", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = EnterprisePolicySchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const policy = await withTenantTransaction(principal, (client) =>
+        setEnterprisePolicy(client, principal, {
+          retentionDays: parsed.data.data_retention_days,
+          supportTier: parsed.data.support_tier,
+          legalAcceptanceRef: parsed.data.legal_acceptance_ref ?? null
+        })
+      );
+      return { status: "updated", policy };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
