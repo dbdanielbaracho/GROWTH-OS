@@ -718,8 +718,8 @@ type RecommendationListResponse = {
 };
 
 export async function fetchRecommendations(opportunityId?: string): Promise<Recommendation[]> {
-  const query = opportunityId ? \`?opportunity_id=\${encodeURIComponent(opportunityId)}\` : "";
-  const response = await requestJson<RecommendationListResponse>(\`/v1/recommendations\${query}\`);
+  const query = opportunityId ? `?opportunity_id=${encodeURIComponent(opportunityId)}` : "";
+  const response = await requestJson<RecommendationListResponse>(`/v1/recommendations${query}`);
   return response.recommendations;
 }
 
@@ -728,7 +728,7 @@ export async function createRecommendation(
   actionCode: Recommendation["action_code"]
 ): Promise<Recommendation> {
   const response = await requestJson<{ status: "created"; recommendation: Recommendation }>(
-    \`/v1/opportunities/\${encodeURIComponent(opportunityId)}/recommendations\`,
+    `/v1/opportunities/${encodeURIComponent(opportunityId)}/recommendations`,
     { method: "POST", body: { action_code: actionCode } }
   );
   return response.recommendation;
@@ -740,7 +740,7 @@ export async function recordRecommendationFeedback(
   note?: string
 ): Promise<{ status: "recorded"; feedback: { recommendation_status: Recommendation["status"] } }> {
   return requestJson<{ status: "recorded"; feedback: { recommendation_status: Recommendation["status"] } }>(
-    \`/v1/recommendations/\${encodeURIComponent(recommendationId)}/feedback\`,
+    `/v1/recommendations/${encodeURIComponent(recommendationId)}/feedback`,
     { method: "POST", body: { feedback, note } }
   );
 }
