@@ -896,3 +896,13 @@ Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a c
 - API e UI foram adicionadas sem execução de provedor, publicação autônoma ou multiplicação autônoma.
 - CI verde no SHA exato c3bf22f012ff9ece934165f38434ddb8a6d7c1aa.
 - Railway ainda não foi promovido; a promoção canônica virá somente após o ciclo material completo e a revisão adversarial final.
+
+
+## Registro de execução — comercial/enterprise e hardening — 2026-09-09
+
+- Migration 038 e gate 055 adicionam planos, subscriptions, entitlements, metering de uso e política enterprise de retenção/suporte.
+- API e painel web expõem o estado de governança por workspace; a cobrança externa permanece explicitamente dependente de um provedor configurado.
+- O gate de release hardening valida a presença ordenada das migrations 001–038 e dos gates 053–055.
+- Runbook registrado em docs/RELEASE_HARDENING_CHECKLIST.md.
+- CI verde no SHA exato 22c7c7afaa6a0b318beab821945c5bba97f4b1a0.
+- Railway production lido com Postgres, migrator e app SUCCESS; o migrator canônico ainda está em 030–033, sem promoção deste candidato.
