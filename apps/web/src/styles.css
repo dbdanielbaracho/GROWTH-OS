@@ -512,10 +512,16 @@ footer span:first-child { color: #d4d0c5; }
 }
 
 .hero-text-link {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
   color: var(--ink);
+  cursor: pointer;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.11em;
+  text-align: left;
   text-decoration: none;
   text-transform: uppercase;
 }
@@ -874,5 +880,16 @@ footer span:first-child { color: #d4d0c5; }
   background: rgba(255,255,255,0.58);
   color: #596059;
   font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.radar-notice button {
+  margin-top: 18px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--ink);
+  color: white;
+  cursor: pointer;
   font-weight: 750;
 }
