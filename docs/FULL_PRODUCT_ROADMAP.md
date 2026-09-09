@@ -864,3 +864,14 @@ Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a c
 - Correção registrada: o listener de atualização do Content Authoring passou a declarar todas as dependências usadas.
 - Limites: ainda faltam recomendações de ação armazenadas, experimentos, automação, billing/enterprise e prova de produção; Railway canônico continua sem acesso viewer/member.
 - Próximo bloco: fechar os contratos de avaliação/feedback das recomendações e preparar os módulos de experimentação sem perder lineage.
+
+
+## Registro de execução — recomendações e feedback — 2026-09-09
+
+- O PR acumulado #113 agora inclui a migration forward-only 035_recommendation_feedback.sql e o gate SQL 052_recommendation_feedback.sql.
+- A entrega armazena ações estruturadas ligadas a oportunidades existentes (draft_content, review_evidence, plan_experiment) e registra feedback (accepted, dismissed, completed, irrelevant).
+- A fronteira de verdade permanece fechada: a recomendação exige evidência de oportunidade armazenada, não gera texto, não cria evidência sintética e não executa ações automaticamente.
+- Foram adicionados helpers SECURITY DEFINER tenant-scoped, RLS + FORCE RLS, grants mínimos, endpoints autenticados e superfície web para aceitar, concluir ou marcar uma ação como irrelevante.
+- CI oficial passou em ambos os jobs no SHA exato 99c2ff7f3d1949573c0302618ca02105cad75717.
+- O bloco ainda não está congelado nem promovido; a aplicação da migration 035 no Railway será feita somente depois da revisão adversarial final consolidada.
+- Próximo bloco de implementação: experimentos/multiplicação preservando lineage e sem publicação automática.
