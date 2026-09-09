@@ -1,0 +1,117 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
+import pg from 'pg';
+
+const { Client } = pg;
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('DATABASE_URL is required');
+  process.exit(2);
+}
+
+const migrationsDir = path.resolve('db/migrations');
+const client = new Client({ connectionString: databaseUrl });
+
+function normalizeSqlForPgDriver(sql, filePath) {
+  return sql
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.trim();
+      if (/^\\\\set\\s+ON_ERROR_STOP\\s+(?:on|off)\\s*$/i.test(trimmed)) return '';
+      if (/^\\\\/.test(trimmed)) {
+        throw new Error(`Unsupported psql meta-command in ${filePath}: ${trimmed}`);
+      }
+      return line;
+    })
+    .join('\n');
+}
+
+async function functionExists(signature) {
+  const result = await client.query(
+    'select to_regprocedure($1) is not null as present',
+    [signature],
+  );
+  return result.rows[0].present;
+}
+
+async function tableExists(qualifiedName) {
+  const result = await client.query(
+    'select to_regclass($1) is not null as present',
+    [qualifiedName],
+  );
+  return result.rows[0].present;
+}
+
+const steps = [
+  {
+    file: '031_publication_status_projection.sql',
+    present: () => functionExists('growth.list_publication_intents(uuid,integer)'),
+  },
+  {
+    file: '032_publication_worker_runtime_context.sql',
+    present: () => functionExists('growth.complete_publication_job(uuid,uuid,text,timestamptz,text)'),
+  },
+  {
+    file: '033_metric_analytics_summary.sql',
+    present: () => functionExists('growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz)'),
+  },
+  {
+    file: '034_metric_quality_anomalies.sql',
+    present: () => functionExists('growth.list_metric_quality_anomalies(uuid,timestamptz,timestamptz)'),
+  },
+  {
+    file: '035_recommendation_feedback.sql',
+    present: async () =>
+      (await tableExists('growth.recommendations'))
+      && (await tableExists('growth.recommendation_feedback')),
+  },
+  {
+    file: '036_experiment_lineage.sql',
+    present: async () =>
+      (await tableExists('growth.experiment_variant_plans'))
+      && (await tableExists('growth.experiment_feedback')),
+  },
+  {
+    file: '037_automation_policy_control.sql',
+    present: async () =>
+      (await tableExists('growth.automation_policies'))
+      && (await tableExists('growth.automation_action_requests')),
+  },
+  {
+    file: '038_commercial_entitlements.sql',
+    present: async () =>
+      (await tableExists('growth.billing_plans'))
+      && (await tableExists('growth.workspace_subscriptions'))
+      && (await tableExists('growth.usage_counters'))
+      && (await tableExists('growth.enterprise_policies')),
+  },
+];
+
+try {
+  await client.connect();
+  const server = await client.query(
+    'select current_database() as database, current_user as user',
+  );
+  console.log('Production migration target:', server.rows[0]);
+
+  for (const step of steps) {
+    if (await step.present()) {
+      console.log(`Skipped migration (already present): ${step.file}`);
+      continue;
+    }
+
+    const filePath = path.join(migrationsDir, step.file);
+    const sql = normalizeSqlForPgDriver(
+      await fs.readFile(filePath, 'utf8'),
+      filePath,
+    );
+    await client.query(sql);
+    console.log(`Applied migration: ${step.file}`);
+  }
+
+  console.log('Production migration reconciliation complete');
+} finally {
+  await client.end();
+}
