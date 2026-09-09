@@ -80,18 +80,18 @@ BEGIN
 
   -- Behavioral quota proof: a first use in a new month must not bypass the
   -- free-plan limit just because no usage_counters row exists yet.
-  PERFORM set_config('app.user_id', 'a0000000-0000-0000-0000-000000000001', true);
-  PERFORM set_config('app.workspace_id', 'b0000000-0000-0000-0000-000000000001', true);
+  PERFORM set_config('app.user_id', 'a0000000-0000-4000-8000-000000000001', true);
+  PERFORM set_config('app.workspace_id', 'b0000000-0000-4000-8000-000000000001', true);
 
   DELETE FROM growth.usage_counters
-   WHERE workspace_id = 'b0000000-0000-0000-0000-000000000001'::uuid
+   WHERE workspace_id = 'b0000000-0000-4000-8000-000000000001'::uuid
      AND period_start = date_trunc('month', now())
      AND metric_key = 'automation_requests';
 
   limit_blocked := false;
   BEGIN
     PERFORM growth.record_usage(
-      'b0000000-0000-0000-0000-000000000001'::uuid,
+      'b0000000-0000-4000-8000-000000000001'::uuid,
       'automation_requests',
       101
     );
@@ -110,7 +110,7 @@ BEGIN
   SELECT r.used_units
     INTO usage_after
     FROM growth.record_usage(
-      'b0000000-0000-0000-0000-000000000001'::uuid,
+      'b0000000-0000-4000-8000-000000000001'::uuid,
       'automation_requests',
       100
     ) AS r;
@@ -122,7 +122,7 @@ BEGIN
   limit_blocked := false;
   BEGIN
     PERFORM growth.record_usage(
-      'b0000000-0000-0000-0000-000000000001'::uuid,
+      'b0000000-0000-4000-8000-000000000001'::uuid,
       'automation_requests',
       1
     );
