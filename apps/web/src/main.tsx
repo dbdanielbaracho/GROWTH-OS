@@ -14,6 +14,10 @@ import {
   recordRecommendationFeedback,
   createExperiment,
   addExperimentVariant,
+  fetchAutomationPolicy,
+  fetchAutomationRequests,
+  createAutomationRequest,
+  decideAutomationRequest,
   hasDevelopmentIdentity,
   selectWorkspace,
   signIn,
@@ -25,7 +29,9 @@ import {
   type RelatedInsight,
   type Recommendation,
   type Experiment,
-  type ExperimentVariant
+  type ExperimentVariant,
+  type AutomationPolicy,
+  type AutomationActionRequest
 } from "./api.js";
 import "./styles.css";
 import "./auth.css";
@@ -292,6 +298,113 @@ function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
   );
 }
 
+function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string; evidenceRef: string | null }) {
+  const [policy, setPolicy] = useState<AutomationPolicy | null>(null);
+  const [requests, setRequests] = useState<AutomationActionRequest[]>([]);
+  const [actionCode, setActionCode] = useState<AutomationActionRequest["action_code"]>("plan_experiment");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function load() {
+    try {
+      const [nextPolicy, nextRequests] = await Promise.all([
+        fetchAutomationPolicy(),
+        fetchAutomationRequests()
+      ]);
+      setPolicy(nextPolicy);
+      setRequests(nextRequests.filter((request) => request.target_ref === opportunityId));
+    } catch {
+      setMessage("Automation controls are unavailable; no action was queued.");
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [opportunityId]);
+
+  async function queueRequest() {
+    if (!evidenceRef) {
+      setMessage("An action needs a stored evidence item before it can be queued.");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      const created = await createAutomationRequest({
+        actionCode,
+        targetRef: opportunityId,
+        evidenceRef,
+        note: "Requested from the evidence-linked opportunity view."
+      });
+      setRequests((current) => [created, ...current]);
+    } catch {
+      setMessage("The request was blocked by policy, evidence, quota, or tenant controls.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function decide(requestId: string, decision: "approve" | "reject") {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const updated = await decideAutomationRequest(requestId, decision);
+      setRequests((current) => current.map((item) => item.id === updated.id ? updated : item));
+    } catch {
+      setMessage("Only an owner or admin can approve or reject, and the kill switch always wins.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="detail-section automation-panel">
+      <p className="section-kicker">Automation control</p>
+      <h3>Queue a bounded action for approval</h3>
+      <p>Requests are never executed here. They remain auditable and pending until an owner or admin approves them.</p>
+      <div className="automation-status">
+        <span>Mode: {policy ? titleCase(policy.mode) : "Loading"}</span>
+        <span>Daily limit: {policy?.daily_request_limit ?? "—"}</span>
+        <span className={policy?.kill_switch ? "automation-stop" : "automation-ready"}>
+          {policy?.kill_switch ? "Kill switch active" : "Kill switch off"}
+        </span>
+      </div>
+      <div className="automation-request-form">
+        <select value={actionCode} onChange={(event) => setActionCode(event.target.value as AutomationActionRequest["action_code"])}>
+          <option value="draft_content">Draft content</option>
+          <option value="review_evidence">Review evidence</option>
+          <option value="plan_experiment">Plan experiment</option>
+          <option value="publish_content">Publish content</option>
+          <option value="multiply_variant">Multiply variant</option>
+        </select>
+        <button className="detail-action-button" type="button" disabled={busy || !evidenceRef} onClick={() => void queueRequest()}>
+          {busy ? "Saving…" : "Queue for approval"}
+        </button>
+      </div>
+      {requests.length > 0 && (
+        <div className="automation-request-list">
+          {requests.map((request) => (
+            <article className="automation-request-card" key={request.id}>
+              <div>
+                <strong>{titleCase(request.action_code)}</strong>
+                <span>{titleCase(request.status)} · evidence stored</span>
+              </div>
+              {request.status === "pending" && (
+                <div className="recommendation-feedback">
+                  <button type="button" disabled={busy} onClick={() => void decide(request.id, "approve")}>Approve</button>
+                  <button type="button" disabled={busy} onClick={() => void decide(request.id, "reject")}>Reject</button>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+      {!evidenceRef && <p className="recommendation-muted">No stored evidence is available, so automation remains unavailable.</p>}
+      {message && <p className="recommendation-error" role="alert">{message}</p>}
+    </section>
+  );
+}
+
 function DetailPanel({
   detail,
   loading,
@@ -427,6 +540,7 @@ function DetailPanel({
 
       <RecommendationPanel opportunityId={opportunity.id} />
       <ExperimentPlanner opportunityId={opportunity.id} />
+      <AutomationPanel opportunityId={opportunity.id} evidenceRef={evidence[0]?.evidence_ref ?? null} />
     </section>
   );
 }
