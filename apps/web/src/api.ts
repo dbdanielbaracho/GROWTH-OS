@@ -799,3 +799,84 @@ export async function addExperimentVariant(
   );
   return response.variant;
 }
+
+
+export type AutomationPolicy = {
+  id: string | null;
+  workspace_id: string;
+  mode: "approval_required" | "disabled";
+  daily_request_limit: number;
+  kill_switch: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AutomationActionRequest = {
+  id: string;
+  policy_id: string;
+  action_code: "draft_content" | "review_evidence" | "plan_experiment" | "publish_content" | "multiply_variant";
+  target_ref: string;
+  evidence_ref: string | null;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  requested_by: string;
+  approved_by: string | null;
+  note: string | null;
+  created_at: string;
+  decided_at: string | null;
+};
+
+export async function fetchAutomationPolicy(): Promise<AutomationPolicy> {
+  const response = await requestJson<{ status: "ok"; policy: AutomationPolicy }>("/v1/automation/policy");
+  return response.policy;
+}
+
+export async function updateAutomationPolicy(input: {
+  mode: AutomationPolicy["mode"];
+  dailyRequestLimit: number;
+  killSwitch: boolean;
+}): Promise<AutomationPolicy> {
+  const response = await requestJson<{ status: "updated"; policy: AutomationPolicy }>("/v1/automation/policy", {
+    method: "PUT",
+    body: {
+      mode: input.mode,
+      daily_request_limit: input.dailyRequestLimit,
+      kill_switch: input.killSwitch
+    }
+  });
+  return response.policy;
+}
+
+export async function fetchAutomationRequests(): Promise<AutomationActionRequest[]> {
+  const response = await requestJson<{ status: "ok"; requests: AutomationActionRequest[] }>("/v1/automation/requests");
+  return response.requests;
+}
+
+export async function createAutomationRequest(input: {
+  actionCode: AutomationActionRequest["action_code"];
+  targetRef: string;
+  evidenceRef: string;
+  note?: string;
+}): Promise<AutomationActionRequest> {
+  const response = await requestJson<{ status: "created"; request: AutomationActionRequest }>("/v1/automation/requests", {
+    method: "POST",
+    body: {
+      action_code: input.actionCode,
+      target_ref: input.targetRef,
+      evidence_ref: input.evidenceRef,
+      note: input.note
+    }
+  });
+  return response.request;
+}
+
+export async function decideAutomationRequest(
+  requestId: string,
+  decision: "approve" | "reject" | "cancel",
+  note?: string
+): Promise<AutomationActionRequest> {
+  const response = await requestJson<{ status: "decided"; request: AutomationActionRequest }>(
+    "/v1/automation/requests/" + encodeURIComponent(requestId) + "/decision",
+    { method: "POST", body: { decision, note } }
+  );
+  return response.request;
+}
