@@ -8,7 +8,7 @@ process.env.APP_ORIGIN ??= "https://ci.growth-os.invalid";
 process.env.INSTAGRAM_APP_ID ??= "ci-instagram-app-id";
 process.env.INSTAGRAM_APP_SECRET ??= "ci-instagram-app-secret";
 process.env.PROVIDER_CREDENTIALS_KEY_B64URL ??= randomBytes(32).toString("base64url");
-process.env.INSTAGRAM_GRAPH_API_VERSION = "v26.0";
+process.env.INSTAGRAM_GRAPH_API_VERSION = "v24.0";
 
 const connector = await import("./instagram-connector.js");
 
@@ -44,7 +44,7 @@ test("Instagram configuration rejects malformed Graph API versions", () => {
 });
 
 test("Instagram media request is tenant-neutral and bounded to provider fields", () => {
-  const url = new URL(connector.instagramMediaRequestUrlForTest("ig id", "v26.0", "cursor value"));
+  const url = new URL(connector.instagramMediaRequestUrlForTest("ig id", "v24.0", "cursor value"));
   assert.equal(url.origin, "https://graph.instagram.com");
   assert.equal(url.pathname, "/v24.0/ig%20id/media");
   assert.equal(url.searchParams.get("limit"), "100");
