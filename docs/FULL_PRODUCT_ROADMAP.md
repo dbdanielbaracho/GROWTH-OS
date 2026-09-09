@@ -875,3 +875,15 @@ Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a c
 - CI oficial passou em ambos os jobs no SHA exato 99c2ff7f3d1949573c0302618ca02105cad75717.
 - O bloco ainda não está congelado nem promovido; a aplicação da migration 035 no Railway será feita somente depois da revisão adversarial final consolidada.
 - Próximo bloco de implementação: experimentos/multiplicação preservando lineage e sem publicação automática.
+
+
+## Registro de execução — experimentos e multiplicação — 2026-09-09
+
+- O PR acumulado #113 agora inclui a migration forward-only 036_experiment_lineage.sql e o gate SQL 053_experiment_lineage.sql.
+- O bloco reutiliza o modelo canônico de hipóteses/experimentos da migration 001 e adiciona planos de variantes com lineage explícita e feedback de resultado.
+- Um plano de experimento pode nascer de uma oportunidade com evidência armazenada; uma variante precisa referenciar a oportunidade de origem quando ela existe.
+- Vencedor ou perdedor exige referência de evidência armazenada; resultado inconclusivo permanece permitido sem inventar conclusão.
+- Foram adicionados endpoints autenticados e superfície web de planejamento. Não há publicação automática, promoção automática de vencedor nem dado sintético.
+- CI oficial passou no SHA exato 8d75286282aff9d53f278fd312d8bc4cd0b7b688.
+- O bloco ainda não está congelado, mesclado ou promovido para Railway. A aplicação das migrations 035–036 será feita no fechamento material após o gate adversarial final.
+- Próximo bloco: políticas de automação/Copilot com aprovação, limites e emergency stop.
