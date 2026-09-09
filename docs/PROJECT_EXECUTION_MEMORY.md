@@ -3783,3 +3783,11 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Deployment Railway `55d462e0-63eb-425d-9d2a-9275202d39a3`: SUCCESS, SHA `4afad79f39e68e6fbfce83bd83c00239c1a02dc8`, PostgreSQL 18.6, database `railway`, migration `023_publication_intent_claim.sql` aplicada.
 - Ao trocar o start command para a migration 024, dois redeploys mantiveram o comando antigo 023 no runtime apesar da configuração declarada já mostrar 024; isso foi identificado como divergência de snapshot do Railway e não foi contado como aplicação de 024.
 - Próximo passo obrigatório: promover um novo SHA de `main` pelo Railway, confirmar no log o comando `024_publication_intent_finalization.sql`, e continuar a cadeia 024–033 somente após cada deployment SUCCESS e evidência correspondente.
+
+
+## Registro de execução — promoção Railway da cadeia de migrations 025–033 — 2026-09-09
+
+- Após a prova de `023_publication_intent_claim.sql` e `024_publication_intent_finalization.sql`, o migrator canônico foi preparado para executar, em ordem estrita, as migrations 025–033 a partir do Postgres `Postgres.DATABASE_URL`.
+- A promoção será originada por um novo commit em `main` e executada pelo Railway; o resultado só será considerado válido se os logs do deployment mostrarem cada migration e o deployment terminar em SUCCESS.
+- Cadeia preparada: 025 asset binding; 026 execution context; 027 retry scheduling; 028 cancellation; 029 reconciliation; 030 worker service principal; 031 status projection; 032 worker runtime context; 033 metric analytics summary.
+- Nenhum dado sintético, OAuth, credencial de usuário ou publicação externa será criado por este batch.
