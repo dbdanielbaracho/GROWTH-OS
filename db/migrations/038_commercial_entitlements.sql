@@ -150,7 +150,7 @@ SET search_path = pg_catalog, growth
 AS $$
 DECLARE
   v_limit bigint;
-  v_used bigint;
+  v_used bigint := 0;
   v_row growth.usage_counters;
 BEGIN
   IF growth.current_workspace_id() IS DISTINCT FROM p_workspace_id
@@ -173,7 +173,7 @@ BEGIN
      AND metric_key = p_metric_key
    FOR UPDATE;
 
-  IF p_metric_key = 'automation_requests' AND v_used + p_units > v_limit THEN
+  IF p_metric_key = 'automation_requests' AND coalesce(v_used, 0) + p_units > v_limit THEN
     RAISE EXCEPTION 'commercial entitlement limit reached';
   END IF;
 
