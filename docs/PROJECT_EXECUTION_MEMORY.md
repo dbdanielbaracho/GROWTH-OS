@@ -3829,3 +3829,9 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - A promoção de `004_creative_production.sql` foi executada pelo Railway e revelou a ausência de `growth.content_version_visible(uuid,uuid)`.
 - O GitHub confirma que essa função é criada por `003_post_rc9_content_reconciliation.sql`.
 - O migrator foi preparado para aplicar `003` → `004`; somente depois será repetida a cadeia de publicação a partir de `026`.
+
+
+## Retomada final da cadeia de publicação — 2026-09-09
+
+- Deployment `a2c41c68-c08a-4536-b84a-fcbe5b48c453` SUCCESS confirmou as dependências `003` e `004` no database `railway` do Postgres canônico.
+- O migrator foi preparado novamente para executar `026_publication_execution_context.sql` até `033_metric_analytics_summary.sql`, em ordem, sem reaplicar `025` nem as fundações já confirmadas.
