@@ -753,3 +753,62 @@ footer span:first-child { color: #d4d0c5; }
 .recommendation-error {
   color: #a33131;
 }
+
+
+.experiment-planner {
+  background: color-mix(in srgb, var(--surface, #fff) 88%, var(--accent, #b6d9c7));
+}
+
+.experiment-form,
+.experiment-variant-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.experiment-form label,
+.experiment-variant-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.experiment-form input,
+.experiment-form textarea,
+.experiment-variant-form input {
+  width: 100%;
+  border: 1px solid var(--line, #d9dedb);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  background: var(--background, #fff);
+}
+
+.experiment-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.experiment-summary {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.experiment-summary span,
+.experiment-summary small,
+.experiment-variant-list span {
+  color: var(--muted, #68736e);
+}
+
+.experiment-variant-list {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding-left: 20px;
+}
+
+.experiment-variant-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
