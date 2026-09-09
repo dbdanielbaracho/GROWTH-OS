@@ -39,6 +39,7 @@ import { createDatabasePublicationExecutionStore } from "./publication-store.js"
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
 import { listMetricAnalyticsSummary, listMetricQualityAnomalies } from "./analytics.js";
 import { createRecommendation, listRecommendations, recordRecommendationFeedback } from "./recommendations.js";
+import { addExperimentVariant, createExperiment, listExperiments, recordExperimentFeedback } from "./experiments.js";
 import { executePublicationIntent } from "./publication-worker.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
@@ -105,6 +106,25 @@ const RecommendationCreateSchema = z.object({
 
 const RecommendationFeedbackSchema = z.object({
   feedback: z.enum(["accepted", "dismissed", "completed", "irrelevant"]),
+  note: z.string().trim().max(1000).nullable().optional()
+});
+
+const ExperimentCreateSchema = z.object({
+  opportunity_id: z.string().uuid().nullable().optional(),
+  name: z.string().trim().min(1).max(160),
+  hypothesis: z.string().trim().min(1).max(2000),
+  decision_rule: z.string().trim().min(1).max(2000)
+});
+
+const ExperimentVariantSchema = z.object({
+  label: z.string().trim().min(1).max(120),
+  lineage: z.record(z.unknown())
+});
+
+const ExperimentFeedbackSchema = z.object({
+  variant_id: z.string().uuid(),
+  outcome: z.enum(["winner", "loser", "inconclusive"]),
+  evidence_ref: z.string().trim().max(1000).nullable().optional(),
   note: z.string().trim().max(1000).nullable().optional()
 });
 
@@ -392,6 +412,98 @@ export function buildApp(logger = false) {
           params.data.id,
           body.data.feedback,
           body.data.note ?? null
+        )
+      );
+      return { status: "recorded", feedback };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+
+  app.get("/v1/experiments", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const experiments = await withTenantTransaction(principal, (client) =>
+        listExperiments(client, principal)
+      );
+      return { status: "ok", experiments };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/experiments", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = ExperimentCreateSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const experiment = await withTenantTransaction(principal, (client) =>
+        createExperiment(
+          client,
+          principal,
+          parsed.data.opportunity_id ?? null,
+          parsed.data.name,
+          parsed.data.hypothesis,
+          parsed.data.decision_rule
+        )
+      );
+      return reply.code(201).send({ status: "created", experiment });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/experiments/:id/variants", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    const parsed = ExperimentVariantSchema.safeParse(request.body);
+    if (!params.success || !parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const variant = await withTenantTransaction(principal, (client) =>
+        addExperimentVariant(client, principal, params.data.id, parsed.data.label, parsed.data.lineage)
+      );
+      return reply.code(201).send({ status: "created", variant });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/experiments/:id/feedback", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    const parsed = ExperimentFeedbackSchema.safeParse(request.body);
+    if (!params.success || !parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const feedback = await withTenantTransaction(principal, (client) =>
+        recordExperimentFeedback(
+          client,
+          principal,
+          params.data.id,
+          parsed.data.variant_id,
+          parsed.data.outcome,
+          parsed.data.evidence_ref ?? null,
+          parsed.data.note ?? null
         )
       );
       return { status: "recorded", feedback };
