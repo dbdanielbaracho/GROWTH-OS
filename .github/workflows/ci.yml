@@ -49,6 +49,9 @@ jobs:
       - name: Test Integrity Gate
         run: node db/scripts/test-integrity-gate.mjs
 
+      - name: Release hardening gate
+        run: node db/scripts/release-hardening-gate.mjs
+
       - name: Typecheck
         run: npm run typecheck
 
