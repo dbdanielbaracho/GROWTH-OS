@@ -3893,3 +3893,17 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Railway production read-only validation: canonical source is GitHub main; app, migrator and Postgres were SUCCESS; migrator remains at migrations 030–033.
 - Required next operation after final approval: merge reviewed SHA, update canonical Railway migrator to 034–038, redeploy migrator, then redeploy app from main and execute production-truth checks.
 
+
+
+## Registro de execução — correção do BLOCK adversarial e candidato para nova revisão — 2026-09-09
+
+- O relatório adversarial do Claude para o SHA `1e6cdc81312f4b9175af026e20a8fac72de2dc86` terminou em `BLOCK`.
+- Bloqueador corrigido na migration 038: `growth.record_usage` agora inicializa `v_used` com zero e usa `coalesce(v_used, 0)` no limite, impedindo o bypass do limite free-plan no primeiro uso do mês, quando ainda não existe linha em `growth.usage_counters`.
+- O gate 055 deixou de ser somente estático: executa o caminho comportamental com fixtures tenant válidos, prova que 101 unidades no primeiro uso são rejeitadas, que 100 são aceitas e que a unidade seguinte é rejeitada; tudo ocorre em transação com `ROLLBACK`.
+- A migration 033 agora declara explicitamente `OWNER TO growth_migrator` para `growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz)`.
+- Houve uma falha intermediária de CI por UUID de fixture incorreto no teste 055 e outra por delimitador dollar-quote incorreto no primeiro patch da migration 033; ambas foram corrigidas. O candidato final foi aplicado somente após os dois problemas serem observados nos logs.
+- Candidato atual do PR #113: `b62be6654abad9c9a5fc33a28e6da52d00df333b`.
+- Os dois checks oficiais `validate` desse SHA terminaram `SUCCESS`; a migration completa e os gates 001–055, typecheck, build e release hardening passaram.
+- Railway canônico somente leitura: projeto `successful-embrace`, produção; Postgres SUCCESS, app SUCCESS e migrator SUCCESS. O migrator continua com source `dbdanielbaracho/GROWTH-OS`, branch `main`, mas o comando atual é diagnóstico e consulta o CI de um SHA antigo; ele não promove as migrations 034–038.
+- A promoção Railway e o freeze permanecem bloqueados até uma decisão final `APPROVE` do Claude. Não foi feita promoção das migrations 034–038 nem merge do PR.
+- Próximo ponto exato: enviar o SHA `b62be6654abad9c9a5fc33a28e6da52d00df333b` e o diff corrigido para nova revisão adversarial; somente com `APPROVE` executar merge, configurar o migrator para a cadeia 034–038 a partir de `main`, promover pelo Railway, confirmar logs e executar as provas de produção/recuperação.
