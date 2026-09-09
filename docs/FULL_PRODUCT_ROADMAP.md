@@ -887,3 +887,12 @@ Este bloco ainda é candidato. Não cria o serviço Railway, não provisiona a c
 - CI oficial passou no SHA exato 8d75286282aff9d53f278fd312d8bc4cd0b7b688.
 - O bloco ainda não está congelado, mesclado ou promovido para Railway. A aplicação das migrations 035–036 será feita no fechamento material após o gate adversarial final.
 - Próximo bloco: políticas de automação/Copilot com aprovação, limites e emergency stop.
+
+
+## Registro de execução — automação/Copilot controlado — 2026-09-09
+
+- Migration 037 e gate 054 adicionam políticas por workspace, limite diário, kill switch e fila de solicitações auditáveis.
+- Toda solicitação exige referência a evidência persistida e nasce como pending; aprovação/rejeição exige owner/admin.
+- API e UI foram adicionadas sem execução de provedor, publicação autônoma ou multiplicação autônoma.
+- CI verde no SHA exato c3bf22f012ff9ece934165f38434ddb8a6d7c1aa.
+- Railway ainda não foi promovido; a promoção canônica virá somente após o ciclo material completo e a revisão adversarial final.
