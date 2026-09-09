@@ -258,7 +258,7 @@ function providerMessage(value: unknown): string | undefined {
   if (typeof value !== "string" || value.length === 0) return undefined;
   return value
     .slice(0, 300)
-    .replace(/access_token=[^&\\s]+/gi, "access_token=[redacted]");
+    .replace(/access_token=[^&\s]+/gi, "access_token=[redacted]");
 }
 
 async function metaJson<T>(url: string, init: RequestInit): Promise<T> {
