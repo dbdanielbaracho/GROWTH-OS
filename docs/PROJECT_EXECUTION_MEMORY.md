@@ -3822,3 +3822,10 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - A retomada de `026–033` foi promovida pelo Railway e parou em `026` com `column ma.content_version_id does not exist`.
 - O GitHub confirmou que `004_creative_production.sql` cria `media_assets.content_version_id`, `creative_generation_id`, `purpose` e o contrato de assets necessário para o contexto de publicação.
 - O migrator foi preparado para aplicar somente `004_creative_production.sql` antes de repetir `026–033`; as migrations `002`, `010–013` e `025` permanecem confirmadas.
+
+
+## Dependência Post-RC9 e Creative Production — 2026-09-09
+
+- A promoção de `004_creative_production.sql` foi executada pelo Railway e revelou a ausência de `growth.content_version_visible(uuid,uuid)`.
+- O GitHub confirma que essa função é criada por `003_post_rc9_content_reconciliation.sql`.
+- O migrator foi preparado para aplicar `003` → `004`; somente depois será repetida a cadeia de publicação a partir de `026`.
