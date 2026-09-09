@@ -37,7 +37,7 @@ import { registerIdentityRoutes } from "./identity-routes.js";
 import { CreatePublicationIntentSchema, PublicationReconciliationSchema, cancelPublicationIntent, createPublicationIntent, listPublicationIntents, recordPublicationReconciliation } from "./publishing.js";
 import { createDatabasePublicationExecutionStore } from "./publication-store.js";
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
-import { listMetricAnalyticsSummary } from "./analytics.js";
+import { listMetricAnalyticsSummary, listMetricQualityAnomalies } from "./analytics.js";
 import { executePublicationIntent } from "./publication-worker.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
@@ -364,6 +364,46 @@ export function buildApp(logger = false) {
         from: from.toISOString(),
         to: to.toISOString(),
         metrics
+      };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+  app.get("/v1/analytics/anomalies", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = AnalyticsQuerySchema.safeParse(request.query);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    const to = parsed.data.to ? new Date(parsed.data.to) : new Date();
+    const from = parsed.data.from
+      ? new Date(parsed.data.from)
+      : new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const windowMs = to.getTime() - from.getTime();
+
+    if (
+      Number.isNaN(from.getTime()) ||
+      Number.isNaN(to.getTime()) ||
+      windowMs <= 0 ||
+      windowMs > 366 * 24 * 60 * 60 * 1000
+    ) {
+      return reply.code(400).send({ status: "invalid_analytics_window" });
+    }
+
+    try {
+      const anomalies = await withTenantTransaction(principal, (client) =>
+        listMetricQualityAnomalies(client, principal, from.toISOString(), to.toISOString())
+      );
+      return {
+        status: "ok",
+        from: from.toISOString(),
+        to: to.toISOString(),
+        anomalies
       };
     } catch (error) {
       app.log.error(error);
