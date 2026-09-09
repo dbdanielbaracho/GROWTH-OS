@@ -3953,3 +3953,12 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Prova HTTP pública pós-promoção: `/v1/analytics/metrics` e `/v1/publication-intents` retornaram `401 unauthorized` sem sessão, não `500`; o caminho autenticado precisa ser confirmado com a sessão do operador.
 - Prova operacional Instagram: após a autorização ativa da conta profissional, a tela de produção mostrou Connected/LIVE e Last sync `3 media / 6 metrics`; os logs Railway registraram POST autenticado de sync com HTTP 200.
 - O reconciliador permanece idempotente e configurado no serviço migrator; não cria dados sintéticos nem publica conteúdo externo.
+
+
+## 2026-09-09 — Opportunity Radar empty-state access
+
+- Corrigido o acesso ao Opportunity Radar para permanecer sempre clicável, mesmo quando o workspace ainda não possui oportunidades reais.
+- O link editorial agora é um botão de ação sem estado desabilitado; ao abrir um feed vazio, a interface informa explicitamente que faltam observações completas e não apresenta dados sintéticos.
+- Adicionado botão ativo de atualização do feed no estado vazio.
+- Mantida a regra de verdade: ausência de evidência continua sendo `empty/no-op`, nunca uma oportunidade inventada.
+- Alteração em `apps/web/src/main.tsx`, branch `fix/radar-empty-state-accessible`; aguardar CI, merge na `main`, promoção Railway e validação pública.
