@@ -40,6 +40,13 @@ import { createPublicationProviderAdapter } from "./publication-adapter-composit
 import { listMetricAnalyticsSummary, listMetricQualityAnomalies } from "./analytics.js";
 import { createRecommendation, listRecommendations, recordRecommendationFeedback } from "./recommendations.js";
 import { addExperimentVariant, createExperiment, listExperiments, recordExperimentFeedback } from "./experiments.js";
+import {
+  createAutomationActionRequest,
+  decideAutomationActionRequest,
+  getAutomationPolicy,
+  listAutomationActionRequests,
+  setAutomationPolicy
+} from "./automation.js";
 import { executePublicationIntent } from "./publication-worker.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
@@ -125,6 +132,28 @@ const ExperimentFeedbackSchema = z.object({
   variant_id: z.string().uuid(),
   outcome: z.enum(["winner", "loser", "inconclusive"]),
   evidence_ref: z.string().trim().max(1000).nullable().optional(),
+  note: z.string().trim().max(1000).nullable().optional()
+});
+
+const AutomationRequestParamsSchema = z.object({
+  id: z.string().uuid()
+});
+
+const AutomationPolicySchema = z.object({
+  mode: z.enum(["approval_required", "disabled"]),
+  daily_request_limit: z.number().int().min(0).max(1000),
+  kill_switch: z.boolean()
+});
+
+const AutomationRequestSchema = z.object({
+  action_code: z.enum(["draft_content", "review_evidence", "plan_experiment", "publish_content", "multiply_variant"]),
+  target_ref: z.string().trim().min(1).max(500),
+  evidence_ref: z.string().trim().min(1).max(1000),
+  note: z.string().trim().max(1000).nullable().optional()
+});
+
+const AutomationDecisionSchema = z.object({
+  decision: z.enum(["approve", "reject", "cancel"]),
   note: z.string().trim().max(1000).nullable().optional()
 });
 
@@ -949,6 +978,112 @@ export function buildApp(logger = false) {
         createLineageEdge(client, principal, parsed.data)
       );
       return reply.code(201).send({ status: "created", lineageEdge: created });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+  app.get("/v1/automation/policy", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const policy = await withTenantTransaction(principal, (client) =>
+        getAutomationPolicy(client, principal)
+      );
+      return { status: "ok", policy };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.put("/v1/automation/policy", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = AutomationPolicySchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const policy = await withTenantTransaction(principal, (client) =>
+        setAutomationPolicy(client, principal, {
+          mode: parsed.data.mode,
+          dailyRequestLimit: parsed.data.daily_request_limit,
+          killSwitch: parsed.data.kill_switch
+        })
+      );
+      return { status: "updated", policy };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/automation/requests", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const requests = await withTenantTransaction(principal, (client) =>
+        listAutomationActionRequests(client, principal)
+      );
+      return { status: "ok", requests };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/automation/requests", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = AutomationRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const created = await withTenantTransaction(principal, (client) =>
+        createAutomationActionRequest(client, principal, {
+          actionCode: parsed.data.action_code,
+          targetRef: parsed.data.target_ref,
+          evidenceRef: parsed.data.evidence_ref,
+          note: parsed.data.note ?? null
+        })
+      );
+      return reply.code(201).send({ status: "created", request: created });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/automation/requests/:id/decision", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = AutomationRequestParamsSchema.safeParse(request.params);
+    const body = AutomationDecisionSchema.safeParse(request.body);
+    if (!params.success || !body.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const decided = await withTenantTransaction(principal, (client) =>
+        decideAutomationActionRequest(
+          client,
+          principal,
+          params.data.id,
+          body.data.decision,
+          body.data.note ?? null
+        )
+      );
+      return { status: "decided", request: decided };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
