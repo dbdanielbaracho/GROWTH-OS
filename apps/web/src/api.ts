@@ -699,3 +699,48 @@ export async function fetchMetricQualityAnomalies(
   );
   return response.anomalies;
 }
+
+
+export type Recommendation = {
+  id: string;
+  opportunity_id: string;
+  action_code: "draft_content" | "review_evidence" | "plan_experiment";
+  status: "proposed" | "accepted" | "dismissed" | "completed";
+  rationale: Record<string, unknown>;
+  feedback_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type RecommendationListResponse = {
+  status: "ok";
+  recommendations: Recommendation[];
+};
+
+export async function fetchRecommendations(opportunityId?: string): Promise<Recommendation[]> {
+  const query = opportunityId ? \`?opportunity_id=\${encodeURIComponent(opportunityId)}\` : "";
+  const response = await requestJson<RecommendationListResponse>(\`/v1/recommendations\${query}\`);
+  return response.recommendations;
+}
+
+export async function createRecommendation(
+  opportunityId: string,
+  actionCode: Recommendation["action_code"]
+): Promise<Recommendation> {
+  const response = await requestJson<{ status: "created"; recommendation: Recommendation }>(
+    \`/v1/opportunities/\${encodeURIComponent(opportunityId)}/recommendations\`,
+    { method: "POST", body: { action_code: actionCode } }
+  );
+  return response.recommendation;
+}
+
+export async function recordRecommendationFeedback(
+  recommendationId: string,
+  feedback: "accepted" | "dismissed" | "completed" | "irrelevant",
+  note?: string
+): Promise<{ status: "recorded"; feedback: { recommendation_status: Recommendation["status"] } }> {
+  return requestJson<{ status: "recorded"; feedback: { recommendation_status: Recommendation["status"] } }>(
+    \`/v1/recommendations/\${encodeURIComponent(recommendationId)}/feedback\`,
+    { method: "POST", body: { feedback, note } }
+  );
+}
