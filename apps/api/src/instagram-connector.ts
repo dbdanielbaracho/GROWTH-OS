@@ -120,8 +120,20 @@ type CredentialRow = {
   granted_scopes: string[];
 };
 
+export type InstagramProviderErrorDetails = {
+  status: number;
+  code?: number;
+  type?: string;
+  message?: string;
+  traceId?: string;
+};
+
 export class InstagramConnectorError extends Error {
-  constructor(public readonly code: string, public readonly httpStatus: number) {
+  constructor(
+    public readonly code: string,
+    public readonly httpStatus: number,
+    public readonly provider?: InstagramProviderErrorDetails
+  ) {
     super(code);
   }
 }
@@ -242,15 +254,43 @@ function openCredential(
   }
 }
 
+function providerMessage(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.length === 0) return undefined;
+  return value
+    .slice(0, 300)
+    .replace(/access_token=[^&\\s]+/gi, "access_token=[redacted]");
+}
+
 async function metaJson<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new InstagramConnectorError("instagram_authorization_rejected", 401);
+    let provider: InstagramProviderErrorDetails = { status: response.status };
+    try {
+      const raw = await response.text();
+      const parsed = JSON.parse(raw) as {
+        error?: {
+          code?: unknown;
+          type?: unknown;
+          message?: unknown;
+          fbtrace_id?: unknown;
+        };
+      };
+      provider = {
+        status: response.status,
+        code: typeof parsed.error?.code === "number" ? parsed.error.code : undefined,
+        type: typeof parsed.error?.type === "string" ? parsed.error.type : undefined,
+        message: providerMessage(parsed.error?.message),
+        traceId: typeof parsed.error?.fbtrace_id === "string" ? parsed.error.fbtrace_id : undefined
+      };
+    } catch {
+      // Keep only the upstream HTTP status when Meta does not return JSON.
     }
-    if (response.status === 429) throw new InstagramConnectorError("instagram_rate_limited", 503);
-    if (response.status >= 500) throw new InstagramConnectorError("instagram_provider_unavailable", 503);
-    throw new InstagramConnectorError("instagram_provider_request_failed", 502);
+    if (response.status === 401 || response.status === 403) {
+      throw new InstagramConnectorError("instagram_authorization_rejected", 401, provider);
+    }
+    if (response.status === 429) throw new InstagramConnectorError("instagram_rate_limited", 503, provider);
+    if (response.status >= 500) throw new InstagramConnectorError("instagram_provider_unavailable", 503, provider);
+    throw new InstagramConnectorError("instagram_provider_request_failed", 502, provider);
   }
   try {
     return await response.json() as T;
