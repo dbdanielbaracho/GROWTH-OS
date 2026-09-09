@@ -598,6 +598,7 @@ function RadarApp({
   const [listMessage, setListMessage] = useState<string | null>(null);
   const [detailMessage, setDetailMessage] = useState<string | null>(null);
   const [radarRefreshToken, setRadarRefreshToken] = useState(0);
+  const [feedNotice, setFeedNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const refresh = () => setRadarRefreshToken((value) => value + 1);
@@ -612,6 +613,9 @@ function RadarApp({
         if (!active) return;
         setOpportunities(rows);
         setListState("ready");
+        setFeedNotice(rows.length === 0
+          ? "No real opportunity is available yet. Sync a provider with complete observations, then refresh this feed."
+          : null);
         setSelectedId((current) => current ?? rows[0]?.id ?? null);
       })
       .catch((error) => {
@@ -621,6 +625,7 @@ function RadarApp({
           return;
         }
         setListMessage(errorMessage(error));
+        setFeedNotice(null);
         setListState("error");
       });
     return () => { active = false; };
@@ -681,7 +686,18 @@ function RadarApp({
             Growth OS turns stored observations into ranked opportunities, so the next move starts with evidence—not noise.
           </p>
           <div className="hero-actions">
-            <a className="hero-text-link" href="#radar-feed">Open opportunity feed ↓</a>
+            <button
+              className="hero-text-link"
+              type="button"
+              onClick={() => {
+                document.getElementById("radar-feed")?.scrollIntoView({ behavior: "smooth" });
+                if (opportunities.length === 0 && listState === "ready") {
+                  setFeedNotice("No real opportunity is available yet. The feed remains open; nothing synthetic is being shown.");
+                }
+              }}
+            >
+              Open opportunity feed ↓
+            </button>
             <span className="hero-note">Evidence first · no synthetic signals</span>
           </div>
         </div>
@@ -708,6 +724,24 @@ function RadarApp({
           <h2>We could not load your workspace opportunities.</h2>
           <p>{listMessage}</p>
           <button type="button" onClick={() => window.location.reload()}>Try again</button>
+        </section>
+      )}
+
+      {feedNotice && listState !== "error" && (
+        <section className="truthful-empty radar-notice" aria-live="polite" role="status">
+          <p className="eyebrow">Radar status</p>
+          <h2>No signal is strong enough yet.</h2>
+          <p>{feedNotice}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setFeedNotice(null);
+              setListState("loading");
+              setRadarRefreshToken((value) => value + 1);
+            }}
+          >
+            Refresh opportunity feed
+          </button>
         </section>
       )}
 
