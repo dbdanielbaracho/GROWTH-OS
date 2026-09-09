@@ -39,7 +39,9 @@ export async function createRecommendation(
     "select * from growth.create_recommendation($1, $2, $3)",
     [principal.workspaceId, opportunityId, actionCode]
   );
-  return result.rows[0];
+  const recommendation = result.rows[0];
+  if (!recommendation) throw new Error("recommendation creation returned no row");
+  return recommendation;
 }
 
 export async function recordRecommendationFeedback(
