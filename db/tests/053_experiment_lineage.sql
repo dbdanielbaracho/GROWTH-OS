@@ -12,7 +12,6 @@ DECLARE
   definition text;
   owner_name text;
   is_definer boolean;
-  direct_experiment_select boolean;
   direct_variant_select boolean;
   direct_feedback_select boolean;
   app_execute boolean;
@@ -52,15 +51,12 @@ BEGIN
     INTO app_execute;
   SELECT has_function_privilege('public', oid_list, 'EXECUTE')
     INTO public_execute;
-  SELECT has_table_privilege('app_runtime', 'growth.experiments', 'SELECT')
-    INTO direct_experiment_select;
-  SELECT has_table_privilege('app_runtime', 'growth.experiment_variants', 'SELECT')
+  SELECT has_table_privilege('app_runtime', 'growth.experiment_variant_plans', 'SELECT')
     INTO direct_variant_select;
   SELECT has_table_privilege('app_runtime', 'growth.experiment_feedback', 'SELECT')
     INTO direct_feedback_select;
 
   IF app_execute IS DISTINCT FROM true OR public_execute IS DISTINCT FROM false
-     OR direct_experiment_select IS DISTINCT FROM false
      OR direct_variant_select IS DISTINCT FROM false
      OR direct_feedback_select IS DISTINCT FROM false
   THEN
