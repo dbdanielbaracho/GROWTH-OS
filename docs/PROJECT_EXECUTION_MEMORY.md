@@ -3962,3 +3962,10 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Adicionado botão ativo de atualização do feed no estado vazio.
 - Mantida a regra de verdade: ausência de evidência continua sendo `empty/no-op`, nunca uma oportunidade inventada.
 - Alteração em `apps/web/src/main.tsx`, branch `fix/radar-empty-state-accessible`; aguardar CI, merge na `main`, promoção Railway e validação pública.
+
+
+## 2026-09-09 — Radar button visual consistency
+
+- Removido o estilo nativo do navegador do botão de entrada do Radar após a correção de acessibilidade.
+- Mantida a aparência editorial do link, agora com elemento realmente clicável e sempre ativo.
+- Estilizado o botão de atualização do estado vazio para seguir o mesmo sistema visual.
