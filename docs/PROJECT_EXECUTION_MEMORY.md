@@ -3843,3 +3843,9 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - `030_publication_worker_service_principal.sql` parou porque o role `growth_worker` não existia.
 - O GitHub confirma o provisionamento oficial em `db/provisioning/production/01_roles.sql`; o arquivo cria `growth_worker` sem SUPERUSER, CREATEDB, CREATEROLE ou BYPASSRLS.
 - A próxima promoção Railway foi preparada para executar esse provisioning oficial antes de repetir `030–033`.
+
+
+## Retomada final 030–033 — 2026-09-09
+
+- Deployment Railway `0194ad8c-92e6-4300-9226-5e6d5a806244` SUCCESS confirmou `db/provisioning/production/01_roles.sql` no Postgres canônico e a criação do role `growth_worker` conforme o contrato oficial.
+- O migrator foi preparado para executar `030_publication_worker_service_principal.sql` → `031_publication_status_projection.sql` → `032_publication_worker_runtime_context.sql` → `033_metric_analytics_summary.sql`.
