@@ -744,3 +744,58 @@ export async function recordRecommendationFeedback(
     { method: "POST", body: { feedback, note } }
   );
 }
+
+
+export type Experiment = {
+  id: string;
+  opportunity_id: string | null;
+  name: string;
+  hypothesis: string;
+  decision_rule: string;
+  status: "draft" | "running" | "completed" | "archived";
+  variant_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ExperimentVariant = {
+  id: string;
+  experiment_id: string;
+  label: string;
+  lineage: Record<string, unknown>;
+  status: "candidate" | "active" | "winner" | "loser" | "archived";
+  created_at: string;
+};
+
+export async function createExperiment(input: {
+  opportunityId: string;
+  name: string;
+  hypothesis: string;
+  decisionRule: string;
+}): Promise<Experiment> {
+  const response = await requestJson<{ status: "created"; experiment: Experiment }>("/v1/experiments", {
+    method: "POST",
+    body: {
+      opportunity_id: input.opportunityId,
+      name: input.name,
+      hypothesis: input.hypothesis,
+      decision_rule: input.decisionRule
+    }
+  });
+  return response.experiment;
+}
+
+export async function addExperimentVariant(
+  experimentId: string,
+  label: string,
+  opportunityId: string
+): Promise<ExperimentVariant> {
+  const response = await requestJson<{ status: "created"; variant: ExperimentVariant }>(
+    \`/v1/experiments/\${encodeURIComponent(experimentId)}/variants\`,
+    {
+      method: "POST",
+      body: { label, lineage: { source_opportunity_id: opportunityId, autonomous_publishing: false } }
+    }
+  );
+  return response.variant;
+}
