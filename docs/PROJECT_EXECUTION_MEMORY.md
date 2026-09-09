@@ -3791,3 +3791,12 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - A promoção será originada por um novo commit em `main` e executada pelo Railway; o resultado só será considerado válido se os logs do deployment mostrarem cada migration e o deployment terminar em SUCCESS.
 - Cadeia preparada: 025 asset binding; 026 execution context; 027 retry scheduling; 028 cancellation; 029 reconciliation; 030 worker service principal; 031 status projection; 032 worker runtime context; 033 metric analytics summary.
 - Nenhum dado sintético, OAuth, credencial de usuário ou publicação externa será criado por este batch.
+
+
+## Correção de baseline detectada no Postgres canônico — 2026-09-09
+
+- A cadeia promovida pelo Railway confirmou `025_publication_asset_binding.sql`, mas `026_publication_execution_context.sql` falhou com `42P01: relation "growth.provider_credentials" does not exist`.
+- Inspeção somente leitura pelo serviço Railway `catalog-inspector`, agora apontando para `Postgres` por referências internas, confirmou: `growth.provider_credentials` ausente; colunas `metric_observations.provider_product` e `idempotency_key` ausentes; helpers/triggers do conector YouTube ausentes; RLS presente; privilégios diretos do `app_runtime` zerados.
+- A origem foi confirmada no GitHub: a tabela e as colunas fazem parte das migrations `010_youtube_connector_foundation.sql` e `013_youtube_observation_idempotency_hardening.sql`, com hardening/grant intermediários `011` e `012`.
+- A próxima promoção Railway foi preparada para aplicar somente `010` → `011` → `012` → `013`, sob o mesmo Postgres canônico, antes de retomar `026`.
+- O catálogo também registrou uma falha legada de inspeção em `growth.users.email_ci`; isso não alterou dados nem foi usado como aprovação.
