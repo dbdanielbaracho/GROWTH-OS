@@ -277,6 +277,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
       return reply.code(202).send({ status: "password_reset_if_account_exists" });
     } catch (error) {
       const mapped = errorStatus(error);
+      if (mapped.code === 500) app.log.error(error, "identity password-reset provider failure");
       return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
