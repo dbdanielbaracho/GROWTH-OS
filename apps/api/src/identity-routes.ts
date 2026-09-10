@@ -97,7 +97,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
 
     try {
       const result = await db.query<{ user_id: string; verification_id: string }>(
-        `select * from growth.identity_signup_with_verification($1,$2,$3,$4,$5)`,
+        `select * from growth.identity_signup_with_verification($1::text,$2::text,$3::smallint,$4::text,$5::timestamptz)`,
         [parsed.data.email, passwordHash, 19, token.hash, expiresAt.toISOString()]
       );
       const created = result.rows[0];
@@ -124,7 +124,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
 
     try {
       const result = await db.query<{ user_id: string }>(
-        "select growth.identity_consume_email_verification($1) as user_id",
+        "select growth.identity_consume_email_verification($1::text) as user_id",
         [hashIdentityToken(parsed.data.token)]
       );
       return { status: "verified", user_id: result.rows[0]?.user_id };
@@ -151,7 +151,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
       const view = await requireSessionWithoutWorkspace(request, true);
       const created = await withUserTransaction(view.session.userId, async (client) => {
         const result = await client.query<{ workspace_id: string }>(
-          `select growth.identity_create_workspace($1,$2,$3,$4) as workspace_id`,
+          `select growth.identity_create_workspace($1::text,$2::text,$3::text,$4::text) as workspace_id`,
           [
             parsed.data.name,
             parsed.data.defaultMarket,
@@ -189,7 +189,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
         { userId: view.session.userId, workspaceId },
         async (client) => {
           const result = await client.query<{ invitation_id: string }>(
-            `select growth.identity_issue_invitation($1,$2,$3,$4,$5,$6) as invitation_id`,
+            `select growth.identity_issue_invitation($1::uuid,$2::text,$3::text,$4::boolean,$5::text,$6::timestamptz) as invitation_id`,
             [
               workspaceId,
               parsed.data.email,
@@ -226,7 +226,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
       const view = await requireSessionWithoutWorkspace(request, true);
       const workspaceId = await withUserTransaction(view.session.userId, async (client) => {
         const result = await client.query<{ workspace_id: string }>(
-          "select growth.identity_accept_invitation($1) as workspace_id",
+          "select growth.identity_accept_invitation($1::text) as workspace_id",
           [hashIdentityToken(parsed.data.token)]
         );
         return result.rows[0]?.workspace_id ?? null;
@@ -250,7 +250,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
 
     try {
       const result = await db.query<{ reset_id: string | null }>(
-        `select growth.identity_request_password_reset($1,$2,$3,$4::inet,$5) as reset_id`,
+        `select growth.identity_request_password_reset($1::text,$2::text,$3::timestamptz,$4::inet,$5::text) as reset_id`,
         [
           parsed.data.email,
           token.hash,
@@ -288,7 +288,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
 
     try {
       const result = await db.query<{ user_id: string }>(
-        "select growth.identity_complete_password_reset($1,$2,$3) as user_id",
+        "select growth.identity_complete_password_reset($1::text,$2::text,$3::smallint) as user_id",
         [hashIdentityToken(parsed.data.token), await hashIdentityPassword(parsed.data.password), 19]
       );
       clearCookiesAfterReset(reply);
