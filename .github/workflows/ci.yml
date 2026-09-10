@@ -101,7 +101,7 @@ jobs:
           for migration in db/migrations/*.sql; do
             database_url="$CI_MIGRATOR_URL"
             case "$migration" in
-              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql|*009_production_identity_adapter_support.sql|*012_youtube_rls_helper_execute.sql|*016_identity_signup_verification.sql|*017_instagram_connector_foundation.sql|*040_identity_account_cleanup.sql|*041_identity_signup_runtime_privileges.sql|*042_identity_signup_fk_privileges.sql|*043_identity_signup_fk_runtime_context.sql|*044_identity_signup_smoke_cleanup.sql|*045_production_helper_privileges.sql|*046_managed_account_onboarding.sql|*047_provider_status_runtime_privileges.sql)
+              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql|*009_production_identity_adapter_support.sql|*012_youtube_rls_helper_execute.sql|*016_identity_signup_verification.sql|*017_instagram_connector_foundation.sql|*040_identity_account_cleanup.sql|*041_identity_signup_runtime_privileges.sql|*042_identity_signup_fk_privileges.sql|*043_identity_signup_fk_runtime_context.sql|*044_identity_signup_smoke_cleanup.sql|*045_production_helper_privileges.sql|*046_managed_account_onboarding.sql|*047_provider_status_runtime_privileges.sql|*048_provider_status_helper_call_chain_privileges.sql)
                 database_url="$CI_ADMIN_URL"
                 ;;
             esac
@@ -184,6 +184,12 @@ jobs:
           PGPASSWORD: growth_test_harness
         run: |
           psql --host=127.0.0.1 --port=5432 --username=growth_test_harness --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/057_provider_status_runtime_privileges.sql
+
+      - name: Run provider status helper execution gate
+        env:
+          PGPASSWORD: growth_test_harness
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_test_harness --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/058_provider_status_helper_execution.sql
 
       - name: Run publication result finalization gate
         env:
