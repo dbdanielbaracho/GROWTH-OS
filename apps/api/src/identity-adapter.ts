@@ -73,7 +73,10 @@ export const WORKSPACE_COOKIE_NAME = production ? "__Host-growth_workspace" : "g
 
 const SESSION_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
-const appOrigin = new URL(env.APP_ORIGIN).origin;
+const trustedOrigins = new Set([
+  new URL(env.APP_ORIGIN).origin,
+  ...env.APP_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean).map((origin) => new URL(origin).origin)
+]);
 
 function sessionCookieOptions(expires?: Date) {
   return {
@@ -122,7 +125,7 @@ export function assertTrustedOrigin(request: FastifyRequest): void {
     throw new IdentityCsrfError("invalid_origin");
   }
 
-  if (normalized !== appOrigin) throw new IdentityCsrfError("untrusted_origin");
+  if (!trustedOrigins.has(normalized)) throw new IdentityCsrfError("untrusted_origin");
 }
 
 export function assertSessionCsrf(request: FastifyRequest, sessionId: string): void {
