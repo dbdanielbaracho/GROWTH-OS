@@ -6,6 +6,9 @@ const RawEnvSchema = z.object({
   DATABASE_URL: z.string().min(1),
 
   APP_ORIGIN: z.string().url().optional(),
+  // Comma-separated same-application HTTPS origins, used only for CSRF Origin validation.
+  // APP_ORIGIN remains the canonical OAuth callback origin.
+  APP_TRUSTED_ORIGINS: z.string().default(""),
   CSRF_SECRET: z.string().min(32).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
   IDENTITY_EMAIL_FROM: z.string().min(3).optional(),
@@ -55,6 +58,20 @@ const RawEnvSchema = z.object({
           path: ["APP_ORIGIN"],
           message: "APP_ORIGIN must be an origin only (scheme + host + optional port), with no path, query, fragment, or credentials"
         });
+      }
+    }
+    const trustedOrigins = value.APP_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean);
+    for (const [index, configuredOrigin] of trustedOrigins.entries()) {
+      try {
+        const origin = new URL(configuredOrigin);
+        if (origin.pathname !== "/" || origin.search !== "" || origin.hash !== "" || origin.username !== "" || origin.password !== "") {
+          ctx.addIssue({ code: "custom", path: ["APP_TRUSTED_ORIGINS"], message: "entry " + (index + 1) + " must be an origin only (scheme + host + optional port)" });
+        }
+        if (origin.protocol !== "https:") {
+          ctx.addIssue({ code: "custom", path: ["APP_TRUSTED_ORIGINS"], message: "entry " + (index + 1) + " must use HTTPS in production" });
+        }
+      } catch {
+        ctx.addIssue({ code: "custom", path: ["APP_TRUSTED_ORIGINS"], message: "entry " + (index + 1) + " must be a valid URL origin" });
       }
     }
     if (!value.CSRF_SECRET) {

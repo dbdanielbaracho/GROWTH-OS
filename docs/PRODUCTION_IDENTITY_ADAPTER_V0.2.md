@@ -20,7 +20,8 @@ Consequences:
 - `__Host-` cookies remain host-only;
 - no cross-origin credentialed CORS path is required;
 - `SameSite=Lax` remains viable without switching to `SameSite=None`;
-- `APP_ORIGIN` is the exact public HTTPS origin and is the CSRF Origin allowlist;
+- `APP_ORIGIN` is the canonical public HTTPS origin and OAuth callback origin;
+- `APP_TRUSTED_ORIGINS` may contain a comma-separated allowlist of additional HTTPS same-application origins (for example, a custom domain); these origins are accepted for CSRF validation without changing OAuth callback URLs;
 - a production process without a readable `apps/web/dist/index.html` fails startup instead of silently creating an API-only second-origin topology.
 
 The static document response carries a restrictive CSP, HSTS, `nosniff`, `DENY` framing, strict referrer policy, a restrictive permissions policy and same-origin opener/resource policies. The HTML shell is `no-store`; hashed `/assets/*` may be cached immutable.
@@ -126,7 +127,7 @@ A valid authenticated session with no selected workspace receives `workspace_req
 ## 9. CSRF
 
 Cookie-authenticated unsafe methods require:
-- exact `Origin === APP_ORIGIN`;
+- exact `Origin === APP_ORIGIN` or membership in `APP_TRUSTED_ORIGINS`;
 - `X-CSRF-Token` equal to HMAC-SHA256(session ID, `CSRF_SECRET`).
 
 The comparison is constant-time. The CSRF token is held in web memory only and can be reissued by `GET /v1/auth/session`; it is not stored in localStorage.
