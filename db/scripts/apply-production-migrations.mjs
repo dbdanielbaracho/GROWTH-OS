@@ -197,6 +197,13 @@ try {
     console.log(`Applied migration: ${step.file}`);
   }
 
+  if (await tableExists('growth.identity_account_cleanup_040')) {
+    const cleanupResult = await client.query(
+      'select action, blocking_reference_count from growth.identity_account_cleanup_040 limit 1',
+    );
+    console.log('Identity cleanup result:', cleanupResult.rows[0] ?? { action: 'missing' });
+  }
+
   console.log('Production migration reconciliation complete');
 } finally {
   await client.end();
