@@ -259,7 +259,9 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
           request.headers["user-agent"] ?? null
         ]
       );
-      if (result.rows[0]?.reset_id) {
+      const resetMatched = Boolean(result.rows[0]?.reset_id);
+      app.log.info({ resetMatched }, "identity password-reset lookup");
+      if (resetMatched) {
         try {
           await sendIdentityEmail({
             to: parsed.data.email,
