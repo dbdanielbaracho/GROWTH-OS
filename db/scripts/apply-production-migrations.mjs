@@ -54,6 +54,23 @@ async function columnExists(tableName, columnName) {
 
 const steps = [
   {
+    file: '006_identity_v1.sql',
+    present: async () =>
+      (await tableExists('auth_identities'))
+      && (await tableExists('password_credentials'))
+      && (await tableExists('sessions'))
+      && (await functionExists('growth.identity_lookup_password(text)'))
+      && (await functionExists('growth.identity_create_session(uuid,text,text[],timestamptz,timestamptz,inet,text)')),
+  },
+  {
+    file: '009_production_identity_adapter_support.sql',
+    present: async () =>
+      (await functionExists('growth.identity_touch_session(uuid,timestamptz)'))
+      && (await functionExists('growth.identity_begin_login_attempt(text,inet,text,interval,integer,integer)'))
+      && (await functionExists('growth.identity_complete_login_attempt(uuid)'))
+      && (await functionExists('growth.identity_upgrade_password_hash(uuid,text,smallint)')),
+  },
+  {
     file: '023_publication_intent_claim.sql',
     present: async () =>
       (await columnExists('publication_intents', 'current_attempt_no'))
