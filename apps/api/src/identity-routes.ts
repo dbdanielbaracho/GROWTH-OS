@@ -60,6 +60,12 @@ function errorStatus(error: unknown): { code: number; status: string } {
   if (error instanceof IdentityEmailUnavailableError) {
     return { code: 503, status: "identity_email_unavailable" };
   }
+  const databaseCode = error && typeof error === "object" && "code" in error
+    ? String((error as { code?: unknown }).code ?? "")
+    : "";
+  if (databaseCode === "42501") {
+    return { code: 500, status: "internal_error" };
+  }
   if (error instanceof Error && /already|duplicate|invalid|expired|denied|required|verified/i.test(error.message)) {
     return { code: 409, status: "identity_request_rejected" };
   }
@@ -97,7 +103,7 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
 
     try {
       const result = await db.query<{ user_id: string; verification_id: string }>(
-        `select * from growth.identity_signup_with_verification($1::text,$2::text,$3::smallint,$4::text,$5::timestamptz)`,
+        `select * from growth.identity_signup_with_verification_v2($1::text,$2::text,$3::smallint,$4::text,$5::timestamptz)`,
         [parsed.data.email, passwordHash, 19, token.hash, expiresAt.toISOString()]
       );
       const created = result.rows[0];

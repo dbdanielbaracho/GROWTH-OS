@@ -173,6 +173,10 @@ const steps = [
     file: '040_identity_account_cleanup.sql',
     present: () => tableExists('growth.identity_account_cleanup_040'),
   },
+  {
+    file: '041_identity_signup_runtime_privileges.sql',
+    present: () => functionExists('growth.identity_signup_with_verification_v2(text,text,smallint,text,timestamptz)'),
+  },
 ];
 
 try {
