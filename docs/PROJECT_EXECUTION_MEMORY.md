@@ -3969,3 +3969,10 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Removido o estilo nativo do navegador do botão de entrada do Radar após a correção de acessibilidade.
 - Mantida a aparência editorial do link, agora com elemento realmente clicável e sempre ativo.
 - Estilizado o botão de atualização do estado vazio para seguir o mesmo sistema visual.
+
+
+## 2026-09-10 — Opportunity Radar navigation feedback
+
+- The header label `Opportunity Radar` is an always-active button, not a passive label or disabled control.
+- Header and hero access use the same handler: they scroll to the Radar and provide immediate feedback while the feed is loading, empty, or unavailable.
+- Empty workspaces show a truthful message and an active refresh action; no synthetic opportunities are created.

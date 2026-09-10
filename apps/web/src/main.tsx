@@ -625,7 +625,7 @@ function RadarApp({
           return;
         }
         setListMessage(errorMessage(error));
-        setFeedNotice(null);
+        setFeedNotice("The Opportunity Radar could not load. Use the retry action below to try again.");
         setListState("error");
       });
     return () => { active = false; };
@@ -660,6 +660,23 @@ function RadarApp({
     return () => { active = false; };
   }, [selectedId, onUnauthorized]);
 
+  function openRadar() {
+    document.getElementById("radar-feed")?.scrollIntoView({ behavior: "smooth" });
+    if (listState === "loading") {
+      setFeedNotice("Checking the opportunity feed now. The feed remains open while the signal is being checked.");
+      return;
+    }
+    if (listState === "error") {
+      setFeedNotice("The Opportunity Radar could not load. Use the retry action below to try again.");
+      return;
+    }
+    if (opportunities.length === 0) {
+      setFeedNotice("No real opportunity is available yet. Sync a provider with complete observations, then refresh this feed.");
+      return;
+    }
+    setFeedNotice(null);
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -671,7 +688,7 @@ function RadarApp({
           {auth?.selected_workspace && (
             <span className="workspace-chip">{auth.selected_workspace.name}</span>
           )}
-          <div className="product-label"><span className="live-dot" /> Opportunity Radar</div>
+          <button className="product-label radar-nav-button" type="button" onClick={openRadar} aria-label="Open Opportunity Radar"><span className="live-dot" /> Opportunity Radar</button>
           {onSignOut && (
             <button className="signout-button" type="button" onClick={() => void onSignOut()}>Sign out</button>
           )}
@@ -689,12 +706,7 @@ function RadarApp({
             <button
               className="hero-text-link"
               type="button"
-              onClick={() => {
-                document.getElementById("radar-feed")?.scrollIntoView({ behavior: "smooth" });
-                if (opportunities.length === 0 && listState === "ready") {
-                  setFeedNotice("No real opportunity is available yet. The feed remains open; nothing synthetic is being shown.");
-                }
-              }}
+              onClick={openRadar}
             >
               Open opportunity feed ↓
             </button>
@@ -727,7 +739,7 @@ function RadarApp({
         </section>
       )}
 
-      {feedNotice && listState !== "error" && (
+      {feedNotice && (
         <section className="truthful-empty radar-notice" aria-live="polite" role="status">
           <p className="eyebrow">Radar status</p>
           <h2>No signal is strong enough yet.</h2>
