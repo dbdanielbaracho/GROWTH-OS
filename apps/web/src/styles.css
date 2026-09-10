@@ -893,3 +893,15 @@ footer span:first-child { color: #d4d0c5; }
   cursor: pointer;
   font-weight: 750;
 }
+
+
+.radar-nav-button {
+  appearance: none;
+  cursor: pointer;
+}
+
+.radar-nav-button:hover,
+.radar-nav-button:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
