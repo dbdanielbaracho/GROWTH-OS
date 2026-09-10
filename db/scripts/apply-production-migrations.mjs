@@ -268,6 +268,18 @@ const steps = [
     file: '046_managed_account_onboarding.sql',
     present: () => tableExists('growth.managed_account_onboarding_046'),
   },
+  {
+    file: '047_provider_status_runtime_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_function_privilege('app_runtime', 'growth.youtube_integration_status()', 'EXECUTE')
+          and has_function_privilege('app_runtime', 'growth.instagram_integration_status()', 'EXECUTE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
