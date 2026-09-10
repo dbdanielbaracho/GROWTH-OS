@@ -29,7 +29,6 @@ INSERT INTO growth.managed_accounts(
 VALUES (
   'c0000000-0000-4000-8000-000000000021',
   'b0000000-0000-4000-8000-000000000001',
-  'c0000000-0000-4000-8000-000000000021',
   'direct',
   'contractually_granted',
   'private_only',
@@ -49,6 +48,7 @@ INSERT INTO growth.authority_history(
 VALUES (
   'c0000000-0000-4000-8000-000000000022',
   'b0000000-0000-4000-8000-000000000001',
+  'c0000000-0000-4000-8000-000000000021',
   'direct',
   'contractually_granted',
   'private_only',
