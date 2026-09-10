@@ -36,6 +36,14 @@ async function functionExists(signature) {
   return result.rows[0].present;
 }
 
+async function functionDefinitionContains(signature, fragment) {
+  const result = await client.query(
+    'select coalesce(pg_get_functiondef(to_regprocedure($1)), \'\') like $2 as present',
+    [signature, `%${fragment}%`],
+  );
+  return result.rows[0].present;
+}
+
 async function tableExists(qualifiedName) {
   const result = await client.query(
     'select to_regclass($1) is not null as present',
@@ -71,8 +79,49 @@ const steps = [
       && (await functionExists('growth.identity_upgrade_password_hash(uuid,text,smallint)')),
   },
   {
+    file: '014_youtube_integration_status.sql',
+    present: () => functionExists('growth.youtube_integration_status()'),
+  },
+  {
+    file: '015_youtube_growth_intelligence.sql',
+    present: () => functionExists('growth.recompute_youtube_growth_intelligence(uuid)'),
+  },
+  {
     file: '016_identity_signup_verification.sql',
     present: () => functionExists('growth.identity_signup_with_verification(text,text,smallint,text,timestamptz)'),
+  },
+  {
+    file: '017_instagram_connector_foundation.sql',
+    present: () => functionExists('growth.instagram_integration_status()'),
+  },
+  {
+    file: '018_instagram_token_lifecycle.sql',
+    present: () => functionExists('growth.instagram_revoke_connection(uuid)'),
+  },
+  {
+    file: '019_instagram_media_metrics_sync.sql',
+    present: async () =>
+      (await tableExists('growth.instagram_media'))
+      && (await functionExists('growth.instagram_record_media(uuid,text,text,text,text,text,timestamptz,text,text,timestamptz,text,text)'))
+      && (await functionExists('growth.instagram_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text)')),
+  },
+  {
+    file: '020_instagram_observation_idempotency_hardening.sql',
+    present: () => functionDefinitionContains(
+      'growth.instagram_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text)',
+      'retry-time policy metadata',
+    ),
+  },
+  {
+    file: '021_instagram_authorization_deduplication.sql',
+    present: () => functionDefinitionContains(
+      'growth.instagram_integration_status()',
+      'LEFT JOIN LATERAL',
+    ),
+  },
+  {
+    file: '022_publication_intent_foundation.sql',
+    present: () => functionExists('growth.create_publication_intent(uuid,uuid,uuid,uuid,text)'),
   },
   {
     file: '023_publication_intent_claim.sql',
@@ -210,6 +259,10 @@ const steps = [
   {
     file: '044_identity_signup_smoke_cleanup.sql',
     present: () => tableExists('growth.identity_signup_smoke_cleanup_044'),
+  },
+  {
+    file: '045_production_helper_privileges.sql',
+    present: () => tableExists('growth.production_helper_privileges_045'),
   },
 ];
 
