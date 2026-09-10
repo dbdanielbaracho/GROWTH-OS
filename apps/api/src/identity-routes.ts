@@ -60,6 +60,12 @@ function errorStatus(error: unknown): { code: number; status: string } {
   if (error instanceof IdentityEmailUnavailableError) {
     return { code: 503, status: "identity_email_unavailable" };
   }
+  const databaseCode = error && typeof error === "object" && "code" in error
+    ? String((error as { code?: unknown }).code ?? "")
+    : "";
+  if (databaseCode === "42501") {
+    return { code: 500, status: "internal_error" };
+  }
   if (error instanceof Error && /already|duplicate|invalid|expired|denied|required|verified/i.test(error.message)) {
     return { code: 409, status: "identity_request_rejected" };
   }
