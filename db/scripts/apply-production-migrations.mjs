@@ -177,6 +177,20 @@ const steps = [
     file: '041_identity_signup_runtime_privileges.sql',
     present: () => functionExists('growth.identity_signup_with_verification_v2(text,text,smallint,text,timestamptz)'),
   },
+  {
+    file: '042_identity_signup_fk_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_schema_privilege('growth_identity_helper', 'growth', 'USAGE')
+          and has_table_privilege('growth_identity_helper', 'growth.users', 'REFERENCES')
+          and has_table_privilege('growth_identity_helper', 'growth.auth_identities', 'REFERENCES')
+          and has_table_privilege('growth_identity_helper', 'growth.password_credentials', 'INSERT')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
