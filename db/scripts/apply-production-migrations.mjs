@@ -333,6 +333,24 @@ const steps = [
       `);
       return result.rows[0].present;
     },
+  },  {
+    file: '052_provider_authorization_runtime_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.users', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.workspaces', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.provider_credentials', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.platform_connections', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.platform_connections', 'UPDATE')
+          and has_table_privilege('growth_migrator', 'growth.social_accounts', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.social_accounts', 'UPDATE')
+          and has_function_privilege('app_runtime', 'growth.instagram_begin_authorization(uuid,text[])', 'EXECUTE')
+          and has_function_privilege('app_runtime', 'growth.youtube_begin_authorization(uuid,text[])', 'EXECUTE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
   },
 ];
 
