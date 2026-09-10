@@ -568,7 +568,7 @@ export async function syncInstagramMedia(
 
   await withTenantTransaction(principal, async (client) => {
     await client.query(
-      "select * from growth.recompute_instagram_growth_intelligence($1)",
+      "select * from growth.recompute_instagram_growth_intelligence($1::uuid)",
       [row.social_account_id]
     );
   });
