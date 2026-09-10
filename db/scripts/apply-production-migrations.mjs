@@ -321,6 +321,19 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '051_provider_helper_jobs_privilege.sql',
+    present: async () => {
+      const result = await client.query(`
+        select has_table_privilege(
+          'growth_migrator',
+          'growth.jobs',
+          'SELECT'
+        ) as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
