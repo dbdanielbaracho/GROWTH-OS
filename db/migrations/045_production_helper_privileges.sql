@@ -12,7 +12,16 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_migrator') THEN
     RAISE EXCEPTION '045 requires growth_migrator role';
   END IF;
-END $$;
+END $;
+
+CREATE TABLE IF NOT EXISTS growth.production_helper_privileges_045 (
+  id boolean PRIMARY KEY DEFAULT true,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO growth.production_helper_privileges_045(id)
+VALUES (true)
+ON CONFLICT (id) DO NOTHING;
 
 GRANT USAGE ON SCHEMA growth TO growth_migrator;
 
