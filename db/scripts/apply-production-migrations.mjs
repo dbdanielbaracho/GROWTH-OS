@@ -191,6 +191,22 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '043_identity_signup_fk_runtime_context.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_schema_privilege('app_runtime', 'growth', 'USAGE')
+          and has_schema_privilege('growth_identity_helper', 'growth', 'USAGE')
+          and has_schema_privilege('growth_migrator', 'growth', 'USAGE')
+          and has_table_privilege('app_runtime', 'growth.auth_identities', 'REFERENCES')
+          and has_table_privilege('growth_identity_helper', 'growth.auth_identities', 'REFERENCES')
+          and has_table_privilege('growth_migrator', 'growth.auth_identities', 'REFERENCES')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
