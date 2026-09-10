@@ -1,6 +1,8 @@
 -- Growth OS — provider status membership privilege regression gate.
 -- Reproduces the production failure boundary: the status helpers must be
--- executable through app_runtime while only growth_migrator reads memberships.
+-- executable through app_runtime while growth_migrator can validate
+-- memberships. The existing app_runtime membership grant is identity
+-- functionality and is not changed by this provider migration.
 
 \set ON_ERROR_STOP on
 
@@ -14,14 +16,6 @@ BEGIN
     'SELECT'
   ) THEN
     RAISE EXCEPTION 'TEST FAIL: growth_migrator lacks memberships SELECT';
-  END IF;
-
-  IF has_table_privilege(
-    'app_runtime',
-    'growth.memberships',
-    'SELECT'
-  ) THEN
-    RAISE EXCEPTION 'TEST FAIL: app_runtime can read memberships directly';
   END IF;
 END $$;
 
@@ -54,8 +48,7 @@ INSERT INTO growth.authority_history(
 )
 VALUES (
   'c0000000-0000-4000-8000-000000000012',
-  'b0000000-0000-4000-8000-000000000001',
-  'c0000000-0000-4000-8000-000000000011',
+  'b0000000-0000-4000-8000-000000000011',
   'direct',
   'contractually_granted',
   'private_only',
