@@ -144,6 +144,10 @@ const steps = [
       && (await tableExists('growth.usage_counters'))
       && (await tableExists('growth.enterprise_policies')),
   },
+  {
+    file: '039_instagram_growth_intelligence.sql',
+    present: () => functionExists('growth.recompute_instagram_growth_intelligence(uuid)'),
+  },
 ];
 
 try {
