@@ -108,6 +108,8 @@ $$;
 ALTER FUNCTION growth.ensure_direct_managed_account(uuid)
   OWNER TO growth_identity_helper;
 REVOKE ALL ON FUNCTION growth.ensure_direct_managed_account(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION growth.ensure_direct_managed_account(uuid)
+  TO growth_identity_helper, growth_migrator;
 
 CREATE OR REPLACE FUNCTION growth.identity_create_workspace(
   p_name text,
