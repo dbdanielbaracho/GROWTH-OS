@@ -112,7 +112,17 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
       return reply.code(202).send({ status: "verification_required" });
     } catch (error) {
       const mapped = errorStatus(error);
-      if (mapped.code === 500) app.log.error(error);
+      if (mapped.code === 409) {
+        const details = error && typeof error === "object"
+          ? {
+              code: "code" in error ? String((error as { code?: unknown }).code ?? "") : "",
+              constraint: "constraint" in error ? String((error as { constraint?: unknown }).constraint ?? "") : ""
+            }
+          : { code: "", constraint: "" };
+        app.log.warn({ rejection: details }, "identity signup rejected");
+      } else if (mapped.code === 500) {
+        app.log.error(error);
+      }
       return reply.code(mapped.code).send({ status: mapped.status });
     }
   });
