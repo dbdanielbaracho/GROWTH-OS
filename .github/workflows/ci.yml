@@ -101,7 +101,7 @@ jobs:
           for migration in db/migrations/*.sql; do
             database_url="$CI_MIGRATOR_URL"
             case "$migration" in
-              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql|*009_production_identity_adapter_support.sql|*012_youtube_rls_helper_execute.sql|*016_identity_signup_verification.sql|*017_instagram_connector_foundation.sql|*040_identity_account_cleanup.sql|*041_identity_signup_runtime_privileges.sql)
+              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql|*009_production_identity_adapter_support.sql|*012_youtube_rls_helper_execute.sql|*016_identity_signup_verification.sql|*017_instagram_connector_foundation.sql|*040_identity_account_cleanup.sql|*041_identity_signup_runtime_privileges.sql|*042_identity_signup_fk_privileges.sql)
                 database_url="$CI_ADMIN_URL"
                 ;;
             esac
