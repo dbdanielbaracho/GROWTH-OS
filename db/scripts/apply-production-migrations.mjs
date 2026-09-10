@@ -71,6 +71,10 @@ const steps = [
       && (await functionExists('growth.identity_upgrade_password_hash(uuid,text,smallint)')),
   },
   {
+    file: '016_identity_signup_verification.sql',
+    present: () => functionExists('growth.identity_signup_with_verification(text,text,smallint,text,timestamptz)'),
+  },
+  {
     file: '023_publication_intent_claim.sql',
     present: async () =>
       (await columnExists('publication_intents', 'current_attempt_no'))
