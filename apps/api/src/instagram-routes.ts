@@ -46,7 +46,13 @@ async function principalOrReply(request: FastifyRequest, reply: FastifyReply) {
     return await resolvePrincipal(request);
   } catch (error) {
     if (error instanceof IdentityCsrfError) {
-      await reply.code(403).send({ status: "forbidden" });
+      request.log.warn({
+        identityCsrf: error.message,
+        method: request.method,
+        path: request.url,
+        origin: request.headers.origin ?? null
+      }, "Identity CSRF rejected");
+      await reply.code(403).send({ status: "csrf_rejected" });
       return null;
     }
     if (error instanceof IdentityWorkspaceRequiredError) {

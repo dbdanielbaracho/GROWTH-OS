@@ -17,6 +17,7 @@ import "./instagram-integration.css";
 function friendlyError(error: unknown): string {
   if (error instanceof RadarApiError) {
     if (error.httpStatus === 401) return "Your Growth OS session expired. Sign in again.";
+    if (error.apiStatus === "csrf_rejected") return "Your security token expired. Retry the Instagram action."; 
     if (error.httpStatus === 403) return "This workspace is not allowed to manage this Instagram connection.";
     if (error.apiStatus === "instagram_integration_not_configured" || error.apiStatus === "instagram_integration_misconfigured") {
       return "Instagram is not configured yet. Authorization remains safely disabled.";

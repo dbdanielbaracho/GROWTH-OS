@@ -227,7 +227,13 @@ async function responseError(response: Response): Promise<never> {
 
 async function requestJson<T>(
   path: string,
-  options: { method?: string; body?: unknown; useDevelopmentIdentity?: boolean; signal?: AbortSignal } = {}
+  options: {
+    method?: string;
+    body?: unknown;
+    useDevelopmentIdentity?: boolean;
+    signal?: AbortSignal;
+    retryOnCsrf?: boolean;
+  } = {}
 ): Promise<T> {
   const method = (options.method ?? "GET").toUpperCase();
   const headers: Record<string, string> = {
@@ -245,6 +251,26 @@ async function requestJson<T>(
     ...(options.signal ? { signal: options.signal } : {}),
     ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {})
   });
+
+  // A session refresh can race an integration action and leave the in-memory
+  // CSRF token stale or empty. Refresh it once, then retry the same request.
+  // The retry is bounded and does not weaken the server-side CSRF check.
+  if (
+    response.status === 403
+    && unsafeMethod(method)
+    && options.retryOnCsrf !== false
+  ) {
+    try {
+      const session = await requestJson<AuthSessionResponse>("/v1/auth/session", {
+        useDevelopmentIdentity: false,
+        retryOnCsrf: false
+      });
+      captureSession(session);
+      return requestJson<T>(path, { ...options, retryOnCsrf: false });
+    } catch {
+      // Preserve the original API error if the session cannot be refreshed.
+    }
+  }
 
   if (!response.ok) return responseError(response);
   return response.json() as Promise<T>;
