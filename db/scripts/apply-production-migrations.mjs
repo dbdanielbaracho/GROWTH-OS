@@ -264,6 +264,10 @@ const steps = [
     file: '045_production_helper_privileges.sql',
     present: () => tableExists('growth.production_helper_privileges_045'),
   },
+  {
+    file: '046_managed_account_onboarding.sql',
+    present: () => tableExists('growth.managed_account_onboarding_046'),
+  },
 ];
 
 try {

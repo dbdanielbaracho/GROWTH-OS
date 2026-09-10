@@ -3984,3 +3984,19 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - Railway logs identified the missing function `growth.identity_begin_login_attempt(text,inet,text,interval,integer,integer)`; the runtime SQL boundary also received a separate fix with explicit casts in PR #126.
 - PR #127 updates `db/scripts/apply-production-migrations.mjs` to verify and apply Identity migrations 006 and 009 before the existing 023–039 reconciliation. The checks are signature/table based and skip complete migrations.
 - The production migrator must finish SUCCESS before the app is considered promoted; only then can authenticated sign-in and Instagram sync be accepted.
+
+
+## 2026-09-10 — managed-account onboarding production correction
+
+1. A produção deixou de retornar erro 500 no status do Instagram após a reconciliação das migrations 014–021 e da migration 045, mas a tela autenticada passou a mostrar “No authorized managed account is available.”.
+2. A análise do código confirmou a causa estrutural: `growth.identity_create_workspace(...)` criava apenas `workspaces`, `memberships` e `audit_events`; não criava a linha correspondente em `managed_accounts` nem em `authority_history`.
+3. Sem essa linha, `growth.instagram_integration_status()` retornava `integrations=[]` corretamente. Portanto, não era mais indisponibilidade do provedor Meta; era um workspace sem recurso gerenciável para iniciar OAuth.
+4. A migration `046_managed_account_onboarding.sql`:
+   - adiciona `growth.ensure_direct_managed_account(uuid)`, SECURITY DEFINER, sob `growth_identity_helper`;
+   - cria no onboarding um managed account `direct`, `contractually_granted`, `private_only`;
+   - grava a autoridade aberta correspondente com `authority_clause_ref='workspace-owner-self-managed-v1'`;
+   - repara workspaces ativos com owner e sem managed account;
+   - não habilita publicação, insights ou autoridade de provedor.
+5. O fluxo OAuth continua protegido: consentimento OAuth isolado não cria autoridade; a conexão só começa para o managed account autorizado.
+6. O teste `db/tests/056_managed_account_onboarding.sql` cobre a criação atômica do managed account e da autoridade correspondente.
+7. O reconciliador de produção e o CI foram atualizados para reconhecer a migration 046.
