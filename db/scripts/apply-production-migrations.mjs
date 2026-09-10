@@ -207,6 +207,10 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '044_identity_signup_smoke_cleanup.sql',
+    present: () => tableExists('growth.identity_signup_smoke_cleanup_044'),
+  },
 ];
 
 try {
@@ -236,6 +240,13 @@ try {
       'select action, blocking_reference_count from growth.identity_account_cleanup_040 limit 1',
     );
     console.log('Identity cleanup result:', cleanupResult.rows[0] ?? { action: 'missing' });
+  }
+
+  if (await tableExists('growth.identity_signup_smoke_cleanup_044')) {
+    const smokeCleanupResult = await client.query(
+      'select action, blocking_reference_count from growth.identity_signup_smoke_cleanup_044 limit 1',
+    );
+    console.log('Signup smoke cleanup result:', smokeCleanupResult.rows[0] ?? { action: 'missing' });
   }
 
   console.log('Production migration reconciliation complete');
