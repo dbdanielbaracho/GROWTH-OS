@@ -161,12 +161,12 @@ async function beginLoginAttempt(
   const result = await db.query<LoginAttemptReservation>(
     `select *
        from growth.identity_begin_login_attempt(
-         $1,
+         $1::text,
          $2::inet,
-         $3,
+         $3::text,
          ($4::text || ' seconds')::interval,
-         $5,
-         $6
+         $5::integer,
+         $6::integer
        )`,
     [
       email,
@@ -184,7 +184,7 @@ async function beginLoginAttempt(
 
 async function completeLoginAttempt(attemptId: string): Promise<void> {
   const result = await db.query<{ completed: boolean }>(
-    "select growth.identity_complete_login_attempt($1) as completed",
+    "select growth.identity_complete_login_attempt($1::uuid) as completed",
     [attemptId]
   );
   if (result.rows[0]?.completed !== true) {
@@ -194,7 +194,7 @@ async function completeLoginAttempt(attemptId: string): Promise<void> {
 
 async function lookupPassword(email: string): Promise<PasswordLookup | null> {
   const result = await db.query<PasswordLookup>(
-    "select * from growth.identity_lookup_password($1)",
+    "select * from growth.identity_lookup_password($1::text)",
     [email]
   );
   return result.rows[0] ?? null;
@@ -269,7 +269,7 @@ export async function signInWithPassword(
     if (argon2.needsRehash(passwordRow.password_hash, currentArgon2Options())) {
       const upgradedHash = await argon2.hash(password, currentArgon2Options());
       const upgraded = await client.query<{ upgraded: boolean }>(
-        "select growth.identity_upgrade_password_hash($1,$2,$3) as upgraded",
+        "select growth.identity_upgrade_password_hash($1::uuid,$2::text,$3::smallint) as upgraded",
         [passwordRow.auth_identity_id, upgradedHash, 19]
       );
       if (upgraded.rows[0]?.upgraded !== true) {
@@ -279,7 +279,7 @@ export async function signInWithPassword(
 
     const sessionResult = await client.query<{ session_id: string }>(
       `select growth.identity_create_session(
-         $1,$2,$3::text[],$4,$5,$6::inet,$7
+         $1::uuid,$2::text,$3::text[],$4::timestamptz,$5::timestamptz,$6::inet,$7::text
        ) as session_id`,
       [
         passwordRow.user_id,
@@ -323,7 +323,7 @@ async function resolveSessionToken(rawToken: string): Promise<ResolvedIdentitySe
 
   const tokenHash = hashToken(rawToken);
   const result = await db.query<SessionRow>(
-    "select * from growth.identity_resolve_session($1)",
+    "select * from growth.identity_resolve_session($1::text)",
     [tokenHash]
   );
   const row = result.rows[0];
@@ -380,7 +380,7 @@ async function touchSession(
 
     const requestedIdle = new Date(Date.now() + env.SESSION_IDLE_TTL_SECONDS * 1000).toISOString();
     const touched = await client.query<{ touched: boolean }>(
-      "select growth.identity_touch_session($1,$2) as touched",
+      "select growth.identity_touch_session($1::uuid,$2::timestamptz) as touched",
       [session.sessionId, requestedIdle]
     );
     if (touched.rows[0]?.touched !== true) {
@@ -427,7 +427,7 @@ export async function selectSessionWorkspace(
 
     const requestedIdle = new Date(Date.now() + env.SESSION_IDLE_TTL_SECONDS * 1000).toISOString();
     const touched = await client.query<{ touched: boolean }>(
-      "select growth.identity_touch_session($1,$2) as touched",
+      "select growth.identity_touch_session($1::uuid,$2::timestamptz) as touched",
       [session.sessionId, requestedIdle]
     );
     if (touched.rows[0]?.touched !== true) {
@@ -456,7 +456,7 @@ export async function revokeCurrentSession(request: FastifyRequest): Promise<voi
 
   await withUserTransaction(session.userId, async (client) => {
     const result = await client.query<{ revoked: boolean }>(
-      "select growth.identity_revoke_session($1,'logout') as revoked",
+      "select growth.identity_revoke_session($1::uuid,'logout'::text) as revoked",
       [session.sessionId]
     );
     if (result.rows[0]?.revoked !== true) {
