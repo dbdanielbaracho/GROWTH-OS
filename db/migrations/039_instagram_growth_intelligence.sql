@@ -1,83 +1,8 @@
--- Growth OS — deterministic Instagram Growth Intelligence Engine (Issue #26).
--- Forward-only migration 039.
---
--- This slice derives a factual likes-acceleration signal only from:
--- authorized Instagram observations, complete/fresh provenance, and an account
--- with contractually granted authority. It does not use derived analytics,
--- causal claims, external benchmarks, or synthetic fallback data.
+-- Growth OS — deterministic Instagram Growth Intelligence Engine.
+-- Forward-only migration 039. Reuses the factual_signals schema from migration 015.
 
 BEGIN;
 SET search_path = growth, public;
-
--- Existing deferred evidence triggers execute at transaction commit under the
--- caller session. Keep app_runtime table privileges closed while allowing the
--- trigger helper to inspect its parent rows through the migration owner.
-ALTER FUNCTION growth.assert_confirmed_insight_evidence_purity(uuid,uuid)
-  SECURITY DEFINER;
-ALTER FUNCTION growth.assert_confirmed_insight_evidence_purity(uuid,uuid)
-  OWNER TO growth_migrator;
-REVOKE ALL ON FUNCTION growth.assert_confirmed_insight_evidence_purity(uuid,uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION growth.assert_confirmed_insight_evidence_purity(uuid,uuid) TO app_runtime;
-
-CREATE TABLE growth.factual_signals (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id uuid NOT NULL REFERENCES growth.workspaces(id),
-  social_account_id uuid NOT NULL,
-  signal_type text NOT NULL CHECK (signal_type IN ('likes_acceleration')),
-  metric_name text NOT NULL,
-  status text NOT NULL CHECK (status IN ('active','insufficient_signal','expired')),
-  latest_observation_id uuid NOT NULL,
-  observation_ids uuid[] NOT NULL DEFAULT '{}',
-  latest_value numeric NOT NULL,
-  baseline_value numeric NOT NULL,
-  delta_ratio numeric NOT NULL,
-  sample_size integer NOT NULL CHECK (sample_size >= 0),
-  confidence jsonb NOT NULL DEFAULT '{}'::jsonb,
-  logic_version text NOT NULL,
-  source_window_start timestamptz NOT NULL,
-  source_window_end timestamptz NOT NULL,
-  expires_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (workspace_id,id),
-  UNIQUE (workspace_id,social_account_id,signal_type,metric_name,source_window_end,logic_version),
-  FOREIGN KEY (workspace_id,social_account_id)
-    REFERENCES growth.social_accounts(workspace_id,id),
-  FOREIGN KEY (workspace_id,latest_observation_id)
-    REFERENCES growth.metric_observations(workspace_id,id)
-);
-
-ALTER TABLE growth.insights
-  ADD COLUMN source_signal_id uuid,
-  ADD CONSTRAINT insights_source_signal_uq UNIQUE (workspace_id,source_signal_id),
-  ADD CONSTRAINT insights_source_signal_fk
-    FOREIGN KEY (workspace_id,source_signal_id)
-    REFERENCES growth.factual_signals(workspace_id,id);
-
-ALTER TABLE growth.opportunities
-  ADD COLUMN source_signal_id uuid,
-  ADD CONSTRAINT opportunities_source_signal_uq UNIQUE (workspace_id,source_signal_id),
-  ADD CONSTRAINT opportunities_source_signal_fk
-    FOREIGN KEY (workspace_id,source_signal_id)
-    REFERENCES growth.factual_signals(workspace_id,id);
-
-ALTER TABLE growth.factual_signals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE growth.factual_signals FORCE ROW LEVEL SECURITY;
-
-CREATE POLICY factual_signals_workspace_isolation
-  ON growth.factual_signals
-  USING (
-    workspace_id = growth.current_workspace_id()
-    AND growth.tenant_context_valid(workspace_id)
-  )
-  WITH CHECK (
-    workspace_id = growth.current_workspace_id()
-    AND growth.tenant_context_valid(workspace_id)
-  );
-
-ALTER TABLE growth.factual_signals OWNER TO growth_migrator;
-REVOKE ALL ON TABLE growth.factual_signals FROM PUBLIC;
-REVOKE ALL ON TABLE growth.factual_signals FROM app_runtime;
 
 CREATE OR REPLACE FUNCTION growth.recompute_instagram_growth_intelligence(
   p_social_account_id uuid
