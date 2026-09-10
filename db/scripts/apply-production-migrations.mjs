@@ -306,6 +306,21 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '050_provider_helper_table_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.memberships', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.managed_accounts', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.platform_connections', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.social_accounts', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.worker_service_principals', 'SELECT')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
