@@ -39,8 +39,9 @@ SELECT growth.identity_create_workspace(
 \gset
 
 RESET ROLE;
+SELECT set_config('test.workspace_id', :'workspace_id', true);
 
-DO $$
+DO $
 DECLARE
   managed_count integer;
   authority_count integer;
@@ -48,7 +49,7 @@ DECLARE
 BEGIN
   SELECT count(*)::integer INTO managed_count
   FROM growth.managed_accounts
-  WHERE workspace_id = :'workspace_id'::uuid;
+  WHERE workspace_id = current_setting('test.workspace_id')::uuid;
 
   IF managed_count <> 1 THEN
     RAISE EXCEPTION 'TEST FAIL: expected exactly one managed account, got %', managed_count;
@@ -56,11 +57,11 @@ BEGIN
 
   SELECT count(*)::integer INTO authority_count
   FROM growth.authority_history
-  WHERE workspace_id = :'workspace_id'::uuid
+  WHERE workspace_id = current_setting('test.workspace_id')::uuid
     AND managed_account_id IN (
       SELECT id
       FROM growth.managed_accounts
-      WHERE workspace_id = :'workspace_id'::uuid
+      WHERE workspace_id = current_setting('test.workspace_id')::uuid
     )
     AND effective_to IS NULL;
 
@@ -70,7 +71,7 @@ BEGIN
 
   SELECT ma.* INTO account_row
   FROM growth.managed_accounts ma
-  WHERE ma.workspace_id = :'workspace_id'::uuid;
+  WHERE ma.workspace_id = current_setting('test.workspace_id')::uuid;
 
   IF account_row.owner_type <> 'direct'
      OR account_row.authority_status <> 'contractually_granted'
