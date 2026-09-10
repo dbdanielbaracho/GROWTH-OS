@@ -280,6 +280,19 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '048_provider_status_helper_call_chain_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_function_privilege('growth_migrator', 'growth.current_workspace_id()', 'EXECUTE')
+          and has_function_privilege('growth_migrator', 'growth.current_app_user_id()', 'EXECUTE')
+          and has_function_privilege('growth_migrator', 'growth.tenant_context_valid(uuid)', 'EXECUTE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
