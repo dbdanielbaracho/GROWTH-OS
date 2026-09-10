@@ -4000,3 +4000,11 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 5. O fluxo OAuth continua protegido: consentimento OAuth isolado não cria autoridade; a conexão só começa para o managed account autorizado.
 6. O teste `db/tests/056_managed_account_onboarding.sql` cobre a criação atômica do managed account e da autoridade correspondente.
 7. O reconciliador de produção e o CI foram atualizados para reconhecer a migration 046.
+
+
+## 2026-09-10 — provider status runtime privilege correction
+
+1. Production logs showed HTTP 403 on both `GET /v1/integrations/instagram/status` and `GET /v1/integrations/youtube/status` while authenticated session endpoints remained 200. The frontend message was therefore a generic mapping of a runtime authorization failure, not evidence that Meta rejected OAuth.
+2. The production reconciler previously checked only whether status helper functions existed; it did not repair a missing `EXECUTE` grant for `app_runtime`.
+3. Migration 047 explicitly reconciles `EXECUTE` on both protected status helpers, asserts the grants, and asserts that direct provider-table SELECT remains closed to `app_runtime`.
+4. CI gate 057 covers the exact privilege contract. Railway promotion is blocked until CI passes and the production HTTP status endpoint is rechecked.
