@@ -46,7 +46,7 @@ async function principalOrReply(request: FastifyRequest, reply: FastifyReply) {
     return await resolvePrincipal(request);
   } catch (error) {
     if (error instanceof IdentityCsrfError) {
-      app.log.warn({
+      request.log.warn({
         identityCsrf: error.message,
         method: request.method,
         path: request.url,
