@@ -3976,3 +3976,11 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 - The header label `Opportunity Radar` is an always-active button, not a passive label or disabled control.
 - Header and hero access use the same handler: they scroll to the Radar and provide immediate feedback while the feed is loading, empty, or unavailable.
 - Empty workspaces show a truthful message and an active refresh action; no synthetic opportunities are created.
+
+
+## 2026-09-10 — production Identity migration reconciliation
+
+- Production login returned HTTP 500 after the app and migrator were aligned to Railway's canonical Postgres.
+- Railway logs identified the missing function `growth.identity_begin_login_attempt(text,inet,text,interval,integer,integer)`; the runtime SQL boundary also received a separate fix with explicit casts in PR #126.
+- PR #127 updates `db/scripts/apply-production-migrations.mjs` to verify and apply Identity migrations 006 and 009 before the existing 023–039 reconciliation. The checks are signature/table based and skip complete migrations.
+- The production migrator must finish SUCCESS before the app is considered promoted; only then can authenticated sign-in and Instagram sync be accepted.
