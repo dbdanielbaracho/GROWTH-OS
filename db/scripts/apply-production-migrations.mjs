@@ -293,6 +293,19 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '049_provider_status_membership_privilege.sql',
+    present: async () => {
+      const result = await client.query(`
+        select has_table_privilege(
+          'growth_migrator',
+          'growth.memberships',
+          'SELECT'
+        ) as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
