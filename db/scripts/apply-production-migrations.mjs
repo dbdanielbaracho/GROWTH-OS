@@ -169,6 +169,10 @@ const steps = [
     file: '039_instagram_growth_intelligence.sql',
     present: () => functionExists('growth.recompute_instagram_growth_intelligence(uuid)'),
   },
+  {
+    file: '040_identity_account_cleanup.sql',
+    present: () => tableExists('growth.identity_account_cleanup_040'),
+  },
 ];
 
 try {
