@@ -1,7 +1,8 @@
 -- Growth OS — provider status helper membership read privilege.
 -- Production status helpers validate tenant membership through a SECURITY
 -- DEFINER chain. Reconcile the minimum table read needed by that helper role.
--- app_runtime remains closed to direct membership reads.
+-- The existing app_runtime membership grant is part of identity/workspace
+-- access and is intentionally left unchanged by this provider fix.
 
 \set ON_ERROR_STOP on
 
@@ -24,14 +25,6 @@ BEGIN
     'SELECT'
   ) THEN
     RAISE EXCEPTION '049 failed: growth_migrator cannot validate tenant membership';
-  END IF;
-
-  IF has_table_privilege(
-    'app_runtime',
-    'growth.memberships',
-    'SELECT'
-  ) THEN
-    RAISE EXCEPTION '049 failed: app_runtime membership boundary widened';
   END IF;
 END $$;
 
