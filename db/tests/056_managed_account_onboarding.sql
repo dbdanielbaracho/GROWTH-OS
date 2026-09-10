@@ -41,7 +41,7 @@ SELECT growth.identity_create_workspace(
 RESET ROLE;
 SELECT set_config('test.workspace_id', :'workspace_id', true);
 
-DO $
+DO $$
 DECLARE
   managed_count integer;
   authority_count integer;
