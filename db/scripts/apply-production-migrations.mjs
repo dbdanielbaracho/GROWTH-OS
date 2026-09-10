@@ -56,9 +56,9 @@ const steps = [
   {
     file: '006_identity_v1.sql',
     present: async () =>
-      (await tableExists('auth_identities'))
-      && (await tableExists('password_credentials'))
-      && (await tableExists('sessions'))
+      (await tableExists('growth.auth_identities'))
+      && (await tableExists('growth.password_credentials'))
+      && (await tableExists('growth.sessions'))
       && (await functionExists('growth.identity_lookup_password(text)'))
       && (await functionExists('growth.identity_create_session(uuid,text,text[],timestamptz,timestamptz,inet,text)')),
   },
