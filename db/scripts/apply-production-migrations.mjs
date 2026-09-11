@@ -60,6 +60,19 @@ async function columnExists(tableName, columnName) {
   return result.rows[0].present;
 }
 
+async function constraintDefinitionContains(schemaName, tableName, constraintName, fragment) {
+  const result = await client.query(`
+    select coalesce(pg_get_constraintdef(c.oid), '') like ('%' || $4 || '%') as present
+      from pg_constraint c
+      join pg_class t on t.oid = c.conrelid
+      join pg_namespace n on n.oid = t.relnamespace
+     where n.nspname = $1
+       and t.relname = $2
+       and c.conname = $3
+  `, [schemaName, tableName, constraintName, fragment]);
+  return result.rows[0]?.present ?? false;
+}
+
 const steps = [
   {
     file: '006_identity_v1.sql',
@@ -358,6 +371,16 @@ const steps = [
       'growth.instagram_begin_authorization(uuid,text[])',
       'pg_advisory_xact_lock',
     ),
+
+  {
+    file: '054_instagram_factual_signal_type.sql',
+    present: () => constraintDefinitionContains(
+      'growth',
+      'factual_signals',
+      'factual_signals_signal_type_check',
+      'likes_acceleration',
+    ),
+  },
   },
 ];
 
@@ -367,6 +390,27 @@ try {
     'select current_database() as database, current_user as user',
   );
   console.log('Production migration target:', server.rows[0]);
+
+
+  const migrationFiles = (await fs.readdir(migrationsDir))
+    .filter((file) => /^\\d+_.*\\.sql$/.test(file));
+  const registeredMigrations = new Set(steps.map((step) => step.file));
+  const baselineMigrations = new Set([
+    '001_initial_schema.sql',
+    '002_rc9_security_policy_fix.sql',
+    '003_post_rc9_content_reconciliation.sql',
+    '004_creative_production.sql',
+    '005_workspace_write_policy_hardening.sql',
+  ]);
+  const unregisteredMigrations = migrationFiles
+    .filter((file) => !registeredMigrations.has(file) && !baselineMigrations.has(file))
+    .sort();
+
+  if (unregisteredMigrations.length > 0) {
+    throw new Error(
+      'Unregistered production migrations: ' + unregisteredMigrations.join(', '),
+    );
+  }
 
   for (const step of steps) {
     if (await step.present()) {
