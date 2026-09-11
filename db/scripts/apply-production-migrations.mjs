@@ -371,7 +371,7 @@ const steps = [
       'growth.instagram_begin_authorization(uuid,text[])',
       'pg_advisory_xact_lock',
     ),
-
+  },
   {
     file: '054_instagram_factual_signal_type.sql',
     present: () => constraintDefinitionContains(
