@@ -85,7 +85,28 @@ async function integrationError(app: FastifyInstance, reply: FastifyReply, error
   if (pgCode === "P0001" || pgCode === "23505" || pgCode === "23503") {
     return reply.code(409).send({ status: "instagram_integration_conflict" });
   }
-  if (pgCode === "42501") return reply.code(403).send({ status: "forbidden" });
+  if (pgCode === "42501") {
+    const pgError = error && typeof error === "object"
+      ? error as {
+          message?: unknown;
+          detail?: unknown;
+          hint?: unknown;
+          table?: unknown;
+          column?: unknown;
+          constraint?: unknown;
+        }
+      : {};
+    app.log.error({
+      pgCode,
+      pgMessage: typeof pgError.message === "string" ? pgError.message : null,
+      pgDetail: typeof pgError.detail === "string" ? pgError.detail : null,
+      pgHint: typeof pgError.hint === "string" ? pgError.hint : null,
+      pgTable: typeof pgError.table === "string" ? pgError.table : null,
+      pgColumn: typeof pgError.column === "string" ? pgError.column : null,
+      pgConstraint: typeof pgError.constraint === "string" ? pgError.constraint : null
+    }, "Instagram authorization database permission denied");
+    return reply.code(403).send({ status: "forbidden" });
+  }
   app.log.error(error);
   return reply.code(500).send({ status: "internal_error" });
 }
