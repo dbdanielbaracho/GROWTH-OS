@@ -381,7 +381,6 @@ const steps = [
       'likes_acceleration',
     ),
   },
-  },
 ];
 
 try {
@@ -393,7 +392,7 @@ try {
 
 
   const migrationFiles = (await fs.readdir(migrationsDir))
-    .filter((file) => /^\\d+_.*\\.sql$/.test(file));
+    .filter((file) => /^\d+_.*\.sql$/.test(file));
   const registeredMigrations = new Set(steps.map((step) => step.file));
   const baselineMigrations = new Set([
     '001_initial_schema.sql',
