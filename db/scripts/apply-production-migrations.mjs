@@ -352,6 +352,13 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '053_instagram_authorization_lock_privilege.sql',
+    present: () => functionDefinitionContains(
+      'growth.instagram_begin_authorization(uuid,text[])',
+      'pg_advisory_xact_lock',
+    ),
+  },
 ];
 
 try {
