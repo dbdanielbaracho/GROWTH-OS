@@ -38,6 +38,7 @@ AS $$
 DECLARE
   ws uuid := growth.current_workspace_id();
   social_id uuid;
+  observability_version constant text := 'instagram.media.observability.v2';
 BEGIN
   IF ws IS NULL
      OR growth.current_app_user_id() IS NULL
