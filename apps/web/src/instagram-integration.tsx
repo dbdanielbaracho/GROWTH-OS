@@ -230,8 +230,8 @@ function InstagramIntegrationPanel() {
                       {row.account_type && <><dt>Account</dt><dd>{row.account_type}</dd></>}
                       {row.market && <><dt>Market</dt><dd>{row.market}</dd></>}
                       {row.source_timezone && <><dt>Provider day</dt><dd>{row.source_timezone}</dd></>}
-                      <dt>Publishing</dt><dd>Protected until enabled</dd>
-                      <dt>Insights</dt><dd>Protected until enabled</dd>
+                      <dt>Publishing</dt><dd>Enabled for authorized test account</dd>
+                      <dt>Insights</dt><dd>Direct metrics enabled</dd>
                       {expiresAt && <><dt>Token until</dt><dd>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(expiresAt))}</dd></>}
                       {sync && (
                         <><dt>Last sync</dt><dd>{sync.media} media / {sync.observations} metrics</dd></>
@@ -258,7 +258,7 @@ function InstagramIntegrationPanel() {
             );
           })}
 
-          <p className="instagram-policy-note">Media metadata and direct engagement counts are now synced with provenance and retry-safe writes. Publishing and advanced insights remain separately gated.</p>
+          <p className="instagram-policy-note">Media metadata, direct engagement counts and the controlled publishing path are available for authorized test accounts. Advanced Meta insights and access for external accounts remain subject to their separate review and permission gates.</p>
         </div>
       )}
     </aside>
