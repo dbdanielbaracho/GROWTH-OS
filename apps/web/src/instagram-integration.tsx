@@ -293,7 +293,18 @@ function InstagramIntegrationPanel() {
                           {media.map((item) => (
                             <article className="instagram-media-item" key={item.media_id}>
                               {item.thumbnail_url ? (
-                                <img src={item.thumbnail_url} alt="" loading="lazy" />
+                                <img
+                                  src={item.thumbnail_url}
+                                  alt=""
+                                  loading="lazy"
+                                  onError={(event) => {
+                                    if (item.media_url && event.currentTarget.src !== item.media_url) {
+                                      event.currentTarget.src = item.media_url;
+                                    } else {
+                                      event.currentTarget.style.display = "none";
+                                    }
+                                  }}
+                                />
                               ) : (
                                 <div className="instagram-media-placeholder" aria-hidden="true">◎</div>
                               )}
