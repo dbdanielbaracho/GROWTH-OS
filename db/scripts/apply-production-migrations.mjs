@@ -383,7 +383,10 @@ const steps = [
   },
   {
     file: '055_instagram_media_observability.sql',
-    present: () => functionExists('growth.list_instagram_media(uuid,integer,integer)'),
+    present: () => functionDefinitionContains(
+      'growth.list_instagram_media(uuid,integer,integer)',
+      'im.updated_at',
+    ),
   },
 ];
 

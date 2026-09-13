@@ -4,7 +4,7 @@
 BEGIN;
 SET search_path = growth, public;
 
-CREATE FUNCTION growth.list_instagram_media(
+CREATE OR REPLACE FUNCTION growth.list_instagram_media(
   p_connection_id uuid,
   p_lookback_days integer DEFAULT 7,
   p_limit integer DEFAULT 50
@@ -86,7 +86,8 @@ BEGIN
            im.media_url,
            im.thumbnail_url,
            im.created_at,
-           im.collected_at
+           im.collected_at,
+           im.updated_at
       FROM growth.instagram_media im
      WHERE im.workspace_id = ws
        AND im.social_account_id = social_id
