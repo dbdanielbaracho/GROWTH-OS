@@ -381,6 +381,10 @@ const steps = [
       'likes_acceleration',
     ),
   },
+  {
+    file: '055_instagram_media_observability.sql',
+    present: () => functionExists('growth.list_instagram_media(uuid,integer,integer)'),
+  },
 ];
 
 try {

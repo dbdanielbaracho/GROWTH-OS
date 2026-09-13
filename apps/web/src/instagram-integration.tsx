@@ -4,12 +4,14 @@ import {
   RadarApiError,
   authorizeInstagram,
   fetchAuthSession,
+  fetchInstagramMedia,
   fetchInstagramStatus,
   refreshInstagram,
   reconnectInstagram,
   syncInstagram,
   revokeInstagram,
   type InstagramIntegration,
+  type InstagramMediaRecord,
   type InstagramStatusResponse
 } from "./api.js";
 import "./instagram-integration.css";
@@ -43,6 +45,26 @@ function accountLabel(row: InstagramIntegration): string {
   return row.handle || row.provider_account_id || "Authorized Instagram account";
 }
 
+function formatMediaDate(value: string | null): string {
+  if (!value) return "Publication date unavailable";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+function formatMetric(value: string | number | null): string {
+  if (value === null) return "—";
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? new Intl.NumberFormat().format(numeric) : String(value);
+}
+
+function mediaTypeLabel(media: InstagramMediaRecord): string {
+  if (media.media_product_type?.toLowerCase() === "reels" || media.permalink?.includes("/reel/")) return "Reel";
+  if (media.media_type === "VIDEO") return "Video";
+  if (media.media_type === "CAROUSEL_ALBUM") return "Carousel";
+  return "Image";
+}
+
 function InstagramIntegrationPanel() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -50,7 +72,8 @@ function InstagramIntegrationPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Record<string, string>>({});
-  const [lastSync, setLastSync] = useState<Record<string, { media: number; observations: number; at: string }>>({});
+  const [mediaByConnection, setMediaByConnection] = useState<Record<string, InstagramMediaRecord[]>>({});
+  const [mediaLoading, setMediaLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
 
   const callbackNotice = useMemo(() => {
@@ -64,7 +87,18 @@ function InstagramIntegrationPanel() {
     try {
       await fetchAuthSession();
       setAuthenticated(true);
-      setStatus(await fetchInstagramStatus());
+      const nextStatus = await fetchInstagramStatus();
+      setStatus(nextStatus);
+      const connected = nextStatus.integrations.filter((row) => row.connection_id && row.connection_state === "connected");
+      setMediaLoading(true);
+      const mediaEntries = await Promise.all(connected.map(async (row) => {
+        try {
+          return [row.connection_id!, await fetchInstagramMedia(row.connection_id!, 7, 50)] as const;
+        } catch {
+          return [row.connection_id!, []] as const;
+        }
+      }));
+      setMediaByConnection(Object.fromEntries(mediaEntries));
       setMessage(null);
     } catch (error) {
       if (error instanceof RadarApiError && error.httpStatus === 401) {
@@ -75,6 +109,7 @@ function InstagramIntegrationPanel() {
       if (authenticated) setMessage(friendlyError(error));
     } finally {
       setLoading(false);
+      setMediaLoading(false);
     }
   }, [authenticated]);
 
@@ -145,15 +180,7 @@ function InstagramIntegrationPanel() {
     setBusyId(row.connection_id);
     setMessage(null);
     try {
-      const result = await syncInstagram(row.connection_id, crypto.randomUUID(), 7);
-      setLastSync((current) => ({
-        ...current,
-        [row.connection_id!]: {
-          media: result.mediaProcessed,
-          observations: result.observationsProcessed,
-          at: new Date().toISOString()
-        }
-      }));
+      await syncInstagram(row.connection_id, crypto.randomUUID(), 7);
       await refresh();
     } catch (error) {
       setMessage(friendlyError(error));
@@ -212,7 +239,14 @@ function InstagramIntegrationPanel() {
             const connected = row.connection_state === "connected" && Boolean(row.connection_id);
             const busy = busyId !== null && (busyId === row.managed_account_id || busyId === row.connection_id);
             const expiresAt = row.connection_id ? lastRefresh[row.connection_id] : undefined;
-            const sync = row.connection_id ? lastSync[row.connection_id] : undefined;
+            const media = row.connection_id ? mediaByConnection[row.connection_id] ?? [] : [];
+            const lastSyncedAt = media.reduce<string | null>((latest, item) => {
+              if (!latest) return item.last_synced_at;
+              return new Date(item.last_synced_at).getTime() > new Date(latest).getTime()
+                ? item.last_synced_at
+                : latest;
+            }, null);
+            const metricCount = media.reduce((total, item) => total + item.latest_metric_count, 0);
 
             return (
               <section className="instagram-account" key={row.managed_account_id}>
@@ -233,8 +267,8 @@ function InstagramIntegrationPanel() {
                       <dt>Publishing</dt><dd>Enabled for authorized test account</dd>
                       <dt>Insights</dt><dd>Direct metrics enabled</dd>
                       {expiresAt && <><dt>Token until</dt><dd>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(expiresAt))}</dd></>}
-                      {sync && (
-                        <><dt>Last sync</dt><dd>{sync.media} media / {sync.observations} metrics</dd></>
+                      {lastSyncedAt && (
+                        <><dt>Last sync</dt><dd>{media.length} media / {metricCount} metrics</dd></>
                       )}
                     </dl>
                     <div className="instagram-actions">
@@ -248,6 +282,40 @@ function InstagramIntegrationPanel() {
                         Revoke locally
                       </button>
                     </div>
+                    {mediaLoading && <p className="instagram-muted">Loading synchronized media…</p>}
+                    {!mediaLoading && media.length > 0 && (
+                      <section className="instagram-media-trace" aria-label="Instagram media analyzed by Growth OS">
+                        <div className="instagram-media-trace-heading">
+                          <strong>Media analyzed</strong>
+                          <span>last 7 days</span>
+                        </div>
+                        <div className="instagram-media-list">
+                          {media.map((item) => (
+                            <article className="instagram-media-item" key={item.media_id}>
+                              {item.thumbnail_url ? (
+                                <img src={item.thumbnail_url} alt="" loading="lazy" />
+                              ) : (
+                                <div className="instagram-media-placeholder" aria-hidden="true">◎</div>
+                              )}
+                              <div className="instagram-media-content">
+                                <div className="instagram-media-title-row">
+                                  <strong>{mediaTypeLabel(item)}</strong>
+                                  {item.opportunity_count !== "0" && <span className="instagram-media-opportunity">Radar</span>}
+                                </div>
+                                <time dateTime={item.posted_at ?? undefined}>{formatMediaDate(item.posted_at)}</time>
+                                <span>{formatMetric(item.latest_like_count)} curtidas · {formatMetric(item.latest_comments_count)} comentários</span>
+                                <span>{item.observation_count} observações · sincronizado {formatMediaDate(item.last_synced_at)}</span>
+                                {item.caption && <p>{item.caption}</p>}
+                                {item.permalink && (
+                                  <a href={item.permalink} target="_blank" rel="noreferrer">Abrir no Instagram ↗</a>
+                                )}
+                                {!item.permalink && <span>ID da mídia: {item.provider_media_id}</span>}
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    )}
                   </>
                 ) : (
                   <button className="instagram-primary" type="button" disabled={busy || !status.configured} onClick={() => void beginAuthorization(row)}>

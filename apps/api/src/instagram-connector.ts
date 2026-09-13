@@ -18,6 +18,7 @@ const SOURCE_SCHEMA_VERSION = "instagram.media.v1";
 const INSTAGRAM_MEDIA_FIELDS = [
   "id",
   "media_type",
+  "media_product_type",
   "permalink",
   "caption",
   "timestamp",
@@ -36,6 +37,32 @@ export const InstagramSyncSchema = z.object({
   requestNonce: z.string().uuid(),
   lookbackDays: z.coerce.number().int().min(1).max(30).default(7)
 });
+
+export type InstagramMediaRecord = {
+  media_id: string;
+  provider_media_id: string;
+  media_type: string;
+  media_product_type: string | null;
+  permalink: string | null;
+  caption: string | null;
+  posted_at: string | null;
+  media_url: string | null;
+  thumbnail_url: string | null;
+  first_seen_at: string;
+  last_synced_at: string;
+  latest_like_count: string | null;
+  latest_comments_count: string | null;
+  latest_metric_count: number;
+  observation_count: string;
+  first_observed_at: string | null;
+  last_observed_at: string | null;
+  metric_history: Array<{
+    metric_name: string;
+    value: string | number | null;
+    observed_at: string;
+  }>;
+  opportunity_count: string;
+};
 
 export const InstagramCallbackQuerySchema = z.object({
   code: z.string().min(1).optional(),
@@ -584,6 +611,20 @@ export async function syncInstagramMedia(
     observationsProcessed,
     oldestMediaAt: oldestFetchedAt?.toISOString() ?? null
   };
+}
+
+export async function listInstagramMedia(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  connectionId: string,
+  lookbackDays = 7,
+  limit = 50
+): Promise<InstagramMediaRecord[]> {
+  const result = await client.query<InstagramMediaRecord>(
+    `select * from growth.list_instagram_media($1::uuid, $2::integer, $3::integer)`,
+    [connectionId, lookbackDays, limit]
+  );
+  return result.rows;
 }
 
 export async function beginInstagramAuthorization(

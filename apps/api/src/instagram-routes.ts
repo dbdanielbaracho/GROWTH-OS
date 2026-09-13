@@ -15,6 +15,7 @@ import {
   beginInstagramAuthorization,
   completeInstagramAuthorizationFromCallback,
   instagramConnectorConfigured,
+  listInstagramMedia,
   refreshInstagramConnection,
   revokeInstagramConnection,
   syncInstagramMedia
@@ -23,6 +24,11 @@ import {
 
 export const InstagramConnectionParamsSchema = z.object({
   connectionId: z.string().uuid()
+});
+
+const InstagramMediaQuerySchema = z.object({
+  lookback_days: z.coerce.number().int().min(1).max(366).default(7),
+  limit: z.coerce.number().int().min(1).max(100).default(50)
 });
 
 type InstagramStatusRow = {
@@ -161,6 +167,28 @@ export async function registerInstagramRoutes(app: FastifyInstance): Promise<voi
         parsed.data.lookbackDays
       );
       return { status: "ok", ...result };
+    } catch (error) {
+      return integrationError(app, reply, error);
+    }
+  });
+
+  app.get("/v1/integrations/instagram/:connectionId/media", async (request, reply) => {
+    const principal = await principalOrReply(request, reply);
+    if (!principal) return;
+    const params = InstagramConnectionParamsSchema.safeParse(request.params);
+    const query = InstagramMediaQuerySchema.safeParse(request.query);
+    if (!params.success || !query.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const media = await withTenantTransaction(principal, (client) =>
+        listInstagramMedia(client, principal, params.data.connectionId, query.data.lookback_days, query.data.limit)
+      );
+      reply.header("cache-control", "no-store");
+      return {
+        status: "ok",
+        connectionId: params.data.connectionId,
+        lookbackDays: query.data.lookback_days,
+        media
+      };
     } catch (error) {
       return integrationError(app, reply, error);
     }

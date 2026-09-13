@@ -172,6 +172,39 @@ export type InstagramSyncResponse = {
   oldestMediaAt: string | null;
 };
 
+export type InstagramMediaRecord = {
+  media_id: string;
+  provider_media_id: string;
+  media_type: string;
+  media_product_type: string | null;
+  permalink: string | null;
+  caption: string | null;
+  posted_at: string | null;
+  media_url: string | null;
+  thumbnail_url: string | null;
+  first_seen_at: string;
+  last_synced_at: string;
+  latest_like_count: string | null;
+  latest_comments_count: string | null;
+  latest_metric_count: number;
+  observation_count: string;
+  first_observed_at: string | null;
+  last_observed_at: string | null;
+  metric_history: Array<{
+    metric_name: string;
+    value: string | number | null;
+    observed_at: string;
+  }>;
+  opportunity_count: string;
+};
+
+export type InstagramMediaResponse = {
+  status: "ok";
+  connectionId: string;
+  lookbackDays: number;
+  media: InstagramMediaRecord[];
+};
+
 type OpportunityListResponse = {
   status: "ok";
   opportunities: OpportunitySummary[];
@@ -561,6 +594,21 @@ export async function syncInstagram(
     method: "POST",
     body: { connectionId, requestNonce, lookbackDays }
   });
+}
+
+export async function fetchInstagramMedia(
+  connectionId: string,
+  lookbackDays = 7,
+  limit = 50
+): Promise<InstagramMediaRecord[]> {
+  const params = new URLSearchParams({
+    lookback_days: String(lookbackDays),
+    limit: String(limit)
+  });
+  const response = await requestJson<InstagramMediaResponse>(
+    `/v1/integrations/instagram/${encodeURIComponent(connectionId)}/media?${params.toString()}`
+  );
+  return response.media;
 }
 
 export async function refreshInstagram(connectionId: string): Promise<InstagramRefreshResponse> {
