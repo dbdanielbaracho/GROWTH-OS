@@ -400,6 +400,14 @@ try {
     '003_post_rc9_content_reconciliation.sql',
     '004_creative_production.sql',
     '005_workspace_write_policy_hardening.sql',
+    // These migrations predate the production reconciliation checks and are
+    // already part of the established production baseline.
+    '007_public_execute_least_privilege.sql',
+    '008_opportunity_radar_evidence_read.sql',
+    '010_youtube_connector_foundation.sql',
+    '011_youtube_connector_hardening.sql',
+    '012_youtube_rls_helper_execute.sql',
+    '013_youtube_observation_idempotency_hardening.sql',
   ]);
   const unregisteredMigrations = migrationFiles
     .filter((file) => !registeredMigrations.has(file) && !baselineMigrations.has(file))
