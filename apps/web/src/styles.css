@@ -477,7 +477,9 @@ h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; color: #f
 .score-pill, .confidence-badge, .source-badge, .state-badge { border-radius: 2px; background: var(--accent-soft); color: var(--accent-strong); }
 .card-metrics strong { color: #ddd9cd; }
 .detail-panel { padding: 32px; }
-.detail-meta { border-color: #32332e; color: #92968e; }
+.detail-meta { border-color: #4b4b42; color: #ded9cc; background: #20211d; }
+.detail-meta span, .detail-meta strong { color: #ded9cc !important; opacity: 1 !important; }
+.detail-meta .score-pill, .detail-meta .confidence-badge, .detail-meta .source-badge, .detail-meta .state-badge { background: #28271f; border: 1px solid #6c5930; color: #f0c96e !important; }
 .detail-section { border-color: #32332e; }
 .evidence-row, .insight-card { border-color: #30312d; border-radius: 2px; background: #151715; }
 .evidence-row p, .insight-claim, .action-section > p:last-child { color: #b0b2aa; }
