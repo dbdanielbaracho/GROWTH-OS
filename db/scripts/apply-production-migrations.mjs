@@ -413,12 +413,12 @@ const steps = [
     file: '057_publication_worker_jobs_update_privilege.sql',
     present: async () => {
       const result = await client.query(
-        `select
-          has_table_privilege('growth_migrator', 'growth.jobs', 'SELECT') as can_select
-          and has_table_privilege('growth_migrator', 'growth.jobs', 'UPDATE') as can_update
-       ` ,
+        `select (
+          has_table_privilege('growth_migrator', 'growth.jobs', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.jobs', 'UPDATE')
+        ) as present`,
       );
-      return result.rows[0].can_select && result.rows[0].can_update;
+      return result.rows[0].present;
     },
   },
   {
