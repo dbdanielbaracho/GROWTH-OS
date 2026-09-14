@@ -497,21 +497,6 @@ try {
     console.log('Signup smoke cleanup result:', smokeCleanupResult.rows[0] ?? { action: 'missing' });
   }
 
-  const workerSecurity = await client.query(
-    `select
-       r.rolname as function_owner,
-       p.prosecdef as security_definer,
-       has_table_privilege(r.rolname, 'growth.jobs', 'SELECT') as owner_can_select_jobs,
-       has_table_privilege(r.rolname, 'growth.jobs', 'UPDATE') as owner_can_update_jobs,
-       has_function_privilege('growth_worker', 'growth.claim_due_publication_job(uuid,timestamptz,integer)', 'EXECUTE') as worker_can_execute_claim
-     from pg_proc p
-     join pg_namespace n on n.oid = p.pronamespace
-     join pg_roles r on r.oid = p.proowner
-    where n.nspname = 'growth'
-      and p.proname = 'claim_due_publication_job'
-    limit 1`,
-  );
-  console.log('Publication worker security diagnostics:', workerSecurity.rows[0] ?? { missing: true });
 
   await configurePublicationWorkerCredential();
 
