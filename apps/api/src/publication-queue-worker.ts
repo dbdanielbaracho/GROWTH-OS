@@ -16,12 +16,16 @@ type PublicationQueueJob = {
   service_principal_id: string;
   payload: unknown;
   state: "queued" | "leased" | "retry_wait" | "done" | "dead";
+  attempts: number;
 };
+
+type PublicationQueueTerminalState = "retry_wait" | "done" | "dead";
 
 type QueueRunResult =
   | { status: "idle" }
   | {
       status: "processed" | "failed";
+      queueState: PublicationQueueTerminalState;
       jobId: string;
       publicationIntentId: string;
       publicationIntentStatus: string | null;
@@ -49,12 +53,18 @@ function safeErrorClass(error: unknown): string {
   return error instanceof Error ? error.name : "unknown_worker_error";
 }
 
+function retryTerminalState(attempts: number, maxAttempts: number): "retry_wait" | "dead" {
+  return attempts >= maxAttempts ? "dead" : "retry_wait";
+}
+
 export async function runPublicationQueueOnce(input: {
   servicePrincipalId: string;
   leaseSeconds?: number;
+  maxAttempts?: number;
   now?: Date;
 }): Promise<QueueRunResult> {
   const now = input.now ?? new Date();
+  const maxAttempts = Math.max(1, input.maxAttempts ?? 5);
   const job = await withWorkerSystemTransaction(
     { servicePrincipalId: input.servicePrincipalId },
     async (client) => {
@@ -88,8 +98,9 @@ export async function runPublicationQueueOnce(input: {
       adapterFactory: (claimed) => createPublicationProviderAdapter(claimed)
     });
     const publicationStatus = resultStatus(publicationResult);
-    const jobState = publicationStatus === "failed_retryable" || publicationStatus === "retrying"
-      ? "retry_wait"
+    const isRetryable = publicationStatus === "failed_retryable" || publicationStatus === "retrying";
+    const jobState: PublicationQueueTerminalState = isRetryable
+      ? retryTerminalState(job.attempts, maxAttempts)
       : "done";
 
     await withWorkerTenantTransaction(context, async (client) => {
@@ -110,19 +121,24 @@ export async function runPublicationQueueOnce(input: {
 
     return {
       status: "processed",
+      queueState: jobState,
       jobId: job.id,
       publicationIntentId: intentId,
       publicationIntentStatus: publicationStatus
     };
   } catch (error) {
+    const jobState = retryTerminalState(job.attempts, maxAttempts);
     await withWorkerTenantTransaction(context, async (client) => {
       await client.query(
         `select *
-           from growth.complete_publication_job($1,$2,'retry_wait',$3,$4)`,
+           from growth.complete_publication_job($1,$2,$3,$4,$5)`,
         [
           input.servicePrincipalId,
           job.id,
-          new Date(now.getTime() + 60_000).toISOString(),
+          jobState,
+          jobState === "retry_wait"
+            ? new Date(now.getTime() + 60_000).toISOString()
+            : null,
           safeErrorClass(error)
         ]
       );
@@ -130,6 +146,7 @@ export async function runPublicationQueueOnce(input: {
 
     return {
       status: "failed",
+      queueState: jobState,
       jobId: job.id,
       publicationIntentId: intentId,
       publicationIntentStatus: null
