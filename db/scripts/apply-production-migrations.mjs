@@ -103,26 +103,11 @@ const steps = [
       && (await functionExists('growth.identity_complete_login_attempt(uuid)'))
       && (await functionExists('growth.identity_upgrade_password_hash(uuid,text,smallint)')),
   },
-  {
-    file: '014_youtube_integration_status.sql',
-    present: () => functionExists('growth.youtube_integration_status()'),
-  },
-  {
-    file: '015_youtube_growth_intelligence.sql',
-    present: () => functionExists('growth.recompute_youtube_growth_intelligence(uuid)'),
-  },
-  {
-    file: '016_identity_signup_verification.sql',
-    present: () => functionExists('growth.identity_signup_with_verification(text,text,smallint,text,timestamptz)'),
-  },
-  {
-    file: '017_instagram_connector_foundation.sql',
-    present: () => functionExists('growth.instagram_integration_status()'),
-  },
-  {
-    file: '018_instagram_token_lifecycle.sql',
-    present: () => functionExists('growth.instagram_revoke_connection(uuid)'),
-  },
+  { file: '014_youtube_integration_status.sql', present: () => functionExists('growth.youtube_integration_status()') },
+  { file: '015_youtube_growth_intelligence.sql', present: () => functionExists('growth.recompute_youtube_growth_intelligence(uuid)') },
+  { file: '016_identity_signup_verification.sql', present: () => functionExists('growth.identity_signup_with_verification(text,text,smallint,text,timestamptz)') },
+  { file: '017_instagram_connector_foundation.sql', present: () => functionExists('growth.instagram_integration_status()') },
+  { file: '018_instagram_token_lifecycle.sql', present: () => functionExists('growth.instagram_revoke_connection(uuid)') },
   {
     file: '019_instagram_media_metrics_sync.sql',
     present: async () =>
@@ -137,17 +122,8 @@ const steps = [
       'retry-time policy metadata',
     ),
   },
-  {
-    file: '021_instagram_authorization_deduplication.sql',
-    present: () => functionDefinitionContains(
-      'growth.instagram_integration_status()',
-      'LEFT JOIN LATERAL',
-    ),
-  },
-  {
-    file: '022_publication_intent_foundation.sql',
-    present: () => functionExists('growth.create_publication_intent(uuid,uuid,uuid,uuid,text)'),
-  },
+  { file: '021_instagram_authorization_deduplication.sql', present: () => functionDefinitionContains('growth.instagram_integration_status()', 'LEFT JOIN LATERAL') },
+  { file: '022_publication_intent_foundation.sql', present: () => functionExists('growth.create_publication_intent(uuid,uuid,uuid,uuid,text)') },
   {
     file: '023_publication_intent_claim.sql',
     present: async () =>
@@ -161,10 +137,7 @@ const steps = [
       return result.rows[0].present;
     },
   },
-  {
-    file: '025_publication_asset_binding.sql',
-    present: () => columnExists('publication_intents', 'media_asset_id'),
-  },
+  { file: '025_publication_asset_binding.sql', present: () => columnExists('publication_intents', 'media_asset_id') },
   {
     file: '026_publication_execution_context.sql',
     present: async () => {
@@ -197,22 +170,10 @@ const steps = [
       (await tableExists('growth.worker_service_principals'))
       && (await columnExists('jobs', 'service_principal_id')),
   },
-  {
-    file: '031_publication_status_projection.sql',
-    present: () => functionExists('growth.list_publication_intents(uuid,integer)'),
-  },
-  {
-    file: '032_publication_worker_runtime_context.sql',
-    present: () => functionExists('growth.complete_publication_job(uuid,uuid,text,timestamptz,text)'),
-  },
-  {
-    file: '033_metric_analytics_summary.sql',
-    present: () => functionExists('growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz)'),
-  },
-  {
-    file: '034_metric_quality_anomalies.sql',
-    present: () => functionExists('growth.list_metric_quality_anomalies(uuid,timestamptz,timestamptz)'),
-  },
+  { file: '031_publication_status_projection.sql', present: () => functionExists('growth.list_publication_intents(uuid,integer)') },
+  { file: '032_publication_worker_runtime_context.sql', present: () => functionExists('growth.complete_publication_job(uuid,uuid,text,timestamptz,text)') },
+  { file: '033_metric_analytics_summary.sql', present: () => functionExists('growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz)') },
+  { file: '034_metric_quality_anomalies.sql', present: () => functionExists('growth.list_metric_quality_anomalies(uuid,timestamptz,timestamptz)') },
   {
     file: '035_recommendation_feedback.sql',
     present: async () =>
@@ -239,18 +200,9 @@ const steps = [
       && (await tableExists('growth.usage_counters'))
       && (await tableExists('growth.enterprise_policies')),
   },
-  {
-    file: '039_instagram_growth_intelligence.sql',
-    present: () => functionExists('growth.recompute_instagram_growth_intelligence(uuid)'),
-  },
-  {
-    file: '040_identity_account_cleanup.sql',
-    present: () => tableExists('growth.identity_account_cleanup_040'),
-  },
-  {
-    file: '041_identity_signup_runtime_privileges.sql',
-    present: () => functionExists('growth.identity_signup_with_verification_v2(text,text,smallint,text,timestamptz)'),
-  },
+  { file: '039_instagram_growth_intelligence.sql', present: () => functionExists('growth.recompute_instagram_growth_intelligence(uuid)') },
+  { file: '040_identity_account_cleanup.sql', present: () => tableExists('growth.identity_account_cleanup_040') },
+  { file: '041_identity_signup_runtime_privileges.sql', present: () => functionExists('growth.identity_signup_with_verification_v2(text,text,smallint,text,timestamptz)') },
   {
     file: '042_identity_signup_fk_privileges.sql',
     present: async () => {
@@ -281,18 +233,9 @@ const steps = [
       return result.rows[0].present;
     },
   },
-  {
-    file: '044_identity_signup_smoke_cleanup.sql',
-    present: () => tableExists('growth.identity_signup_smoke_cleanup_044'),
-  },
-  {
-    file: '045_production_helper_privileges.sql',
-    present: () => tableExists('growth.production_helper_privileges_045'),
-  },
-  {
-    file: '046_managed_account_onboarding.sql',
-    present: () => tableExists('growth.managed_account_onboarding_046'),
-  },
+  { file: '044_identity_signup_smoke_cleanup.sql', present: () => tableExists('growth.identity_signup_smoke_cleanup_044') },
+  { file: '045_production_helper_privileges.sql', present: () => tableExists('growth.production_helper_privileges_045') },
+  { file: '046_managed_account_onboarding.sql', present: () => tableExists('growth.managed_account_onboarding_046') },
   {
     file: '047_provider_status_runtime_privileges.sql',
     present: async () => {
@@ -322,11 +265,7 @@ const steps = [
     file: '049_provider_status_membership_privilege.sql',
     present: async () => {
       const result = await client.query(`
-        select has_table_privilege(
-          'growth_migrator',
-          'growth.memberships',
-          'SELECT'
-        ) as present
+        select has_table_privilege('growth_migrator', 'growth.memberships', 'SELECT') as present
       `);
       return result.rows[0].present;
     },
@@ -350,15 +289,12 @@ const steps = [
     file: '051_provider_helper_jobs_privilege.sql',
     present: async () => {
       const result = await client.query(`
-        select has_table_privilege(
-          'growth_migrator',
-          'growth.jobs',
-          'SELECT'
-        ) as present
+        select has_table_privilege('growth_migrator', 'growth.jobs', 'SELECT') as present
       `);
       return result.rows[0].present;
     },
-  },  {
+  },
+  {
     file: '052_provider_authorization_runtime_privileges.sql',
     present: async () => {
       const result = await client.query(`
@@ -379,26 +315,15 @@ const steps = [
   },
   {
     file: '053_instagram_authorization_lock_privilege.sql',
-    present: () => functionDefinitionContains(
-      'growth.instagram_begin_authorization(uuid,text[])',
-      'pg_advisory_xact_lock',
-    ),
+    present: () => functionDefinitionContains('growth.instagram_begin_authorization(uuid,text[])', 'pg_advisory_xact_lock'),
   },
   {
     file: '054_instagram_factual_signal_type.sql',
-    present: () => constraintDefinitionContains(
-      'growth',
-      'factual_signals',
-      'factual_signals_signal_type_check',
-      'likes_acceleration',
-    ),
+    present: () => constraintDefinitionContains('growth', 'factual_signals', 'factual_signals_signal_type_check', 'likes_acceleration'),
   },
   {
     file: '055_instagram_media_observability.sql',
-    present: () => functionDefinitionContains(
-      'growth.list_instagram_media(uuid,integer,integer)',
-      'instagram.media.observability.v2',
-    ),
+    present: () => functionDefinitionContains('growth.list_instagram_media(uuid,integer,integer)', 'instagram.media.observability.v2'),
   },
   {
     file: '056_publication_worker_principal_seed.sql',
@@ -412,12 +337,12 @@ const steps = [
   {
     file: '057_publication_worker_jobs_update_privilege.sql',
     present: async () => {
-      const result = await client.query(
-        `select (
+      const result = await client.query(`
+        select (
           has_table_privilege('growth_migrator', 'growth.jobs', 'SELECT')
           and has_table_privilege('growth_migrator', 'growth.jobs', 'UPDATE')
-        ) as present`,
-      );
+        ) as present
+      `);
       return result.rows[0].present;
     },
   },
@@ -430,6 +355,10 @@ const steps = [
       return result.rows[0]?.present ?? false;
     },
   },
+  {
+    file: '059_publication_queue_status_projection.sql',
+    present: () => functionExists('growth.list_publication_intents_v2(uuid,integer)'),
+  },
 ];
 
 try {
@@ -438,7 +367,6 @@ try {
     'select current_database() as database, current_user as user',
   );
   console.log('Production migration target:', server.rows[0]);
-
 
   const migrationFiles = (await fs.readdir(migrationsDir))
     .filter((file) => /^\d+_.*\.sql$/.test(file));
@@ -449,8 +377,6 @@ try {
     '003_post_rc9_content_reconciliation.sql',
     '004_creative_production.sql',
     '005_workspace_write_policy_hardening.sql',
-    // These migrations predate the production reconciliation checks and are
-    // already part of the established production baseline.
     '007_public_execute_least_privilege.sql',
     '008_opportunity_radar_evidence_read.sql',
     '010_youtube_connector_foundation.sql',
@@ -496,7 +422,6 @@ try {
     );
     console.log('Signup smoke cleanup result:', smokeCleanupResult.rows[0] ?? { action: 'missing' });
   }
-
 
   await configurePublicationWorkerCredential();
 
