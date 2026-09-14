@@ -489,6 +489,18 @@ h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; color: #f
 .experiments-title { color: #171817 !important; }
 .experiments-copy { color: #4f554e !important; }
 .experiments-section label, .experiments-section input, .experiments-section textarea, .experiments-section select { color: #171817; }
+.experiment-planner { max-width: 820px; padding: 24px; background: #f4efe3; border: 1px solid #b9ad93; color: #171817; }
+.experiment-planner .experiments-kicker { color: #765318 !important; }
+.experiment-planner .experiments-title { color: #171817 !important; font-size: clamp(1.55rem, 2.5vw, 2.35rem); line-height: 1.05; margin: 8px 0 10px; }
+.experiment-planner .experiments-copy { color: #3f443e !important; max-width: 700px; font-size: .92rem; line-height: 1.5; }
+.experiment-form { max-width: 720px; gap: 14px; }
+.experiment-form label, .experiment-variant-form label { color: #252822 !important; gap: 6px; font-size: .78rem; font-weight: 800; }
+.experiment-form input, .experiment-form textarea, .experiment-variant-form input { color: #171817 !important; background: #fffdf8; border: 1px solid #837b6c; min-height: 48px; padding: 12px 14px; }
+.experiment-form textarea { min-height: 110px; }
+.experiment-form input:focus, .experiment-form textarea:focus, .experiment-variant-form input:focus { border-color: #8a641f; outline: 2px solid rgba(138,100,31,.22); outline-offset: 1px; }
+.experiment-planner .detail-action-button { width: fit-content; min-height: 44px; padding: 10px 18px; color: #171817; background: #d5a84f; border-color: #8a641f; }
+@media (max-width: 900px) { .experiment-planner { max-width: none; } }
+@media (max-width: 560px) { .experiment-planner { padding: 18px; } .experiment-form textarea { min-height: 96px; } }
 footer { color: #70746e; border-top: 1px solid #252622; margin-top: 28px; padding-top: 22px; }
 footer span:first-child { color: #d4d0c5; }
 @media (max-width: 720px) { .app-shell { width: min(100% - 32px, 1440px); } .hero { padding-top: 56px; } h1 { font-size: clamp(3rem, 16vw, 5rem); } }
