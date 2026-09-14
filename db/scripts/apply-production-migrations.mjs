@@ -418,6 +418,15 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '058_publication_worker_security_reconciliation.sql',
+    present: async () => {
+      const result = await client.query(
+        "select p.prosecdef as present from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'growth' and p.proname = 'claim_due_publication_job' and has_function_privilege('growth_worker', 'growth.claim_due_publication_job(uuid,timestamptz,integer)', 'EXECUTE')",
+      );
+      return result.rows[0]?.present ?? false;
+    },
+  },
 ];
 
 try {
