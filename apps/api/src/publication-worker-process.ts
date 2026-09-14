@@ -39,9 +39,6 @@ async function tick(): Promise<void> {
     console.error(JSON.stringify({
       event: "publication_worker_error",
       error_class: safeErrorClass(error),
-      error_message: error instanceof Error
-        ? error.message.slice(0, 240)
-        : "unknown worker error"
     }));
   }
 }
