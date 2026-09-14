@@ -409,6 +409,15 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '057_publication_worker_jobs_update_privilege.sql',
+    present: async () => {
+      const result = await client.query(
+        "select has_table_privilege('growth_migrator', 'growth.jobs', 'SELECT,UPDATE') as present",
+      );
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
