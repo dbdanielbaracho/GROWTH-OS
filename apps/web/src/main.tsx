@@ -269,9 +269,9 @@ function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
 
   return (
     <section className="detail-section experiment-planner">
-      <p className="section-kicker">Experiments</p>
-      <h3>Plan a measurable next test</h3>
-      <p>Planning is stored with the source opportunity. Growth OS does not publish variants or declare a winner without outcome evidence.</p>
+        <p className="section-kicker experiments-kicker">Experiments</p>
+        <h3 className="experiments-title">Plan a measurable next test</h3>
+        <p className="experiments-copy">Planning is stored with the source opportunity. Growth OS does not publish variants or declare a winner without outcome evidence.</p>
       {!experiment ? (
         <form className="experiment-form" onSubmit={submitExperiment}>
           <label><span>Experiment name</span><input value={name} onChange={(event) => setName(event.target.value)} required maxLength={160} /></label>
