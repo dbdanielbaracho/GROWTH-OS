@@ -28,6 +28,18 @@ function normalizeSqlForPgDriver(sql, filePath) {
     .join('\n');
 }
 
+async function configurePublicationWorkerCredential() {
+  const password = process.env.PUBLICATION_WORKER_DATABASE_PASSWORD;
+  if (!password) return;
+
+  const statement = await client.query(
+    "select format('alter role growth_worker password %L', $1) as sql",
+    [password],
+  );
+  await client.query(statement.rows[0].sql);
+  console.log('Configured dedicated publication worker database credential');
+}
+
 async function functionExists(signature) {
   const result = await client.query(
     'select to_regprocedure($1) is not null as present',
@@ -463,6 +475,8 @@ try {
     );
     console.log('Signup smoke cleanup result:', smokeCleanupResult.rows[0] ?? { action: 'missing' });
   }
+
+  await configurePublicationWorkerCredential();
 
   console.log('Production migration reconciliation complete');
 } finally {
