@@ -12,6 +12,14 @@ const { runPublicationQueueOnce } = await import("./publication-queue-worker.js"
 let stopping = false;
 let activeRun: Promise<void> | null = null;
 
+function safeErrorClass(error: unknown): string {
+  if (!(error instanceof Error)) return "unknown_worker_error";
+  const code = typeof (error as Error & { code?: unknown }).code === "string"
+    ? (error as Error & { code: string }).code
+    : null;
+  return code ? `${error.name}:${code}` : error.name;
+}
+
 async function tick(): Promise<void> {
   try {
     const result = await runPublicationQueueOnce({
@@ -30,7 +38,7 @@ async function tick(): Promise<void> {
   } catch (error) {
     console.error(JSON.stringify({
       event: "publication_worker_error",
-      error_class: error instanceof Error ? error.name : "unknown_worker_error"
+      error_class: safeErrorClass(error)
     }));
   }
 }
