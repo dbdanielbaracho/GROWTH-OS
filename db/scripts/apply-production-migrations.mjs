@@ -390,7 +390,7 @@ const steps = [
   },
   {
     file: '056_publication_worker_principal_seed.sql',
-    present: () => {
+    present: async () => {
       const result = await client.query(
         "select exists(select 1 from growth.worker_service_principals where id = '5d3f0c0e-7a6e-4b4b-9d8e-2e8f7f2a6c11'::uuid and name = 'growth-os-publication-worker' and status = 'active') as present",
       );
