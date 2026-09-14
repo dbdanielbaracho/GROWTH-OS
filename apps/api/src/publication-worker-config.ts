@@ -5,6 +5,7 @@ export type PublicationWorkerConfig = {
   workerDatabaseUrl: string;
   intervalMs: number;
   leaseSeconds: number;
+  maxAttempts: number;
 };
 
 export function loadPublicationWorkerConfig(environment: NodeJS.ProcessEnv): PublicationWorkerConfig {
@@ -34,10 +35,17 @@ export function loadPublicationWorkerConfig(environment: NodeJS.ProcessEnv): Pub
     Math.min(60_000, Number.isFinite(configuredInterval) ? configuredInterval : 5_000)
   );
 
+  const configuredMaxAttempts = Number.parseInt(environment.PUBLICATION_WORKER_MAX_ATTEMPTS ?? "5", 10);
+  const maxAttempts = Math.max(
+    1,
+    Math.min(20, Number.isFinite(configuredMaxAttempts) ? configuredMaxAttempts : 5)
+  );
+
   return {
     servicePrincipalId,
     workerDatabaseUrl,
     intervalMs,
-    leaseSeconds: Math.min(900, Math.max(30, Math.ceil(intervalMs / 1000) * 3))
+    leaseSeconds: Math.min(900, Math.max(30, Math.ceil(intervalMs / 1000) * 3)),
+    maxAttempts
   };
 }

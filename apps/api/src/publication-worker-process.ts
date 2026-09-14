@@ -24,12 +24,14 @@ async function tick(): Promise<void> {
   try {
     const result = await runPublicationQueueOnce({
       servicePrincipalId: workerConfig.servicePrincipalId,
-      leaseSeconds: workerConfig.leaseSeconds
+      leaseSeconds: workerConfig.leaseSeconds,
+      maxAttempts: workerConfig.maxAttempts
     });
     if (result.status !== "idle") {
       console.log(JSON.stringify({
         event: "publication_worker_job",
         status: result.status,
+        queue_state: result.queueState,
         job_id: result.jobId,
         publication_intent_id: result.publicationIntentId,
         publication_intent_status: result.publicationIntentStatus
