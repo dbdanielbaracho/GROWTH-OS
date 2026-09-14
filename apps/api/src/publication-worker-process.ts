@@ -40,7 +40,7 @@ async function tick(): Promise<void> {
       event: "publication_worker_error",
       error_class: safeErrorClass(error),
       error_message: error instanceof Error
-        ? error.message.replace(/postgres(?:ql)?:\\/\\/[^\\s]+/gi, "postgresql://[redacted]")
+        ? error.message.slice(0, 240)
         : "unknown worker error"
     }));
   }
