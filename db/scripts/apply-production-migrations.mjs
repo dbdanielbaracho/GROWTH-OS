@@ -33,7 +33,7 @@ async function configurePublicationWorkerCredential() {
   if (!password) return;
 
   const statement = await client.query(
-    "select format('alter role growth_worker password %L', $1) as sql",
+    "select format('alter role growth_worker password %L', $1::text) as sql",
     [password],
   );
   await client.query(statement.rows[0].sql);
