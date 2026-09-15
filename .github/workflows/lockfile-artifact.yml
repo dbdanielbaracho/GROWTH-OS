@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  generate:
+  finalize:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -22,17 +22,25 @@ jobs:
         with:
           node-version: 22
 
-      - name: Generate npm lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify committed lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Commit canonical npm lockfile
+      - name: Switch canonical CI to npm ci and remove generator
         run: |
-          if [ -z "$(git status --porcelain package-lock.json)" ]; then
-            echo "package-lock.json already canonical"
-            exit 0
-          fi
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = '.github/workflows/ci.yml';
+          const from = '        run: npm install --no-audit --no-fund\n';
+          const to = '        run: npm ci --no-audit --no-fund\n';
+          const current = fs.readFileSync(path, 'utf8');
+          if (!current.includes(from)) {
+            throw new Error('Expected canonical npm install step was not found');
+          }
+          fs.writeFileSync(path, current.replace(from, to));
+          NODE
+          git rm .github/workflows/lockfile-artifact.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "chore: add canonical npm lockfile"
+          git add .github/workflows/ci.yml
+          git commit -m "chore: enforce deterministic npm ci installs"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
