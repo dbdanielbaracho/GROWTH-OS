@@ -2,7 +2,6 @@
   "name": "growth-os",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@10.9.8",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -17,6 +16,6 @@
     "db:apply": "node db/scripts/apply-migration.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.23.2"
   }
 }
