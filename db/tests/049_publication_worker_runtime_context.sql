@@ -1,4 +1,5 @@
--- Worker tenant context and job completion contract gate.
+-- Worker tenant context, job completion and operational queue lifecycle gate.
+-- The lifecycle proof is fully transactional and rolls back all smoke data.
 \set ON_ERROR_STOP on
 
 BEGIN;
@@ -62,6 +63,136 @@ BEGIN
 END;
 $worker_context_gate$;
 
+DO $seed_lifecycle_smoke$
+DECLARE
+  service_id uuid := 'f0000000-0000-4000-8000-000000000049';
+  job_id uuid := 'f0000000-0000-4000-8000-000000000050';
+  workspace_id uuid;
+BEGIN
+  SELECT id INTO workspace_id
+  FROM growth.workspaces
+  ORDER BY id
+  LIMIT 1;
+
+  IF workspace_id IS NULL THEN
+    RAISE EXCEPTION '049 failed: no workspace exists for transactional queue lifecycle proof';
+  END IF;
+
+  INSERT INTO growth.worker_service_principals(
+    id, name, status, allowed_job_types
+  )
+  VALUES(
+    service_id,
+    'gate-publication-lifecycle',
+    'active',
+    ARRAY['publication_intent']
+  );
+
+  INSERT INTO growth.jobs(
+    id, workspace_id, job_type, operation_key, payload, state,
+    available_at, service_principal_id
+  )
+  VALUES(
+    job_id,
+    workspace_id,
+    'publication_intent',
+    'gate-049-lifecycle',
+    jsonb_build_object(
+      'publication_intent_id',
+      'f0000000-0000-4000-8000-000000000051'
+    ),
+    'queued',
+    now(),
+    service_id
+  );
+END;
+$seed_lifecycle_smoke$;
+
+SET LOCAL ROLE growth_worker;
+
+DO $queue_lifecycle_smoke$
+DECLARE
+  service_id uuid := 'f0000000-0000-4000-8000-000000000049';
+  job_id uuid := 'f0000000-0000-4000-8000-000000000050';
+  claimed growth.jobs;
+  completed growth.jobs;
+BEGIN
+  SELECT * INTO claimed
+  FROM growth.claim_due_publication_job(service_id, now(), 60)
+  LIMIT 1;
+
+  IF NOT FOUND
+     OR claimed.id IS DISTINCT FROM job_id
+     OR claimed.state IS DISTINCT FROM 'leased'
+     OR claimed.attempts IS DISTINCT FROM 1
+  THEN
+    RAISE EXCEPTION '049 failed: queued job did not enter first leased attempt';
+  END IF;
+
+  SELECT * INTO completed
+  FROM growth.complete_publication_job(
+    service_id,
+    job_id,
+    'retry_wait',
+    now() + interval '1 minute',
+    'smoke.retry'
+  );
+
+  IF completed.state IS DISTINCT FROM 'retry_wait'
+     OR completed.attempts IS DISTINCT FROM 1
+     OR completed.leased_until IS NOT NULL
+     OR completed.last_error_class IS DISTINCT FROM 'smoke.retry'
+  THEN
+    RAISE EXCEPTION '049 failed: first attempt did not enter retry_wait safely';
+  END IF;
+
+  SELECT * INTO claimed
+  FROM growth.claim_due_publication_job(
+    service_id,
+    now() + interval '2 minutes',
+    60
+  )
+  LIMIT 1;
+
+  IF NOT FOUND
+     OR claimed.id IS DISTINCT FROM job_id
+     OR claimed.state IS DISTINCT FROM 'leased'
+     OR claimed.attempts IS DISTINCT FROM 2
+  THEN
+    RAISE EXCEPTION '049 failed: retry_wait job did not enter second leased attempt';
+  END IF;
+
+  SELECT * INTO completed
+  FROM growth.complete_publication_job(
+    service_id,
+    job_id,
+    'dead',
+    NULL,
+    'smoke.dead'
+  );
+
+  IF completed.state IS DISTINCT FROM 'dead'
+     OR completed.attempts IS DISTINCT FROM 2
+     OR completed.leased_until IS NOT NULL
+     OR completed.last_error_class IS DISTINCT FROM 'smoke.dead'
+  THEN
+    RAISE EXCEPTION '049 failed: second attempt did not enter terminal dead state';
+  END IF;
+
+  SELECT * INTO claimed
+  FROM growth.claim_due_publication_job(
+    service_id,
+    now() + interval '10 minutes',
+    60
+  )
+  LIMIT 1;
+
+  IF FOUND THEN
+    RAISE EXCEPTION '049 failed: terminal dead job was claimable again';
+  END IF;
+END;
+$queue_lifecycle_smoke$;
+
 ROLLBACK;
 
-SELECT 'TEST-049 PASS: worker tenant context and job completion contract' AS result;
+SELECT 'TEST-049 PASS: queued -> leased(1) -> retry_wait -> leased(2) -> dead; rollback complete' AS result;
