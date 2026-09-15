@@ -1,5 +1,25 @@
 # GROW OS — Memória Completa de Execução do Projeto
 
+
+## Regra permanente — registrar cada pedido de continuação — v1.0 — 2026-09-15
+
+**Instrução do usuário:** "preciso que seja registrado também todos o continuar projeto será registrado no documento".
+
+Cada mensagem que solicite continuação deste projeto deve ser registrada neste documento central, inclusive quando repetir um pedido anterior. Exemplos: "continuar o projeto", "continuando o projeto", "continuar", "Continuar", "continuar de onde parou" e "continuar até o final", quando referentes ao projeto. Não consolidar várias ocorrências em uma única entrada que apague a sequência dos pedidos.
+
+Procedimento obrigatório para cada ocorrência:
+
+1. Consultar o checkpoint e a última entrada de execução antes de retomar.
+2. Abrir uma entrada datada com o texto exato disponível do pedido e o ponto efetivamente verificado de retomada. Registrar hora apenas quando fornecida por uma fonte confiável.
+3. Registrar todas as ações executadas, tentativas, verificações, erros, correções e decisões durante essa continuação; ligar arquivos, commits, PRs, CI e deployments quando existirem.
+4. Registrar o resultado real e distinguir pedido recebido, ação preparada, execução realizada, verificação aprovada e bloqueio. Um pedido para continuar não demonstra que uma execução ou um teste ocorreu.
+5. Registrar o ponto em que a execução terminou ou foi impedida e a próxima pendência concreta. Mesmo sem avanço, o pedido e a razão devem constar.
+6. Atualizar o documento durante a execução e antes de encerrar a resposta. Versionar as alterações pelo fluxo GitHub/CI do projeto.
+7. Preservar cada entrada anterior. Não inventar pedidos, datas, ações ou resultados de conversas indisponíveis. Não reproduzir credenciais ou segredos.
+
+Esta regra vale para as próximas retomadas e complementa a obrigação de registrar tudo que for realizado. O usuário não deve precisar repetir informações já registradas. O caminho central é `docs/PROJECT_EXECUTION_MEMORY.md`; logs complementares devem ter vínculo neste documento.
+
+
 **Repositório:** dbdanielbaracho/GROWTH-OS  
 **Documento:** memória operacional completa, versionada no GitHub  
 **Data desta consolidação:** 05 de setembro de 2026  
@@ -4088,3 +4108,12 @@ Projeto `successful-embrace`: `76277bf9-640b-4964-b406-76b71feff7fb`; produção
 ### Estado e limites após este registro
 
 A obrigação de registro central foi cumprida para as ações desta retomada por esta atualização versionada. A validação autenticada de produção, a publicação real controlada, a comparação visual equivalente, a revisão final real do Claude e o trecho autenticado/dados do Production Truth Gate continuam abertos. A rejeição de autenticação não autoriza trocar para Tinyfish como contorno. Esta atualização documental não congela o produto nem demonstra conclusão de uma tarefa Tinyfish.
+
+## 2026-09-15 — pedido para registrar todas as solicitações de continuação
+
+- Pedido exato recebido: "preciso que seja registrado também todos o continuar projeto será registrado no documento".
+- Ponto de retomada verificado: PR #175 já integrado em main no SHA `d4477c3397145562a0e65b8d5274359cc5b8d0f9`; memória central e checkpoint foram lidos diretamente antes desta alteração.
+- Ação executada: acrescentada no início da memória a regra permanente v1.0 para registrar separadamente cada pedido de continuação e suas ações/resultados/bloqueios, sem apagar repetições. O checkpoint passa a apontar explicitamente para essa regra.
+- Fluxo documental: branch `docs/register-every-project-continuation` criada a partir do SHA verificado de main; alterações limitadas à memória central e ao checkpoint. O PR e seus checks preservam a evidência de versão e integração.
+- Limite: esta atualização registra a regra e este pedido. Não afirma recuperar todas as ocorrências de "continuar" de outras conversas não disponíveis nem comprova novo avanço funcional, login ou execução Tinyfish.
+- Pendências mantidas: documento específico Tinyfish ainda não localizado; validação autenticada de produção e demais gates de aceite permanecem no estado documentado.
