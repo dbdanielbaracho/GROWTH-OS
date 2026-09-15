@@ -1,8 +1,7 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const repositoryRoot = process.cwd();
 const resultsRoot = path.join(repositoryRoot, "test-results");
 
 export default defineConfig({
