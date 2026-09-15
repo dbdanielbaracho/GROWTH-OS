@@ -4008,3 +4008,83 @@ O processo usa `runPublicationQueueOnce` e, portanto, depende do contexto worker
 2. The production reconciler previously checked only whether status helper functions existed; it did not repair a missing `EXECUTE` grant for `app_runtime`.
 3. Migration 047 explicitly reconciles `EXECUTE` on both protected status helpers, asserts the grants, and asserts that direct provider-table SELECT remains closed to `app_runtime`.
 4. CI gate 057 covers the exact privilege contract. Railway promotion is blocked until CI passes and the production HTTP status endpoint is rechecked.
+
+
+## 2026-09-15 — retomada, verificações de produção e correção da continuidade Tinyfish
+
+### Instrução permanente do usuário e correção de procedimento
+
+O usuário reiterou: "eu havia passado que tudo que voce realizado deveria ser registrado em um documento no github". A memória central deste projeto permanece neste arquivo, `docs/PROJECT_EXECUTION_MEMORY.md`. Arquivos de evidência complementares e PRs devem ser ligados a esta memória; abrir um relatório separado sem atualizar o registro central não satisfaz a continuidade.
+
+Esta atualização registra todas as ações identificáveis desta retomada e as correções de entendimento. Não afirma recuperar ações de outras conversas que não foram localizadas. Toda afirmação futura de estado deve citar evidência efetivamente lida; ausência de resultado de busca não prova ausência de implementação.
+
+### Solicitações e sequência desta retomada
+
+1. O usuário escreveu "continuando o projeto". A execução assumiu Growth OS a partir do contexto disponível e anunciou a verificação do ponto de parada.
+2. Foram carregadas as instruções de personal-context e Library; a busca de contexto anterior foi executada para recuperar a etapa pendente.
+3. Uma inspeção inicial de `pwd`/arquivos de projeto no workspace atual não encontrou os arquivos procurados. Isso não demonstrou ausência de arquivos no GitHub ou nos arquivos persistentes do usuário.
+4. A recuperação histórica indicou o commit `a075bfd` e um worker sem as variáveis obrigatórias. Uma segunda busca recuperou os identificadores canônicos de Railway, mas não recuperou o fim completo da conversa recente. Essa limitação não foi tratada como nova prova de produção.
+5. Foram descobertas as capacidades disponíveis de GitHub, Railway e navegador. Tinyfish apareceu como ferramenta disponível; nenhuma chamada de Tinyfish foi executada nesta retomada.
+
+### GitHub: leitura, CI e identidade
+
+- Foram lidos a árvore de main, a branch main e os cinco PRs mais recentes recuperados: #170, #171, #172, #173 e #174.
+- Main confirmado naquele momento: `ad4dad727012b92cbe9c3675d5994016ec8a1488`, merge documental do PR #174.
+- Runtime aceito, mantido separado de commits documentais: `f1b3009e126faf6d388b1e5dca7e681c8e991ac6`.
+- Foram lidos `PROJECT_CURRENT_STATE.md`, `docs/FULL_PRODUCT_ROADMAP.md`, `docs/ROADMAP_STATUS_RECONCILIATION_2026-09-15.md` e `docs/DESIGN_QUALITY_BENCHMARK_V0.2.md`.
+- GitHub Actions run `34979049457` foi consultado diretamente: `completed/success` no SHA exato do runtime aceito.
+- Foram lidas as linhas 1–150 de `apps/api/src/app.ts` e o conteúdo de `apps/api/src/server.ts` para identificar a composição do runtime e a rota de metadados.
+- A aceitação automatizada de navegadores do PR #173 foi identificada como já registrada. Seus fixtures não foram convertidos em prova de uma conta autenticada real.
+
+### Railway: verificações somente leitura
+
+Projeto `successful-embrace`: `76277bf9-640b-4964-b406-76b71feff7fb`; produção: `fdf989ff-78b5-4268-9465-2739acc40d2f`.
+
+- Status do projeto/23 serviços foi consultado. Serviços históricos de validação com estado CRASHED foram observados, sem alteração, remoção ou atribuição automática de falha ao app atual.
+- App `growth-os`: deployment `57cb874b-2dc9-4055-b64b-b5da38138a5e`, SUCCESS.
+- Migrator: deployment `1c80b068-cb44-4b65-9e13-b64538c61211`, SUCCESS.
+- Worker: serviço `a61cca1a-39df-416e-8304-c3519365d27c`, deployment `f308f3f1-0301-4859-91dc-34ca04a56917`, SUCCESS.
+- Configuração do worker lida: repo canônico/main, Railpack, comando `npm run worker:publication`, política de reinício ALWAYS e Watch Paths configurados.
+- Ambas as variáveis `PUBLICATION_WORKER_DATABASE_URL` e `PUBLICATION_WORKER_SERVICE_PRINCIPAL_ID` estavam definidas. Seus valores não foram buscados. A alegação histórica de credenciais ausentes foi explicitamente corrigida.
+- Logs de inicialização do worker foram lidos. SUCCESS/inicialização não provam publicação externa.
+- Logs recentes do app foram lidos e continham requisições a `growos.predibeacon.com` com respostas 200 para sessão, status de YouTube/Instagram e leitura de mídia Instagram. Essas requisições não foram atribuídas à sessão do navegador desta retomada.
+- Logs do migrator confirmaram migration 060 já presente, reconciliação completa e PASS nos smokes de fila/dead-letter, reconciliação e cancelamento, todos com rollback completo. Não foi executada nova migration nesta retomada.
+
+### Verificações HTTP e navegador
+
+- GET exploratório via terminal para `/v1/system/info` retornou 404. Essa URL não havia sido verificada como contrato de metadados; não foi declarada regressão do produto.
+- Uma tentativa via terminal para `/health/ready` não produziu resultado final nos retornos consultados. Não foi registrada como PASS nem como falha do produto. Evidência de saúde anteriormente documentada permanece distinguida de uma nova medição.
+- Foram lidas as instruções obrigatórias de control-browser, a documentação do navegador e o trecho adicional que a própria saída havia truncado.
+- O navegador dedicado tinha uma aba `about:blank`. Foi aberta `https://growos.predibeacon.com`.
+- A primeira observação mostrou o carregamento; a seguinte mostrou o login real de Growth OS, com Email, Password, Sign in, Forgot password e Create a new account. Nenhuma sessão autenticada estava disponível.
+- A documentação obrigatória de browserAuth foi carregada. Foi tentada a abertura do formulário seguro para esta origem e envio pelo controle Sign in.
+- A revisão automática rejeitou essa ação por considerar que a solicitação genérica de continuação não autorizava explicitamente solicitar/enviar credenciais de uma conta de produção. Não houve retorno de submissão bem-sucedida, inspeção de credenciais, entrada por API inferior nem tentativa de contornar a rejeição.
+- O impedimento e o motivo foram informados; foi solicitada autorização explícita para autenticar pela interface segura e executar testes. O usuário não concedeu essa autorização nos turnos subsequentes registrados aqui; passou a tratar de Tinyfish e documentação.
+
+### Documentação criada nesta retomada
+
+- Branch criada sobre o SHA verificado de main: `docs/resume-production-auth-blocker-20260915`.
+- Arquivo criado: `docs/EXECUTION_LOG_2026-09-15_AUTHENTICATED_ACCEPTANCE_BLOCKER.md`.
+- Commit inicial desse arquivo: `802e4724c2cde8f33d19ae700c4bb92d0fff7354`.
+- PR #175 aberto: https://github.com/dbdanielbaracho/GROWTH-OS/pull/175.
+- O PR inicial continha apenas o log complementar; o registro central ainda não havia sido atualizado. A presente atualização corrige essa omissão no mesmo PR e acrescenta o vínculo no checkpoint raiz.
+- Nenhum código de aplicação, segredo, permissão de conta, publicação externa ou dado de produção foi alterado por essas ações documentais.
+
+### Tinyfish: solicitações, buscas e limites
+
+1. O usuário esclareceu "em relação ao tinyfish".
+2. Foi executada uma busca de personal-context focada em Tinyfish/Growth OS. Ela não recuperou conversa ou arquivo pertinente.
+3. A resposta informou que Tinyfish estava disponível e não havia sido utilizado nesta retomada, mas também afirmou que não estava integrado ao Growth OS sem prova documental suficiente. A parte sobre estado da integração é RETIRADA; esta retomada comprova somente que não executou uma integração Tinyfish.
+4. O usuário determinou: "voce tem que verificar o documento que é gerado".
+5. Foram executadas buscas de arquivos por Tinyfish e tiny fish. Os resultados amplos continham candidatos sem correspondência demonstrada, incluindo imagens e documentos de outros projetos. Eles não foram usados como prova de Tinyfish.
+6. A busca por "Tinyfish" com exclusão de imagens também retornou candidatos não demonstrados como pertinentes. A busca específica pelo título "Tinyfish" retornou zero resultados.
+7. A busca de código do GitHub `Tinyfish repo:dbdanielbaracho/GROWTH-OS` retornou `total_count=0`. A busca de repositórios `user:dbdanielbaracho tinyfish` não retornou repositório. Resultados de busca/indexação não provam ausência de conteúdo.
+8. Foram relidos o checkpoint raiz e o log criado no PR #175. Foi lido integralmente o conteúdo retornado de `docs/PROJECT_EXECUTION_MEMORY.md`; a busca por Tinyfish com espaços opcionais entre tiny e fish, sem distinção de maiúsculas, não encontrou menção nesse conteúdo anterior à presente atualização.
+9. A listagem de arquivos não-imagem modificados após 10/09/2026 não retornou itens. Não foi inferido que o documento específico não existe.
+10. Foi informado ao usuário que os documentos efetivamente lidos não registravam uma etapa Tinyfish; foi pedido nome/link do documento não localizado. O usuário corrigiu o procedimento, reiterando a obrigação de manter toda execução em um documento GitHub.
+11. Estado demonstrado: o documento específico gerado pelo Tinyfish ainda não foi identificado nem validado nesta retomada. Não foi feita chamada de Tinyfish, automação metered, consulta de carteira ou integração. Não há evidência nesta execução de resultado, gasto, correção ou aceite Tinyfish.
+12. Continuação: usar o registro documental como primeira fonte; localizar a identidade exata do documento/run antes de afirmar seu conteúdo ou estado. Não confundir as verificações Growth OS com uma tarefa Tinyfish que ainda não foi recuperada.
+
+### Estado e limites após este registro
+
+A obrigação de registro central foi cumprida para as ações desta retomada por esta atualização versionada. A validação autenticada de produção, a publicação real controlada, a comparação visual equivalente, a revisão final real do Claude e o trecho autenticado/dados do Production Truth Gate continuam abertos. A rejeição de autenticação não autoriza trocar para Tinyfish como contorno. Esta atualização documental não congela o produto nem demonstra conclusão de uma tarefa Tinyfish.
