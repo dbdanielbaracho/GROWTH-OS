@@ -1,4 +1,9 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const resultsRoot = path.join(repositoryRoot, "test-results");
 
 export default defineConfig({
   testDir: ".",
@@ -11,10 +16,10 @@ export default defineConfig({
     ? [
         ["line"],
         ["github"],
-        ["json", { outputFile: "test-results/playwright-results.json" }]
+        ["json", { outputFile: path.join(resultsRoot, "playwright-results.json") }]
       ]
     : "list",
-  outputDir: "test-results/playwright-artifacts",
+  outputDir: path.join(resultsRoot, "playwright-artifacts"),
   timeout: 30_000,
   expect: { timeout: 8_000 },
   use: {
