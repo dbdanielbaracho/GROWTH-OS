@@ -1,5 +1,9 @@
 # Current Project State
 
+## Mandatory continuation-request log
+
+Every request to continue this project, including repeated or abbreviated requests, must receive a separate dated entry in `docs/PROJECT_EXECUTION_MEMORY.md`. Record the exact available request text, verified starting point, every performed action/attempt/check/correction, actual result, any blocker and the next pending action. Consult the last entry before resuming and update the central record during work and before ending the response. A request is not execution evidence. Preserve repetitions and history; never invent unavailable messages, timestamps or results, and never reproduce secrets. Full standing instruction: central memory, “Regra permanente — registrar cada pedido de continuação — v1.0 — 2026-09-15”.
+
 Last updated: 2026-09-15  
 Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.
 
