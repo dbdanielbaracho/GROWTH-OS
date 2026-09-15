@@ -127,7 +127,6 @@ function OpportunityCard({
   );
 }
 
-
 function recommendationLabel(code: Recommendation["action_code"]) {
   if (code === "draft_content") return "Start a content draft";
   if (code === "review_evidence") return "Review the evidence";
@@ -227,7 +226,6 @@ function RecommendationPanel({ opportunityId }: { opportunityId: string }) {
   );
 }
 
-
 function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
   const [name, setName] = useState("");
   const [hypothesis, setHypothesis] = useState("");
@@ -269,9 +267,9 @@ function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
 
   return (
     <section className="detail-section experiment-planner">
-        <p className="section-kicker experiments-kicker">Experiments</p>
-        <h3 className="experiments-title">Plan a measurable next test</h3>
-        <p className="experiments-copy">Planning is stored with the source opportunity. Growth OS does not publish variants or declare a winner without outcome evidence.</p>
+      <p className="section-kicker experiments-kicker">Experiments</p>
+      <h3 className="experiments-title">Plan a measurable next test</h3>
+      <p className="experiments-copy">Planning is stored with the source opportunity. Growth OS does not publish variants or declare a winner without outcome evidence.</p>
       {!experiment ? (
         <form className="experiment-form" onSubmit={submitExperiment}>
           <label><span>Experiment name</span><input value={name} onChange={(event) => setName(event.target.value)} required maxLength={160} /></label>
@@ -374,7 +372,7 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
         </span>
       </div>
       <div className="automation-request-form">
-        <select value={actionCode} onChange={(event) => setActionCode(event.target.value as AutomationActionRequest["action_code"])}>
+        <select aria-label="Automation action" value={actionCode} onChange={(event) => setActionCode(event.target.value as AutomationActionRequest["action_code"])}>
           <option value="draft_content">Draft content</option>
           <option value="review_evidence">Review evidence</option>
           <option value="plan_experiment">Plan experiment</option>
@@ -703,13 +701,7 @@ function RadarApp({
             Growth OS turns stored observations into ranked opportunities, so the next move starts with evidence—not noise.
           </p>
           <div className="hero-actions">
-            <button
-              className="hero-text-link"
-              type="button"
-              onClick={openRadar}
-            >
-              Open opportunity feed ↓
-            </button>
+            <button className="hero-text-link" type="button" onClick={openRadar}>Open opportunity feed ↓</button>
             <span className="hero-note">Evidence first · no synthetic signals</span>
           </div>
         </div>
