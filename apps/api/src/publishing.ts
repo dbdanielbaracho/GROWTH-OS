@@ -107,8 +107,18 @@ export async function listPublicationIntents(
 ) {
   const result = await client.query(
     `select *
-       from growth.list_publication_intents($1, $2)`,
+       from growth.list_publication_intents_v2($1, $2)`,
     [principal.workspaceId, limit]
   );
-  return result.rows;
+
+  return result.rows.map((row) => {
+    if (row.queue_state !== "dead") return row;
+
+    return {
+      ...row,
+      status: "needs_user_action",
+      retry_count: Math.max(Number(row.retry_count ?? 0), Number(row.queue_attempts ?? 0)),
+      last_error_class: row.queue_last_error_class ?? row.last_error_class
+    };
+  });
 }

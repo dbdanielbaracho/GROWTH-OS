@@ -430,6 +430,10 @@ const steps = [
       return result.rows[0]?.present ?? false;
     },
   },
+  {
+    file: '059_publication_queue_status_projection.sql',
+    present: () => functionExists('growth.list_publication_intents_v2(uuid,integer)'),
+  },
 ];
 
 try {
