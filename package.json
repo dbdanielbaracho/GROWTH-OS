@@ -16,6 +16,6 @@
     "db:apply": "node db/scripts/apply-migration.mjs"
   },
   "engines": {
-    "node": "22.23.2"
+    "node": ">=22"
   }
 }
