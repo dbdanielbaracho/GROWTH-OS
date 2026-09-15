@@ -74,6 +74,40 @@ async function mockApi(page: Page, mode: "signed_out" | "authenticated") {
       return json(route, 200, session);
     }
 
+    if (mode === "authenticated" && path === "/v1/integrations/youtube/status") {
+      return json(route, 200, {
+        status: "ok",
+        configured: false,
+        derived_analytics_policy_accepted: false,
+        integrations: []
+      });
+    }
+
+    if (mode === "authenticated" && path === "/v1/integrations/instagram/status") {
+      return json(route, 200, {
+        status: "ok",
+        configured: false,
+        integrations: []
+      });
+    }
+
+    if (mode === "authenticated" && path === "/v1/analytics/metrics") {
+      return json(route, 200, {
+        status: "ok",
+        from: "2026-09-08T00:00:00.000Z",
+        to: "2026-09-15T00:00:00.000Z",
+        metrics: []
+      });
+    }
+
+    if (mode === "authenticated" && path === "/v1/content") {
+      return json(route, 200, { status: "ok", content: [] });
+    }
+
+    if (mode === "authenticated" && path === "/v1/publication-intents") {
+      return json(route, 200, { status: "ok", publicationIntents: [] });
+    }
+
     if (mode === "authenticated" && path === "/v1/opportunities") {
       return json(route, 200, { status: "ok", opportunities: [opportunity] });
     }
