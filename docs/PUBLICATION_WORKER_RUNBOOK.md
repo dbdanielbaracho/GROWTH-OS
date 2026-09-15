@@ -45,17 +45,29 @@ The smoke also replays identical evidence to prove idempotency, attempts a confl
 
 The temporary platform connection uses only the synthetic `gate_test` platform label. No provider adapter, network request, OAuth credential or external publication is invoked. Production execution uses `db/scripts/publication-reconciliation-operational-smoke.mjs` and emits only the database/user target plus a PASS line. A production PASS proves the database/runtime reconciliation mechanics; it is not provider-side confirmation of a real publication.
 
+## Rollback-only cancellation smoke
+
+`db/tests/045_publication_cancellation.sql` is the canonical cancellation state-transition proof. It creates a synthetic tenant/user/content graph inside one transaction, enters the normal `app_runtime` user context, and proves the actor and terminal-state boundaries without calling any provider.
+
+It physically proves:
+
+`scheduled -> cancelled`, with `cancelled_by` and `cancelled_at` recorded and `scheduled_for` cleared.
+
+The smoke also proves that a mismatched actor is rejected, that an already-cancelled intent cannot be cancelled again, and that a `confirmed` intent is immutable to cancellation. All temporary rows use the synthetic `gate_test` platform label and end in `ROLLBACK`.
+
+Production execution uses `db/scripts/publication-cancellation-operational-smoke.mjs`. A production PASS proves local cancellation mechanics only; it does not cancel or modify any provider-side publication.
+
 ## Deployment checklist
 
 1. Provision the active service principal and worker credential in the canonical Railway environment.
 2. Set the required variables above in the worker service; leave `PUBLICATION_WORKER_MAX_ATTEMPTS` unset to use the safe default unless operations explicitly chooses another bounded value.
-3. Run the exact GitHub SHA through CI, including gates 046 and 049.
+3. Run the exact GitHub SHA through CI, including gates 045, 046 and 049.
 4. Confirm the worker starts without configuration errors.
 5. Run the rollback-only production queue smoke and confirm its PASS log; verify that all smoke data was rolled back.
 6. Run the rollback-only production reconciliation smoke and confirm its PASS log; verify that all smoke data was rolled back.
-7. Create a controlled approved publication intent in a non-production/pilot workspace only when real-provider publication evidence is explicitly being collected.
-8. Verify claim, provider result, final status and audit evidence for the controlled pilot.
-9. Verify cancellation behavior before broader enablement.
+7. Run the rollback-only production cancellation smoke and confirm its PASS log; verify that all smoke data was rolled back.
+8. Create a controlled approved publication intent in a non-production/pilot workspace only when real-provider publication evidence is explicitly being collected.
+9. Verify claim, provider result, final status and audit evidence for the controlled pilot.
 10. Record the exact deployment, migration and live evidence in `docs/PROJECT_EXECUTION_MEMORY.md` or the canonical current-state checkpoint.
 
 The canonical Railway production environment is active. Promotion still requires the exact-SHA deployment gate and live evidence; no secret or provider credential is documented here.
