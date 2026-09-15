@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { buildApp } from "../src/app.js";
+import { registerDeploymentInfoRoute } from "../src/deployment-info.js";
 import { registerProductionWeb } from "../src/production-web.js";
 
 if (process.env.NODE_ENV !== "production") {
@@ -9,6 +10,7 @@ if (process.env.NODE_ENV !== "production") {
 const app = buildApp(false);
 
 try {
+  await registerDeploymentInfoRoute(app);
   await registerProductionWeb(app);
 
   const root = await app.inject({ method: "GET", url: "/" });
@@ -27,7 +29,19 @@ try {
   assert.equal(system.statusCode, 200, system.body);
   assert.equal(system.json()?.name, "Growth OS");
 
-  console.log("PASS: production serves reviewed web + API from one origin with document security headers");
+  const deployment = await app.inject({ method: "GET", url: "/v1/deployment" });
+  assert.equal(deployment.statusCode, 200, deployment.body);
+  const deploymentBody = deployment.json();
+  assert.equal(deploymentBody.name, "Growth OS");
+  assert.equal(deploymentBody.version, "0.1.0");
+  assert.equal(deploymentBody.environment, "production");
+  assert.ok(Object.prototype.hasOwnProperty.call(deploymentBody, "commit_sha"));
+  assert.ok(Object.prototype.hasOwnProperty.call(deploymentBody, "deployment_id"));
+  if (deploymentBody.commit_sha !== null) {
+    assert.match(deploymentBody.commit_sha, /^[0-9a-f]{7,64}$/i);
+  }
+
+  console.log("PASS: production serves reviewed web + API from one origin with document security headers and deployment identity");
 } finally {
   await app.close();
 }
