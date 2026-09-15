@@ -395,9 +395,9 @@ A presença de login no dashboard Tinyfish é diferente de uma sessão autentica
 
 ## Reconciliação e PR #176
 
-- [PR #176 — regra permanente de registrar cada continuação](https://github.com/dbdanielbaracho/GROWTH-OS/pull/176): merged; head `b651958fbb4476bca140deec6bf9c8ab6ab4b087`; merge `920e31fc93e102e9493b1c41cef06ce01f199087`; [CI 35003401649](https://github.com/dbdanielbaracho/GROWTH-OS/actions/runs/35003401649): completed / success no head exato. A regra permanece no início de `docs/PROJECT_EXECUTION_MEMORY.md` e `docs/CURRENT_PROJECT_STATE.md`.
+- [PR #176 — regra permanente de registrar cada continuação](https://github.com/dbdanielbaracho/GROWTH-OS/pull/176): merged; head `b651958fbb4476bca140deec6bf9c8ab6ab4b087`; merge `920e31fc93e102e9493b1c41cef06ce01f199087`; [CI 35003401649](https://github.com/dbdanielbaracho/GROWTH-OS/actions/runs/35003401649): completed / success no head exato. A regra permanece no início de `docs/PROJECT_EXECUTION_MEMORY.md` e `PROJECT_CURRENT_STATE.md`.
 - PR #175 preserva a retomada posterior e a rejeição da tentativa de login nativo por revisão automática.
 - PR #177 preserva três mensagens recuperadas parcialmente. Esta fonte adicional resolve a lacuna do histórico operacional Tinyfish; não converte os três trechos em transcrição integral de todas as conversas.
 - Runtime aceito histórico: `f1b3009e126faf6d388b1e5dca7e681c8e991ac6`. Esta importação altera apenas documentação; não comprova novo deploy ou execução de produção.
 - Próxima pendência operacional descrita pela fonte: localizar corretamente e persistir a sessão Growth OS em Browser Context Profile, depois validar a produção autenticada. A tentativa nativa posterior rejeitada continua registrada; esta importação não executa autenticação nem contorna essa rejeição.
-- Memória central: [PROJECT_EXECUTION_MEMORY.md](PROJECT_EXECUTION_MEMORY.md). Checkpoint: [CURRENT_PROJECT_STATE.md](CURRENT_PROJECT_STATE.md).
+- Memória central: [PROJECT_EXECUTION_MEMORY.md](PROJECT_EXECUTION_MEMORY.md). Checkpoint: [PROJECT_CURRENT_STATE.md](../PROJECT_CURRENT_STATE.md).

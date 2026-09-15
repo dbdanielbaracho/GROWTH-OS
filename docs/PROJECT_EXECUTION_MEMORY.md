@@ -4180,3 +4180,9 @@ Os textos abaixo constam de tabelas da fonte. Não há horário individual confi
 A afirmação anterior de que o histórico Tinyfish não havia sido localizado deixa de descrever o estado atual: a fonte foi fornecida e seu conteúdo operacional foi incorporado. O registro parcial anterior permanece como evidência da recuperação limitada naquele momento. Não foi encontrado um relatório independente gerado pelo Tinyfish; o arquivo recebido é o registro consolidado da conversa que relata seu uso.
 
 O PR #176 foi incluído e reconciliado explicitamente, sem repetir sua mesclagem. A continuidade passa a consultar esta fonte adicional e esta memória. A próxima pendência técnica continua sendo a sessão autenticada persistente e o E2E real, respeitando a rejeição de autenticação nativa registrada no PR #175. Nenhum gate externo foi fechado por esta alteração documental. O estado final da alteração documental deve ser conferido no PR #178 e em seus checks; o runtime aceito não foi alterado.
+
+### Conferência e correção antes do merge
+
+A comparação do primeiro commit detectou que o checkpoint havia sido preparado num caminho novo incorreto, `docs/CURRENT_PROJECT_STATE.md`. O caminho canônico retornado pela leitura é `PROJECT_CURRENT_STATE.md` na raiz. O arquivo duplicado foi removido e a atualização aplicada ao checkpoint canônico, com correção dos links desta importação. Nenhuma alteração desse caminho incorreto foi mesclada.
+
+Os quatro conteúdos textuais foram comparados integralmente com os arquivos preparados. A consulta do conteúdo binário pela API não retornou uma leitura utilizável; a integridade foi conferida pelo SHA Git blob local `b0dd92ad93064f59f7c27a76c024fd20375f301e`, idêntico ao objeto criado pelo GitHub, e pelo SHA-256 da fonte registrado acima. A CI inicial `35025177714` estava em andamento; a correção requer checks no novo head antes do merge. O resumo final do PR #178 reúne esse resultado e a confirmação da branch main após merge.
