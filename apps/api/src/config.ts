@@ -18,6 +18,12 @@ const RawEnvSchema = z.object({
   INSTAGRAM_GRAPH_API_VERSION: z.string().regex(/^v\d+\.\d+$/).default("v24.0"),
   PUBLICATION_ASSET_HOSTS: z.string().default(""),
 
+  // Railway injects these non-secret deployment metadata variables at runtime.
+  // Keeping them optional preserves local/CI execution while allowing the public
+  // system endpoint to prove the exact production lineage.
+  RAILWAY_GIT_COMMIT_SHA: z.string().regex(/^[0-9a-f]{7,64}$/i).optional(),
+  RAILWAY_DEPLOYMENT_ID: z.string().uuid().optional(),
+
   SESSION_ABSOLUTE_TTL_SECONDS: z.coerce.number().int().min(3600).max(60 * 60 * 24 * 90).default(60 * 60 * 24 * 30),
   SESSION_IDLE_TTL_SECONDS: z.coerce.number().int().min(300).max(60 * 60 * 24 * 30).default(60 * 60 * 24),
 
