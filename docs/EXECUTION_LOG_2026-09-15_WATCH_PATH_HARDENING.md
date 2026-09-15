@@ -63,22 +63,36 @@ This optimization does not change runtime code, database privileges, provider cr
 
 Database paths remain included for `growth-os` and publication worker intentionally, so schema/privilege contract changes continue to produce same-lineage runtime deployments where appropriate.
 
-## Acceptance test
+## Acceptance test — PR #171
 
-This document itself is the first documentation-only acceptance test after Watch Paths were applied.
+PR #171 contained only this documentation file. Candidate SHA `3b94fc7d767b49333ece8f4deb9349b5259732b6` passed full CI run `34920804784` / #1029, including deterministic install, integrity/release hardening, typecheck, build, all canonical migrations, SQL gates, Growth Intelligence, same-origin shell and tests.
 
-Acceptance condition after merge:
+PR #171 was squash-merged as:
 
-1. merge is successful on `main`;
-2. no new deployment ID appears for `growth-os`;
-3. no new deployment ID appears for `migrator`;
-4. no new deployment ID appears for `growth-os-publication-worker`;
-5. the existing serving `growth-os` deployment remains healthy.
+`a5ceab0ed8b43c65601e667e213c8764df4cf6b4`
 
-Post-merge deployment IDs will be compared against this pre-merge baseline:
+Pre-merge deployment baseline:
 
 - app: `72b6de52-9f4c-40d0-b30f-9dff74108523`;
 - migrator: `e910d6c2-7732-4623-84a6-9d74997ef026`;
 - publication worker: `f308f3f1-0301-4859-91dc-34ca04a56917`.
 
-If all three IDs remain unchanged after this documentation-only merge, the Watch Path hardening is physically proven in production configuration rather than merely inferred from settings.
+Post-merge Railway status showed the exact same three deployment IDs, all still `SUCCESS`.
+
+Therefore the Watch Path hardening is physically proven:
+
+- documentation-only `main` changes no longer rebuild `growth-os`;
+- documentation-only `main` changes no longer rerun `migrator`;
+- documentation-only `main` changes continue not to rebuild `growth-os-publication-worker`;
+- the serving app remains the healthy deployment created from `b9b16be8717b9f17cc6f92fa601056e1fee69cc2`, because the subsequent repository commits changed documentation only.
+
+## Operational consequence
+
+Repository `main` may now advance through documentation-only commits without changing the serving runtime deployment SHA. This is intentional and reduces unnecessary Railway builds/cost.
+
+For ordinary operation, distinguish:
+
+- **repository head** — may include docs-only commits;
+- **serving runtime SHA** — the last commit whose paths matched the service Watch Paths and therefore produced the active deployment.
+
+For the final Production Truth Gate/freeze, the accepted runtime SHA must still be explicitly captured. If the final freeze package contains documentation-only commits after the last runtime-affecting commit, either record both lineages explicitly or perform a deliberate final redeploy so the final accepted runtime deployment is tied to the intended freeze SHA.

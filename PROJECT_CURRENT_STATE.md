@@ -3,47 +3,95 @@
 Last updated: 2026-09-15  
 Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.
 
-## Repository
+## Repository and lineage
 
 - Repository: `dbdanielbaracho/GROWTH-OS`.
-- Current production-lineage `main` before this checkpoint update: `1ad55eb293fb19f6fa0107e6d39073950414c47d`.
-- Historical stale PRs #29, #38, #49 and #65 were closed without merge after their valid work was proven already present or safely ported to current `main`.
-- PR #154 merged bounded publication retries and terminal `dead` behavior.
-- PR #155 merged the Instagram authorization timeout-state correction.
-- PR #156 restored the design-quality benchmark v0.2.
-- PR #157 refreshed the canonical project-state checkpoint.
-- PR #158 merged safe publication queue-status projection and user-facing terminal dead-letter mapping.
-- PR #163 merged migration 060 and the least-privilege runtime grants required by publication reconciliation.
-- PR #164 added/fixed the production cancellation smoke and completed cancellation operational proof.
-- PR #165 added public, non-secret deployment identity metadata.
-- PR #166 made Railway deployment identity fail-closed in production.
-- PR #167 committed `package-lock.json` and changed canonical CI dependency installation to `npm ci`.
-- PR #168 temporarily pinned `npm@10.9.8`; the pin itself was valid, but combining Railpack Corepack packaging with a later custom `npm ci` install path exposed a Railpack 0.39 build failure.
-- PR #169 removed the Corepack-triggering `packageManager` field while retaining lockfile-based deterministic `npm ci`; this is the current production build baseline.
-- Detailed production-hardening execution log: `docs/EXECUTION_LOG_2026-09-15_PRODUCTION_HARDENING.md`.
-- Roadmap current-status companion: `docs/ROADMAP_STATUS_RECONCILIATION_2026-09-15.md`. Historical prose in `docs/FULL_PRODUCT_ROADMAP.md` remains preserved for traceability.
-- Important: changing this checkpoint creates a new head SHA. Always fetch the live `main`/PR head before exact-SHA decisions.
+- Repository `main` before this checkpoint update: `a5ceab0ed8b43c65601e667e213c8764df4cf6b4`.
+- The last runtime-affecting production lineage is still `b9b16be8717b9f17cc6f92fa601056e1fee69cc2`; subsequent merged work has been documentation-only and is intentionally filtered by Railway Watch Paths.
+- Historical stale PRs #29, #38, #49 and #65 were closed without merge after their valid work was proven already present or safely ported.
+- PR #154: bounded publication retries and terminal `dead` behavior.
+- PR #155: Instagram authorization timeout-state correction.
+- PR #156: design-quality benchmark v0.2.
+- PR #158: safe publication queue-status projection and user-facing terminal dead-letter mapping.
+- PR #163: migration 060 / least-privilege reconciliation runtime grants.
+- PR #164: production cancellation smoke and operational proof.
+- PR #165/#166: public non-secret deployment metadata and fail-closed Railway production identity.
+- PR #167: canonical `package-lock.json` and CI `npm ci`.
+- PR #168/#169: npm/Railpack hardening, discovery of the `/opt/corepack` failure, and recovery while retaining deterministic `npm ci`.
+- PR #170: canonical production-hardening documentation refresh.
+- PR #171: documentation-only Watch Path acceptance test; CI #1029 fully green, squash merge `a5ceab0ed8b43c65601e667e213c8764df4cf6b4`, and no Railway canonical service redeployed.
+- Detailed execution logs:
+  - `docs/EXECUTION_LOG_2026-09-15_PRODUCTION_HARDENING.md`
+  - `docs/EXECUTION_LOG_2026-09-15_WATCH_PATH_HARDENING.md`
+- Roadmap current-status companion: `docs/ROADMAP_STATUS_RECONCILIATION_2026-09-15.md`.
 
 ## Canonical production
 
-- Railway project: `successful-embrace`.
-- Environment: `production`.
-- Canonical services: `growth-os`, `migrator`, Postgres and `growth-os-publication-worker`.
-- Current production code lineage before this documentation update: `1ad55eb293fb19f6fa0107e6d39073950414c47d`.
-- App deployment `8673eed4-e6f2-49f1-80c0-1e6459bb29f3`: `SUCCESS`.
-- Migrator deployment `a6977b26-6079-4ee9-8f1a-5d760c94d087`: `SUCCESS`.
-- Publication worker deployment `f308f3f1-0301-4859-91dc-34ca04a56917`: `SUCCESS`.
-- Railway deployment metadata ties app deployment `8673eed4-e6f2-49f1-80c0-1e6459bb29f3` to exact commit `1ad55eb293fb19f6fa0107e6d39073950414c47d` on `main`.
-- `/health/ready`: HTTP 200 on that app deployment.
-- Production dependency installation is explicitly `npm ci --no-audit --no-fund` through `RAILPACK_INSTALL_CMD` on all three canonical application services.
-- Railpack 0.39 still emits a cosmetic recommendation to declare a package-manager version when `packageManager` is absent. The explicit `packageManager` route is intentionally not used because, together with the custom install command, it caused the verified `/opt/corepack` packaging failure described below. The accepted operational contract is the committed lockfile + explicit `npm ci`.
+Railway project: `successful-embrace`  
+Environment: `production`
+
+Canonical services:
+
+- `growth-os`
+- `migrator`
+- Postgres
+- `growth-os-publication-worker`
+
+Current serving runtime evidence:
+
+- `growth-os` deployment `72b6de52-9f4c-40d0-b30f-9dff74108523`: `SUCCESS`.
+- App startup verified exact Railway commit `b9b16be8717b9f17cc6f92fa601056e1fee69cc2` and that deployment ID.
+- `/health/ready`: HTTP 200.
+- `migrator` deployment `e910d6c2-7732-4623-84a6-9d74997ef026`: `SUCCESS`.
+- `growth-os-publication-worker` deployment `f308f3f1-0301-4859-91dc-34ca04a56917`: `SUCCESS`.
+- Production dependency installation is explicitly `npm ci --no-audit --no-fund` via `RAILPACK_INSTALL_CMD` on app, migrator and worker.
+- The committed `package-lock.json` plus explicit `npm ci` is the accepted deterministic install contract. The Railpack package-manager-version recommendation remains cosmetic because the tested explicit Corepack route caused a reproducible packaging failure.
+
+## Railway Watch Path hardening
+
+Documentation-only merges previously triggered unnecessary app/migrator builds. Watch Paths are now explicitly configured and physically proven.
+
+`growth-os`:
+
+- `/apps/**`
+- `/packages/**`
+- `/db/**`
+- `/package.json`
+- `/package-lock.json`
+
+`migrator`:
+
+- `/db/**`
+- `/packages/**`
+- `/package.json`
+- `/package-lock.json`
+- `/apps/api/package.json`
+- `/apps/web/package.json`
+
+`growth-os-publication-worker`:
+
+- `/apps/api/**`
+- `/packages/**`
+- `/db/**`
+- `/package.json`
+- `/package-lock.json`
+
+PR #171 was the acceptance test. Before and after its documentation-only merge the canonical deployment IDs remained exactly:
+
+- app `72b6de52-9f4c-40d0-b30f-9dff74108523`;
+- migrator `e910d6c2-7732-4623-84a6-9d74997ef026`;
+- worker `f308f3f1-0301-4859-91dc-34ca04a56917`.
+
+Therefore docs-only changes no longer create unnecessary production builds.
+
+Operational rule: distinguish repository head from serving runtime SHA. At final freeze, explicitly record the accepted runtime SHA; if documentation-only commits follow it, either record both lineages or deliberately redeploy the final accepted freeze SHA.
 
 ## Canonical database state
 
 Production migration reconciliation is confirmed through migration 060.
 
-- Identity and provider foundations: 006, 009, 014–021.
-- Publication contracts and operations: 022–032.
+- Identity/provider foundations: 006, 009, 014–021.
+- Publication contracts/operations: 022–032.
 - Analytics, recommendation, experiment, automation and commercial controls: 033–039.
 - Identity/runtime privilege corrections: 040–045.
 - Managed-account/provider runtime corrections: 046–055.
@@ -51,117 +99,76 @@ Production migration reconciliation is confirmed through migration 060.
 - Safe publication queue-status projection: 059.
 - Publication reconciliation runtime privileges: 060.
 
-Migration 060 corrected the production reconciliation failure caused by insufficient table privileges while preserving the application/runtime least-privilege boundary. The current production migrator logs `Skipped migration (already present): 060_publication_reconciliation_runtime_privileges.sql` and `Production migration reconciliation complete`, proving the migration is present in the canonical database.
+Current production migrator proof on deployment `e910d6c2-7732-4623-84a6-9d74997ef026`:
 
-## Product capabilities already present in current main
+- migration 060: already present;
+- `Production migration reconciliation complete`;
+- publication queue/dead-letter smoke: `PASS queued -> leased(1) -> retry_wait -> leased(2) -> dead; rollback complete`;
+- publication reconciliation smoke: `PASS ambiguous -> needs_user_action -> matched -> confirmed; immutable replay rejected; rollback complete`;
+- publication cancellation smoke: `PASS actor mismatch rejected; scheduled -> cancelled; cancelled/confirmed blocked; rollback complete`.
+
+These are controlled database/worker operational proofs and do not claim an external provider post was created.
+
+## Product capabilities already present
 
 - Authenticated identity/workspace foundation with tenant-scoped runtime controls.
-- YouTube connection/sync product path, typed API contracts and versioned technical design.
+- YouTube connection/sync product path, typed API contracts and technical design.
 - Instagram professional-account authorization, media/metrics sync and Growth Intelligence path.
 - Opportunity Radar and editorial high-contrast design baseline.
 - Content authoring, append-only versioning, review and approval controls.
 - Publication intent, claim/finalization, assets, execution adapters, retry scheduling, cancellation and reconciliation.
-- Dedicated publication worker service principal, runtime context, continuous worker process and Railway worker service.
-- Bounded publication retries with terminal dead-letter state.
-- Safe queue-status projection that maps terminal queue `dead` to user-facing `needs_user_action` without exposing internal job payload, lease or service-principal data.
-- Production operational smoke coverage for queue/dead-letter, reconciliation and cancellation.
+- Dedicated publication worker service principal, runtime context, continuous worker process and Railway service.
+- Bounded retries with terminal dead-letter state.
+- Safe queue-status projection mapping terminal queue `dead` to `needs_user_action` without exposing internal payload/lease/service-principal data.
+- Production queue/dead-letter, reconciliation and cancellation operational smoke coverage.
 - Metric analytics summary, quality/anomaly contracts and authenticated analytics surface.
 - Recommendation/feedback lineage, experiment lineage and controlled automation policy.
 - Commercial entitlements / workspace governance foundation.
 - Design-quality benchmark v0.2 with evidence boundaries and final/freeze acceptance gates.
-- Public deployment metadata endpoint plus fail-closed Railway production identity invariant.
-- Committed npm lockfile, canonical CI `npm ci`, and Railway `npm ci` install contract.
+- Public deployment metadata endpoint and fail-closed Railway production identity invariant.
+- Deterministic dependency install contract in both CI and canonical Railway services.
+- Cost/deploy hardening through validated Watch Paths.
 
-## Recent exact-SHA gates
+## Closed acceptance gaps
 
-### PR #158 — publication queue terminal status
+The following are closed by physical production evidence:
 
-- Exact candidate SHA: `17d604bf2a51ec342f4b12156d28d535c71e2015`.
-- CI run: `34914145178` / #988.
-- Full CI: success.
-- Merge commit: `dacddf7bd4c0a99dc413a1b79e1e3c3f3edf00a6`.
-- Production migration 059: applied successfully.
+1. Operational retry/dead-letter/reconciliation proof.
+2. Cancellation operational proof.
+3. Technical production SHA/deployment-ID/health traceability.
+4. Migration reconciliation through 060.
+5. Deterministic npm installation in CI and Railway canonical services.
+6. Railpack/Corepack failure introduced by the first package-manager hardening attempt.
+7. Documentation-only unnecessary Railway redeploys.
 
-### PR #163 — reconciliation runtime privileges / migration 060
+## Remaining acceptance gaps
 
-- Added migration `060_publication_reconciliation_runtime_privileges.sql` with only the privileges required by the production reconciliation path.
-- CI applied migration 060 and passed the physical reconciliation gate.
-- Production migrator applied/reconciled migration 060.
-- The same reconciliation smoke that previously failed with `permission denied for table publication_intents` subsequently passed in production.
+Growth OS is materially advanced but is not yet legitimately 100% complete.
 
-### PR #164 — cancellation operational proof
-
-- Corrected the cancellation smoke fixture to respect the real actor/workspace trigger context instead of bypassing security.
-- Exact-SHA CI: full success.
-- Production smoke: `actor mismatch rejected; scheduled -> cancelled; cancelled/confirmed blocked; rollback complete`.
-- Migrator now runs queue, reconciliation and cancellation smokes under one fail-fast (`set -e`) operational chain.
-
-### PR #165 / #166 — deployment identity / fail-closed production lineage
-
-- PR #165 exposed `/v1/deployment` with only non-secret deployment metadata (`commit_sha`, `deployment_id`, version/environment).
-- PR #166 made Railway production startup fail if commit/deployment identity is absent.
-- PR #166 exact candidate SHA `d0d6a404fa9d4112d8356e4f1f12cf91acf75fc7` passed every CI gate after correcting the new test setup.
-- PR #166 merge commit: `67977bd6333c392ae0400f0205d09d805d05b13a`.
-- Railway deployment `36d9c41f-b873-4f0e-8050-c60dce743808` logged verified identity for that exact SHA and passed `/health/ready` with HTTP 200.
-
-### PR #167 — deterministic dependency lock
-
-- Added canonical npm `package-lock.json` (lockfile v3), generated by the GitHub Actions Node 22/npm 10.9.8 environment rather than written by hand.
-- Changed CI dependency installation from `npm install` to `npm ci`.
-- Exact candidate SHA `e16b65a993b6ba76bb5b85cbd59da2af1ae74686` passed full CI run #1020.
-- Merge commit: `bcb48210625ac514936b60b44bb9a4370fb9c306`.
-- Production app/migrator/worker succeeded and health remained 200.
-
-### PR #168 / #169 — Railpack package-manager hardening and recovery
-
-- PR #168 pinned `npm@10.9.8`; its exact-SHA CI passed and the normal Railway build succeeded before the custom install override was enabled.
-- After `RAILPACK_INSTALL_CMD=npm ci --no-audit --no-fund` was added to the three canonical services, Railpack 0.39 failed all three new builds at `copy /opt/corepack` with `lstat /opt/corepack: no such file or directory`.
-- The failure was isolated to the Corepack packaging route, not to `npm ci`, TypeScript build, database migrations or application tests.
-- PR #169 removed only the `packageManager` field, retained the existing `node >=22` contract aligned with the lockfile, and left explicit Railway `npm ci` enabled.
-- PR #169 exact candidate SHA `4d7480a66de9a301cb636296c1790c86d7d09890` passed full CI run #1025.
-- PR #169 merge commit/current code lineage: `1ad55eb293fb19f6fa0107e6d39073950414c47d`.
-- Current production migrator build: `npm ci` confirmed, no `/opt/corepack` path, `SUCCESS`.
-- Current publication worker build: `npm ci` confirmed, `SUCCESS`.
-- Current app build: `npm ci` confirmed, `SUCCESS`.
-- Current app deployment metadata: exact commit `1ad55eb293fb19f6fa0107e6d39073950414c47d`; health HTTP 200.
-
-## Closed acceptance gaps in this hardening cycle
-
-The following previously listed gaps are now closed by production evidence:
-
-1. **Operational retry/dead-letter/reconciliation proof** — closed. Production queue smoke proves `queued -> leased(1) -> retry_wait -> leased(2) -> dead`; reconciliation smoke proves `ambiguous -> needs_user_action -> matched -> confirmed` with conflicting immutable replay rejected; all runs rollback their controlled fixtures.
-2. **Cancellation operational proof** — closed. Production smoke verifies actor mismatch rejection, valid cancellation transition, terminal-state blocking and rollback.
-3. **Technical production SHA/health traceability** — closed. Railway deployment metadata and the fail-closed runtime identity invariant prove the exact deployed code lineage, and health checks are 200.
-4. **Deterministic dependency installation contract** — closed for CI and Railway canonical services through committed lockfile + explicit `npm ci`.
-
-## Known truth / remaining acceptance gaps
-
-The project is materially advanced but must not be declared fully complete yet. Remaining acceptance gaps are now narrower:
-
-1. End-to-end authenticated browser validation of the main user journeys on the latest production lineage, including workspace/session, Instagram/YouTube integration states, CREATE/review/approval and publication operations.
-2. Controlled real-provider publication evidence where provider configuration, permissions, account state and explicitly authorized content permit it. No claim of a real publish may be made without provider-side confirmation.
-3. Final responsive/accessibility/cross-browser design evidence and same-task competitive comparison before visual freeze.
-4. Final consolidated adversarial review only at the project/freeze gate, per current governance. Claude is not a required micro-gate for intermediate corrections and must not be claimed as completed without an actual Claude review.
-5. Final Production Truth Gate on the final accepted SHA still needs its authenticated product/data portion: public URL/exact SHA and health are proven; frontend -> authenticated API -> real data -> expected result must still be captured on the final lineage.
+1. **Authenticated end-to-end browser validation** on the latest accepted production lineage: signup/signin/session/workspace, Instagram/YouTube states, content CREATE/review/approval, publication operations and failure/recovery states.
+2. **Controlled real-provider publication evidence** where provider permissions/account configuration and explicitly authorized content permit it. No real-publish claim without provider-side confirmation.
+3. **Final responsive/accessibility/cross-browser evidence** and same-task competitive design comparison before visual freeze.
+4. **Final consolidated adversarial review** only at the project/freeze gate. Claude is not an intermediate micro-gate and must not be claimed as completed without an actual review.
+5. **Final Production Truth Gate authenticated/data chain**: public URL and technical deployment identity are proven; frontend -> authenticated API -> real data -> expected result must still be captured on the final accepted runtime lineage.
 
 ## Next execution order
 
 1. Keep `main` as the only technical baseline; do not revive stale feature branches.
-2. Exercise authenticated end-to-end journeys on the latest production lineage and fix every reproducible runtime defect found.
-3. Produce controlled real-provider publication evidence only with explicitly authorized content/account and provider-side confirmation.
+2. Exercise authenticated end-to-end journeys and fix every reproducible runtime defect.
+3. Produce controlled real-provider publication evidence only with authorized account/content and provider confirmation.
 4. Complete responsive/accessibility/cross-browser/competitive evidence.
 5. Consolidate the final evidence package and run the final adversarial review.
-6. Run the remaining authenticated/data portion of the final Production Truth Gate on one accepted SHA.
-7. Only then mark the project frozen/complete.
+6. Run the remaining authenticated/data portion of the Production Truth Gate on one accepted runtime SHA.
+7. Freeze only after all applicable gates pass or an explicit evidence-bounded external limitation is documented.
 
 ## Operating rules
 
-- Always verify the exact current SHA before CI, merge, deploy or acceptance claims.
+- Always verify live `main`, PR head and serving runtime SHA before CI/merge/deploy/acceptance claims.
 - CI success is necessary but not sufficient for production acceptance.
 - Railway production evidence must come from the canonical project/environment and exact deployment lineage.
-- Never infer provider success from a local test, redirect or synthetic adapter response alone.
-- Never use synthetic data as proof of a factual opportunity, provider result or production journey.
-- Keep database/worker validation, application runtime validation and browser/provider validation as separate gates.
-- A platform/tooling warning is not a product failure, but a tooling change that breaks canonical builds must be reverted/fixed before acceptance.
-- Close or supersede stale branches rather than merging old history into current `main`.
+- Never infer provider success from a redirect, local test or synthetic adapter response.
+- Never use synthetic data as proof of a factual opportunity, provider result or real production journey.
+- Keep database/worker validation, application-runtime validation and browser/provider validation as separate gates.
+- A tooling warning is not a product failure, but any tooling change that breaks canonical builds must be reverted/fixed before acceptance.
+- Documentation-only repository head advances do not imply a new serving runtime deployment after Watch Path hardening.
 - Record material execution, failures, fixes and acceptance evidence in GitHub so chat memory is not the source of truth.
