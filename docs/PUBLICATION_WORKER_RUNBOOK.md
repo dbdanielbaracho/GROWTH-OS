@@ -23,15 +23,26 @@ Structured logs contain only the event, worker result, queue state and opaque id
 
 A worker restart is safe: leases expire and the queue claim helper can recover due work. The provider result remains governed by the publication intent finalization, retry and reconciliation contracts.
 
+## Rollback-only operational smoke
+
+`db/tests/049_publication_worker_runtime_context.sql` is the canonical queue lifecycle proof. It validates the worker security boundary and physically exercises this sequence against PostgreSQL:
+
+`queued -> leased(attempt 1) -> retry_wait -> leased(attempt 2) -> dead -> not claimable again`.
+
+The smoke creates only a temporary service principal and queue row inside one transaction. It never creates a publication intent, never invokes an Instagram/YouTube adapter, never performs an external publication, and ends with `ROLLBACK`. No smoke row is committed.
+
+CI executes the same SQL against the isolated CI database. Production execution uses `db/scripts/publication-queue-operational-smoke.mjs`, which runs the same SQL against the canonical database through the migrator credential and emits only the database/user target plus a PASS line. A production PASS is evidence for queue claim/retry/dead-letter mechanics; it is not evidence that a provider accepted or published content.
+
 ## Deployment checklist
 
 1. Provision the active service principal and worker credential in the canonical Railway environment.
 2. Set the required variables above in the worker service; leave `PUBLICATION_WORKER_MAX_ATTEMPTS` unset to use the safe default unless operations explicitly chooses another bounded value.
-3. Run the exact GitHub SHA through CI.
+3. Run the exact GitHub SHA through CI, including gate 049.
 4. Confirm the worker starts without configuration errors.
-5. Create a controlled approved publication intent in a non-production/pilot workspace.
-6. Verify claim, provider result, final status and audit evidence.
-7. Verify retry, dead-letter, cancellation and reconciliation behavior before enabling a real pilot.
-8. Record the exact deployment, migration and live evidence in `docs/PROJECT_EXECUTION_MEMORY.md`.
+5. Run the rollback-only production queue smoke and confirm its PASS log; verify that all smoke data was rolled back.
+6. Create a controlled approved publication intent in a non-production/pilot workspace only when real-provider publication evidence is explicitly being collected.
+7. Verify claim, provider result, final status and audit evidence for the controlled pilot.
+8. Verify cancellation and reconciliation behavior before broader enablement.
+9. Record the exact deployment, migration and live evidence in `docs/PROJECT_EXECUTION_MEMORY.md` or the canonical current-state checkpoint.
 
 The canonical Railway production environment is active. Promotion still requires the exact-SHA deployment gate and live evidence; no secret or provider credential is documented here.
