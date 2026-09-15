@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assertRailwayDeploymentIdentity, type DeploymentInfo } from "./deployment-info.js";
 
-const validInfo: DeploymentInfo = {
+// deployment-info.ts reads the canonical environment at module load time.
+// This test exercises only pure deployment-identity validation, but it still
+// must provide the one required config variable before importing the module.
+// No database connection is opened.
+process.env.DATABASE_URL ??= "postgresql://growth_test:growth_test@127.0.0.1:5432/growth_test";
+
+const { assertRailwayDeploymentIdentity } = await import("./deployment-info.js");
+
+type TestDeploymentInfo = Parameters<typeof assertRailwayDeploymentIdentity>[0];
+
+const validInfo: TestDeploymentInfo = {
   name: "Growth OS",
   version: "0.1.0",
   environment: "production",
