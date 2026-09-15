@@ -37,3 +37,10 @@ Ainda é necessário obter o conteúdo integral da conversa exata "Continuar pro
 Quando a fonte completa estiver disponível, conservar a ordem e o texto das mensagens, identificar a origem, comparar com estes trechos para evitar duplicação e atualizar a memória central. Se houver credenciais no original, preservar a ocorrência e redigir apenas os valores secretos.
 
 Registro central: docs/PROJECT_EXECUTION_MEMORY.md.
+
+
+## Atualização — fonte adicional recebida em 2026-09-15
+
+A pendência de recuperar o histórico operacional Tinyfish foi resolvida pela entrega do DOCX `Registro_Completo_Chat_Growth_OS_2026-09-15.docx`. Fonte original preservada: [DOCX](sources/Registro_Completo_Chat_Growth_OS_2026-09-15.docx); conteúdo textual completo em ordem e reconciliação: [importação](CONVERSATION_IMPORT_2026-09-15_TINYFISH_GROWTH_OS.md).
+
+Este arquivo mantém os três trechos recuperados e as limitações reais daquela busca. O DOCX adicional é um registro consolidado, não transcrição integral byte a byte; por isso não se afirma que todas as mensagens de todas as conversas tenham sido recuperadas. O checkpoint ad4dad da fonte é histórico, e o PR #176 posterior já está merged e incluído na reconciliação. Memória central atualizada no PR #178.
