@@ -23,7 +23,7 @@ Structured logs contain only the event, worker result, queue state and opaque id
 
 A worker restart is safe: leases expire and the queue claim helper can recover due work. The provider result remains governed by the publication intent finalization, retry and reconciliation contracts.
 
-## Rollback-only operational smoke
+## Rollback-only queue smoke
 
 `db/tests/049_publication_worker_runtime_context.sql` is the canonical queue lifecycle proof. It validates the worker security boundary and physically exercises this sequence against PostgreSQL:
 
@@ -33,16 +33,29 @@ The smoke creates only a temporary service principal and queue row inside one tr
 
 CI executes the same SQL against the isolated CI database. Production execution uses `db/scripts/publication-queue-operational-smoke.mjs`, which runs the same SQL against the canonical database through the migrator credential and emits only the database/user target plus a PASS line. A production PASS is evidence for queue claim/retry/dead-letter mechanics; it is not evidence that a provider accepted or published content.
 
+## Rollback-only reconciliation smoke
+
+`db/tests/046_publication_reconciliation.sql` is the canonical reconciliation state-transition proof. In addition to the least-privilege function contract, it creates an isolated temporary tenant graph and leased publication job inside one transaction, establishes the same bounded worker tenant context used by the runtime, and executes reconciliation through the `app_runtime` function boundary.
+
+It physically proves:
+
+`failed_retryable -> ambiguous -> needs_user_action -> matched(exact) -> confirmed`.
+
+The smoke also replays identical evidence to prove idempotency, attempts a conflicting replay to prove immutable evidence rejection, verifies that only two bounded reconciliation evidence rows exist, and ends with `ROLLBACK`.
+
+The temporary platform connection uses only the synthetic `gate_test` platform label. No provider adapter, network request, OAuth credential or external publication is invoked. Production execution uses `db/scripts/publication-reconciliation-operational-smoke.mjs` and emits only the database/user target plus a PASS line. A production PASS proves the database/runtime reconciliation mechanics; it is not provider-side confirmation of a real publication.
+
 ## Deployment checklist
 
 1. Provision the active service principal and worker credential in the canonical Railway environment.
 2. Set the required variables above in the worker service; leave `PUBLICATION_WORKER_MAX_ATTEMPTS` unset to use the safe default unless operations explicitly chooses another bounded value.
-3. Run the exact GitHub SHA through CI, including gate 049.
+3. Run the exact GitHub SHA through CI, including gates 046 and 049.
 4. Confirm the worker starts without configuration errors.
 5. Run the rollback-only production queue smoke and confirm its PASS log; verify that all smoke data was rolled back.
-6. Create a controlled approved publication intent in a non-production/pilot workspace only when real-provider publication evidence is explicitly being collected.
-7. Verify claim, provider result, final status and audit evidence for the controlled pilot.
-8. Verify cancellation and reconciliation behavior before broader enablement.
-9. Record the exact deployment, migration and live evidence in `docs/PROJECT_EXECUTION_MEMORY.md` or the canonical current-state checkpoint.
+6. Run the rollback-only production reconciliation smoke and confirm its PASS log; verify that all smoke data was rolled back.
+7. Create a controlled approved publication intent in a non-production/pilot workspace only when real-provider publication evidence is explicitly being collected.
+8. Verify claim, provider result, final status and audit evidence for the controlled pilot.
+9. Verify cancellation behavior before broader enablement.
+10. Record the exact deployment, migration and live evidence in `docs/PROJECT_EXECUTION_MEMORY.md` or the canonical current-state checkpoint.
 
 The canonical Railway production environment is active. Promotion still requires the exact-SHA deployment gate and live evidence; no secret or provider credential is documented here.
