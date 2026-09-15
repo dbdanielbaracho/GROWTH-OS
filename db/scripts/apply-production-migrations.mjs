@@ -358,7 +358,8 @@ const steps = [
       `);
       return result.rows[0].present;
     },
-  },  {
+  },
+  {
     file: '052_provider_authorization_runtime_privileges.sql',
     present: async () => {
       const result = await client.query(`
@@ -433,6 +434,21 @@ const steps = [
   {
     file: '059_publication_queue_status_projection.sql',
     present: () => functionExists('growth.list_publication_intents_v2(uuid,integer)'),
+  },
+  {
+    file: '060_publication_reconciliation_runtime_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.publication_intents', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.publication_intents', 'UPDATE')
+          and has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'UPDATE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
   },
 ];
 

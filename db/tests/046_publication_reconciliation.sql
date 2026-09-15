@@ -41,6 +41,24 @@ BEGIN
     RAISE EXCEPTION '046 failed: reconciliation helper owner/SECURITY DEFINER boundary';
   END IF;
 
+  IF NOT has_table_privilege('growth_migrator', 'growth.publication_intents', 'SELECT')
+     OR NOT has_table_privilege('growth_migrator', 'growth.publication_intents', 'UPDATE')
+     OR NOT has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'SELECT')
+     OR NOT has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'INSERT')
+     OR NOT has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'UPDATE')
+  THEN
+    RAISE EXCEPTION '046 failed: growth_migrator lacks reconciliation table privileges';
+  END IF;
+
+  IF has_table_privilege('app_runtime', 'growth.publication_intents', 'SELECT')
+     OR has_table_privilege('app_runtime', 'growth.publication_intents', 'UPDATE')
+     OR has_table_privilege('app_runtime', 'growth.publication_reconciliation_attempts', 'SELECT')
+     OR has_table_privilege('app_runtime', 'growth.publication_reconciliation_attempts', 'INSERT')
+     OR has_table_privilege('app_runtime', 'growth.publication_reconciliation_attempts', 'UPDATE')
+  THEN
+    RAISE EXCEPTION '046 failed: app_runtime direct reconciliation table access widened';
+  END IF;
+
   SELECT has_function_privilege('app_runtime', reconciliation_oid, 'EXECUTE')
     INTO app_execute;
   IF app_execute IS DISTINCT FROM true THEN
