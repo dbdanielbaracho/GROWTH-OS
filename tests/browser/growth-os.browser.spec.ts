@@ -496,6 +496,7 @@ test("content authoring preserves save acknowledgements through review and appro
 
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await expect(page.getByLabel("Draft text", { exact: true })).toHaveValue("Controlled first version.");
+  await expect(page.getByLabel("Platform", { exact: true })).toHaveValue("Instagram");
   await page.getByLabel("Draft text", { exact: true }).fill("Controlled second version.");
   await page.getByRole("button", { name: "Save new version", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Draft version saved · version 2");

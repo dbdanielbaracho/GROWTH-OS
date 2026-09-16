@@ -81,3 +81,10 @@ Esclarecimento: a pergunta de gestão fornecida na orientação anterior era par
 > **svgsvg**
 
 Resposta fornecida: convite oficial https://discord.gg/tinyfish. Não foi enviada mensagem a terceiros.
+
+
+### Falha do primeiro teste e correções antes de merge
+
+Head e35532dbe35610d29fde413d91344fd2c7eb5475; CI 35050609013 failure no Test. Logs do job 104649940424 recuperados pelo método oficial GitHub: os 15 testes anteriores passaram; os três casos novos falharam após Edit por getByLabel Draft text exact não encontrar o campo preenchido. V1/aviso de sucesso já havia passado. DOM da produção confirmou textarea presente e rótulo wrapping com texto do corpo incluído; não era perda do rascunho. Acrescentados span IDs/aria-labelledby para nomes estáveis de Draft text e Platform, mantendo a assertion exata do teste (não enfraquecida). Campo Platform exact também passa a ser verificado depois de Edit.
+
+Uma chamada diagnóstica que também clicaria New draft foi rejeitada por revisão automática: risco de descartar conteúdo não salvo do editor aberto, sem autorização de descarte. O clique não ocorreu e não foi contornado por reload/limpeza equivalente. Editor preservado; leituras diagnósticas separadas somente leitura. Teste de produção será feito em nova aba limpa do mesmo navegador autorizado, mantendo a aba do editor intacta. Não é troca de perfil/browser, exportação de cookie nem workaround de Tinyfish. A correção/novo head requer nova CI antes de merge.

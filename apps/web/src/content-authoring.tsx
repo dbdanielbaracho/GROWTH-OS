@@ -454,15 +454,15 @@ function ContentAuthoringPanel() {
               <label><span>Language</span><input value={language} onChange={(event) => setLanguage(event.target.value)} maxLength={20} required /></label>
             </div>
             <label>
-              <span>Platform</span>
-              <select value={platform} onChange={(event) => setPlatform(event.target.value)}>
+              <span id="content-draft-platform-label">Platform</span>
+              <select aria-labelledby="content-draft-platform-label" value={platform} onChange={(event) => setPlatform(event.target.value)}>
                 <option>Instagram</option>
                 <option>YouTube</option>
               </select>
             </label>
             <label>
-              <span>Draft text</span>
-              <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={100000} required rows={6} placeholder="Add the first version of the idea or copy…" />
+              <span id="content-draft-text-label">Draft text</span>
+              <textarea aria-labelledby="content-draft-text-label" value={body} onChange={(event) => setBody(event.target.value)} maxLength={100000} required rows={6} placeholder="Add the first version of the idea or copy…" />
             </label>
             {message && <div className={message.startsWith("Draft") ? "content-notice" : "content-error"} role="status">{message}</div>}
             <button className="content-primary" type="submit" disabled={saving || body.trim().length === 0}>
