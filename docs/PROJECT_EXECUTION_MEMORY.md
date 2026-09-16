@@ -4216,3 +4216,12 @@ Leituras reais: Instagram e YouTube Connected/Live; Instagram BUSINESS com cinco
 Defeito reproduzido: na aba que estava sem login, Create e Analytics continuaram ausentes depois da autenticação (count zero), enquanto uma nova aba autenticada renderiza os dois painéis. Código confirma refresh na montagem/focus, sem notificação de signin. Preparada correção e teste de transição de sessão. Inspectou-se também a disposição visual dos painéis: Create expandido cobria o atalho Analytics; fechado Create antes de continuar a inspeção. Nada foi publicado ou alterado nos rascunhos existentes.
 
 Registro aberto na branch fix/authenticated-panel-session-transitions; próxima ação: corrigir sincronização dos painéis, executar regressão/CI, mesclar e confirmar nova produção antes de afirmar correção aceita. A rejeição histórica do PR #175 está preservada; a autorização atual permite nova tentativa e ela efetivamente funcionou.
+
+
+### Continuação da autorização — correções e PR #180
+
+Leitura de Analytics por teclado (clique estava coberto pelo YouTube) revelou duas séries de 76 observações, totais exibidos 323/29 e contador agregado incorreto 07676. Confirmada sobreposição por retângulos/elementFromPoint/screenshot. Lidos main.tsx, index.html, api.ts, módulos React e CSS, testes Playwright/config e workflow canônico. Preparadas e gravadas notificações de transição de sessão, limpeza imediata e descarte de refresh antigo, correção da sobreposição/fluxo mobile, providers recolhidos com callback preservado, conversão numérica dos contadores e grid de título longo.
+
+Dois erros na preparação/orquestração (sintaxe da consulta CSS, import/guarda fora de escopo no patch) foram corrigidos antes da gravação final dos arquivos. Não são falhas de login/provedor. Regressões adicionadas ao gate existente, sem baixar assertions de acessibilidade ou trocar fixtures por prova real.
+
+[Registro detalhado](EXECUTION_LOG_2026-09-16_AUTHENTICATED_PANEL_ACCEPTANCE.md). [PR #180](https://github.com/dbdanielbaracho/GROWTH-OS/pull/180) registra head, CI/merge e confirmações finais; nesta etapa execução ainda aguarda esses gates e nova produção. Não criado perfil Tinyfish, não alterado rascunho existente e não publicada postagem.

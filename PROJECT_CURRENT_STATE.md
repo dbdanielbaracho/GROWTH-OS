@@ -232,3 +232,12 @@ Public production reconfirmed through Tinyfish Fetch with TTL zero: health ready
 Official Tinyfish profile lifecycle and initial authenticated read-only matrix are prepared in `docs/EXECUTION_LOG_2026-09-16_TINYFISH_PROFILE_READINESS.md`. Search/Fetch calls succeeded; no authenticated automation or profile setup was run. Profile management methods are not exposed by this session's connector; no concrete default/profile ID has been retrieved.
 
 The prior automatic-review rejection of production credential request/submission remains active. Next dependent step: explicit authentication authorization for the exact Growth OS origin through the secure form, then set up/save/reuse a persistent profile and run actual production journeys. Do not circumvent the rejection through vault or another automation. Documentation PR #179 supplies final checks/merge evidence; core acceptance gates remain open.
+
+
+## Authorized authenticated execution — 2026-09-16
+
+The user explicitly authorized the secure Growth OS login ("sim autorizo"). The secure request returned submitted and fresh DOM confirmed signed-in Growth OS, workspace Crescimento and real persisted Radar/provider/content/analytics surfaces. A second native-browser tab stayed authenticated. The historical PR #175 rejection remains preserved but missing user authorization no longer describes the current attempt.
+
+Authenticated read-only evidence and discovered defects: `docs/EXECUTION_LOG_2026-09-16_AUTHENTICATED_PANEL_ACCEPTANCE.md`. PR #180 corrects missing secondary panels after same-page signin, stale session reads, Analytics/YouTube overlap, numeric count concatenation and long draft layout. CI, merge and a fresh production browser pass remain required before accepting its runtime.
+
+No Tinyfish Browser Context Profile was created or checked; reuse across two native tabs is a separate fact. No existing content was saved/approved and no external post was published. Initial accepted production runtime remains f1b3009… until new deployment proof. Remaining provider publication, write-path production acceptance, final competitive visual/Claude/freeze gates are still open.
