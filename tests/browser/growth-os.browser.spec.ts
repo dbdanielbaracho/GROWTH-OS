@@ -62,12 +62,31 @@ function json(route: Route, status: number, body: unknown) {
   });
 }
 
-async function mockApi(page: Page, mode: "signed_out" | "authenticated") {
+async function mockApi(page: Page, initialMode: "signed_out" | "authenticated", metrics: unknown[] = []) {
+  let mode = initialMode;
   const unhandled: string[] = [];
 
   await page.route("**/v1/**", async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname;
+
+    if (path === "/v1/auth/signin" && route.request().method() === "POST") {
+      mode = "authenticated";
+      return json(route, 200, session);
+    }
+    if (path === "/v1/auth/signout" && route.request().method() === "POST") {
+      mode = "signed_out";
+      return route.fulfill({ status: 204 });
+    }
+
+    // Known authenticated reads can still be in flight when signout finishes.
+    if (mode === "signed_out" && [
+      "/v1/integrations/youtube/status", "/v1/integrations/instagram/status",
+      "/v1/analytics/metrics", "/v1/content", "/v1/publication-intents",
+      "/v1/opportunities", `/v1/opportunities/${opportunity.id}`,
+      "/v1/recommendations", "/v1/automation/policy", "/v1/automation/requests",
+      "/v1/commercial/entitlements", "/v1/commercial/enterprise-policy"
+    ].includes(path)) return json(route, 401, { status: "unauthorized" });
 
     if (path === "/v1/auth/session") {
       if (mode === "signed_out") return json(route, 401, { status: "unauthorized" });
@@ -96,7 +115,7 @@ async function mockApi(page: Page, mode: "signed_out" | "authenticated") {
         status: "ok",
         from: "2026-09-08T00:00:00.000Z",
         to: "2026-09-15T00:00:00.000Z",
-        metrics: []
+        metrics
       });
     }
 
@@ -244,5 +263,79 @@ test("authenticated Radar shell remains accessible across desktop and mobile", a
   await expect(page.getByRole("heading", { name: "See what is beginning to move." })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousAccessibilityViolations(page);
+  expect(unhandled).toEqual([]);
+});
+
+
+// Controlled fixtures exercise browser behavior only, never factual production data.
+const stringCountMetrics = [
+  {
+    social_account_id: opportunity.social_account_id, platform: "instagram",
+    provider_account_id: "browser-quality-account", handle: "browser-quality",
+    metric_name: "like_count", observation_count: "10", total_value: "32",
+    latest_observed_at: "2026-09-15T01:00:00.000Z",
+    latest_effective_at: "2026-09-15T01:00:00.000Z",
+    complete_observations: "9", fresh_observations: "10"
+  },
+  {
+    social_account_id: opportunity.social_account_id, platform: "instagram",
+    provider_account_id: "browser-quality-account", handle: "browser-quality",
+    metric_name: "comments_count", observation_count: "2", total_value: "4",
+    latest_observed_at: "2026-09-15T01:00:00.000Z",
+    latest_effective_at: "2026-09-15T01:00:00.000Z",
+    complete_observations: "2", fresh_observations: "1"
+  }
+];
+
+test("signin and signout update all secondary panels without reload or focus", async ({ page }) => {
+  const unhandled = await mockApi(page, "signed_out", stringCountMetrics);
+  let documents = 0;
+  page.on("request", (request) => { if (request.resourceType() === "document") documents += 1; });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Sign in to see your next opportunity." })).toBeVisible();
+
+  // Non-secret test-only credentials supplied to a fully mocked, local API.
+  await page.getByLabel("Email").fill("browser-quality@example.invalid");
+  await page.getByLabel("Password").fill("controlled-browser-quality-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+
+  const create = page.getByRole("button", { name: "Create Content Authoring", exact: true });
+  const analytics = page.getByRole("button", { name: "Analytics Real observations", exact: true });
+  await expect(create).toBeVisible();
+  await expect(analytics).toBeVisible();
+  await expect(page.getByRole("button", { name: "YouTube Data source", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Instagram Data source", exact: true })).toBeVisible();
+
+  await analytics.click();
+  await expect(page.getByRole("heading", { name: "Metric summary", exact: true })).toBeVisible();
+  await expect(page.getByText("Complete 11 · Fresh 11", { exact: true })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Metric summary" }).getByText("Incomplete", { exact: true })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Metric summary" }).getByText("Stale", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Sign in to see your next opportunity." })).toBeVisible();
+  for (const name of ["Create Content Authoring", "Analytics Real observations", "YouTube Data source", "Instagram Data source"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0);
+  }
+  await expect(page.getByRole("table", { name: "Metric summary" })).toHaveCount(0);
+  expect(documents).toBe(1);
+  expect(unhandled).toEqual([]);
+});
+
+test("secondary panels can each be opened and closed by pointer on desktop and mobile", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  await page.goto("/");
+  for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size);
+    for (const name of ["Create Content Authoring", "Analytics Real observations", "Instagram Data source", "YouTube Data source"]) {
+      const toggle = page.getByRole("button", { name, exact: true });
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-expanded", "true");
+      await expectNoHorizontalOverflow(page);
+      await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    }
+  }
   expect(unhandled).toEqual([]);
 });

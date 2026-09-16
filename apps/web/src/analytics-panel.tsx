@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   fetchAuthSession,
@@ -25,12 +25,13 @@ function formatNumber(value: number): string {
 }
 
 function qualityLabel(row: MetricAnalyticsSummary): string {
-  if (row.complete_observations < row.observation_count) return "Incomplete";
-  if (row.fresh_observations < row.observation_count) return "Stale";
+  if (Number(row.complete_observations) < Number(row.observation_count)) return "Incomplete";
+  if (Number(row.fresh_observations) < Number(row.observation_count)) return "Stale";
   return "Complete";
 }
 
 function AnalyticsPanel() {
+  const authGeneration = useRef(0);
   const [authenticated, setAuthenticated] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,13 +41,18 @@ function AnalyticsPanel() {
   const [exporting, setExporting] = useState(false);
 
   const refresh = useCallback(async () => {
+    const generation = authGeneration.current;
     setLoading(true);
     try {
       await fetchAuthSession();
+      if (generation !== authGeneration.current) return;
       setAuthenticated(true);
-      setRows(await fetchMetricAnalyticsSummary());
+      const metrics = await fetchMetricAnalyticsSummary();
+      if (generation !== authGeneration.current) return;
+      setRows(metrics);
       setMessage(null);
     } catch (error) {
+      if (generation !== authGeneration.current) return;
       if (error instanceof RadarApiError && error.httpStatus === 401) {
         setAuthenticated(false);
         setRows([]);
@@ -76,6 +82,21 @@ function AnalyticsPanel() {
       setExporting(false);
     }
   }
+
+
+  useEffect(() => {
+    const onAuthChange = (event: Event) => {
+      authGeneration.current += 1;
+      setAuthenticated(false);
+      setExpanded(false);
+      setMessage(null);
+      setRows([]);
+      setAnomalies([]);
+      if ((event as CustomEvent<{ authenticated?: boolean }>).detail?.authenticated) void refresh();
+    };
+    window.addEventListener("growth-os:auth-change", onAuthChange);
+    return () => window.removeEventListener("growth-os:auth-change", onAuthChange);
+  }, [refresh]);
 
   useEffect(() => {
     void refresh();
@@ -135,7 +156,7 @@ function AnalyticsPanel() {
               ))}
             </div>
           )}
-          <p className="analytics-note">Complete {rows.reduce((total, row) => total + row.complete_observations, 0)} · Fresh {rows.reduce((total, row) => total + row.fresh_observations, 0)}</p>
+          <p className="analytics-note">Complete {rows.reduce((total, row) => total + Number(row.complete_observations), 0)} · Fresh {rows.reduce((total, row) => total + Number(row.fresh_observations), 0)}</p>
         </div>
       )}
     </aside>

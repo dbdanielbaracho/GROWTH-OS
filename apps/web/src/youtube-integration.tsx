@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   RadarApiError,
@@ -39,6 +39,7 @@ function channelLabel(row: YoutubeIntegration): string {
 }
 
 function YoutubeIntegrationPanel() {
+  const authGeneration = useRef(0);
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<YoutubeStatusResponse | null>(null);
@@ -48,7 +49,7 @@ function YoutubeIntegrationPanel() {
   const [lastSync, setLastSync] = useState<Record<string, YoutubeSyncResponse>>({});
   const [lookbackDays, setLookbackDays] = useState<Record<string, number>>({});
   const [lastRequestedWindow, setLastRequestedWindow] = useState<Record<string, number>>({});
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const callbackNotice = useMemo(() => {
     const value = new URLSearchParams(window.location.search).get("youtube");
@@ -58,13 +59,17 @@ function YoutubeIntegrationPanel() {
   }, []);
 
   const refresh = useCallback(async () => {
+    const generation = authGeneration.current;
     try {
       await fetchAuthSession();
+      if (generation !== authGeneration.current) return;
       setAuthenticated(true);
       const next = await fetchYoutubeStatus();
+      if (generation !== authGeneration.current) return;
       setStatus(next);
       setMessage(null);
     } catch (error) {
+      if (generation !== authGeneration.current) return;
       if (error instanceof RadarApiError && error.httpStatus === 401) {
         setAuthenticated(false);
         setStatus(null);
@@ -75,6 +80,21 @@ function YoutubeIntegrationPanel() {
       setLoading(false);
     }
   }, [authenticated]);
+
+
+  useEffect(() => {
+    const onAuthChange = (event: Event) => {
+      authGeneration.current += 1;
+      setAuthenticated(false);
+      setExpanded(false);
+      setMessage(null);
+      setStatus(null);
+      setBusyId(null);
+      if ((event as CustomEvent<{ authenticated?: boolean }>).detail?.authenticated) void refresh();
+    };
+    window.addEventListener("growth-os:auth-change", onAuthChange);
+    return () => window.removeEventListener("growth-os:auth-change", onAuthChange);
+  }, [refresh]);
 
   useEffect(() => {
     void refresh();
@@ -89,6 +109,7 @@ function YoutubeIntegrationPanel() {
 
   useEffect(() => {
     if (!callbackNotice) return;
+    setExpanded(true);
     const url = new URL(window.location.href);
     url.searchParams.delete("youtube");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
