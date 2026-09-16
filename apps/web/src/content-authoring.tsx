@@ -163,6 +163,7 @@ function ContentAuthoringPanel() {
       setDrafts([]);
       setPublicationIntents([]);
       setConnectedAccounts([]);
+      setSelectedAccountByDraft({});
       setEditingId(null);
       setObjective("");
       setBody("");
@@ -271,9 +272,9 @@ function ContentAuthoringPanel() {
     if (draft.status !== "approved" || !draft.current_version_id) return;
     const platform = draft.platform_target?.toLowerCase();
     const accounts = connectedAccounts.filter((account) => account.platform.toLowerCase() === platform);
-    const socialAccountId = selectedAccountByDraft[draft.id] ?? accounts[0]?.id;
-    if (!socialAccountId) {
-      setMessage("Connect an account for this platform before creating a publication intent.");
+    const socialAccountId = selectedAccountByDraft[draft.id];
+    if (!socialAccountId || !accounts.some((account) => account.id === socialAccountId)) {
+      setMessage("Choose a connected account for this platform before preparing publication.");
       return;
     }
 
@@ -348,7 +349,7 @@ function ContentAuthoringPanel() {
             </div>
             {editingId && <button className="content-secondary" type="button" onClick={startNewDraft}>New draft</button>}
           </div>
-          <p className="content-copy">Write and save an auditable draft before any approval or publishing step. Nothing is published from this panel.</p>
+          <p className="content-copy">Write and save an auditable draft before any approval or publishing step. Saving a draft does not publish it. Preparing publication creates an intent; Execute sends it to the selected account.</p>
 
           <div className="content-draft-list">
             <div className="content-list-heading"><span>Saved drafts</span><small>{drafts.length}</small></div>
@@ -386,7 +387,10 @@ function ContentAuthoringPanel() {
                           <button
                             className="content-secondary content-approve"
                             type="button"
-                            disabled={publicationBusyId === draft.id}
+                            disabled={publicationBusyId === draft.id || !connectedAccounts.some((account) =>
+                              account.id === selectedAccountByDraft[draft.id] &&
+                              account.platform.toLowerCase() === (draft.platform_target ?? "").toLowerCase()
+                            )}
                             onClick={() => void publishDraft(draft)}
                           >
                             {publicationBusyId === draft.id ? "Creating…" : "Prepare publish"}

@@ -350,3 +350,69 @@ test("secondary panels can each be opened and closed by pointer on desktop and m
   }
   expect(unhandled).toEqual([]);
 });
+
+
+test("publication preparation requires an explicit connected account for the draft platform", async ({ page }) => {
+  const draftId = "b0000000-0000-4000-8000-000000000003";
+  const versionId = "b0000000-0000-4000-8000-000000000004";
+  const instagramAccount = "d0000000-0000-4000-8000-000000000002";
+  const youtubeAccount = "d0000000-0000-4000-8000-000000000003";
+  const unhandled = await mockApi(page, "authenticated", [], [{
+    id: draftId, objective: "Controlled publication selection fixture",
+    market: "US", language: "en-US", platform_target: "Instagram",
+    source_type: "manual", status: "approved", current_version_id: versionId,
+    version_no: 2, body: "Test-only draft. No provider request is executed.",
+    created_at: "2026-09-15T01:00:00.000Z"
+  }]);
+  const preparations: Record<string, unknown>[] = [];
+  await page.route("**/v1/integrations/instagram/status", (route) => json(route, 200, {
+    status: "ok", configured: true, integrations: [{
+      connection_state: "connected", social_account_id: instagramAccount,
+      handle: "controlled-instagram-account"
+    }]
+  }));
+  await page.route("**/v1/integrations/youtube/status", (route) => json(route, 200, {
+    status: "ok", configured: true, derived_analytics_policy_accepted: false,
+    integrations: [{ connection_state: "connected", social_account_id: youtubeAccount,
+      handle: "controlled-youtube-account" }]
+  }));
+  await page.route("**/v1/publication-intents", async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    preparations.push(request.postDataJSON());
+    return json(route, 200, { status: "ok", publicationIntent: { id: "controlled-intent" } });
+  });
+  await page.goto("/");
+  const create = page.getByRole("button", { name: "Create Content Authoring", exact: true });
+  await expect(create).toBeVisible();
+  await create.click();
+  await expect(page.getByText(/Saving a draft does not publish it\./)).toBeVisible();
+  const account = page.getByRole("combobox", { name: "Publication account", exact: true });
+  const prepare = page.getByRole("button", { name: "Prepare publish", exact: true });
+  await expect(account).toHaveValue("");
+  await expect(prepare).toBeDisabled();
+  await expect(account.locator("option")).toHaveCount(2);
+  await expect(account.locator("option")).toHaveText(["Choose account", "controlled-instagram-account"]);
+  expect(preparations).toEqual([]);
+  await account.selectOption(instagramAccount);
+  await expect(prepare).toBeEnabled();
+  await account.selectOption("");
+  await expect(prepare).toBeDisabled();
+  expect(preparations).toEqual([]);
+  await account.selectOption(instagramAccount);
+  await prepare.click();
+  await expect(page.getByText("Publication intent created. Execute it from Publishing status when ready.", { exact: true })).toBeVisible();
+  expect(preparations).toHaveLength(1);
+  expect(preparations[0]).toMatchObject({ socialAccountId: instagramAccount, contentVersionId: versionId });
+  // A second authenticated session must require a new account choice.
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await page.getByLabel("Email").fill("browser-quality@example.invalid");
+  await page.getByLabel("Password").fill("controlled-browser-quality-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(create).toBeVisible();
+  await create.click();
+  await expect(account).toHaveValue("");
+  await expect(prepare).toBeDisabled();
+  expect(preparations).toHaveLength(1);
+  expect(unhandled).toEqual([]);
+});

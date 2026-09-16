@@ -1,0 +1,15 @@
+# Seleção explícita da conta de publicação — 2026-09-16
+
+Texto exato disponível: "continuar". Horário individual do pedido não fornecido. Base verificada diretamente: main `68f630c5e2b5f4ad860bfcc40fe90c13a029b0b2` (PR #181). Antes da mudança, Tinyfish Fetch TTL zero confirmou runtime `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`, deployment `9fd77faf-bce0-47c9-a610-0ebefe510698`, health ready/database ok.
+
+Lidos checkpoint, últimas entradas da memória, log autenticado, contratos das ferramentas e instruções do navegador. Nenhuma busca de conversa adicional: histórico já disponível/importado. Reutilizada a aba nativa autorizada; DOM confirmou sessão ativa, providers Connected, Radar e quatro painéis. Aberto Create somente para inspecionar os controles; o rascunho v1 existente permaneceu intacto. Não submetido formulário, não salva versão, não criado intent e não publicada postagem.
+
+Revisão do fluxo no código identificou que publishDraft usava a primeira conta conectada quando a seleção estava vazia, embora o select exibisse Choose account. Defeito encontrado por inspeção de código; o workspace real contém apenas um draft, portanto não se afirma reprodução de preparação/publicação de versão aprovada em produção. O aviso Nothing is published from this panel contradiz a presença do controle Execute.
+
+Preparada correção: escolha explícita de conta conectada da plataforma, botão Prepare publish bloqueado sem escolha válida, validação do mesmo vínculo no handler, limpeza das escolhas nas transições de sessão; texto distingue salvar rascunho, preparar intent e executar publicação. Backend/SQL/provedores não alterados. A função SQL content_new_version já retorna ready_for_review; não inventado endpoint ausente nem modificado ciclo de aprovação.
+
+Adicionado teste Playwright com versão aprovada e contas Instagram/YouTube controladas: nenhuma preparação sem escolha; conta de outra plataforma ausente; retirar a escolha volta a bloquear; POST usa somente a conta escolhida; novo signin exige nova escolha. APIs interceptadas localmente; nunca envio real ao provedor. Gate canônico continua fail-closed para chamadas desconhecidas e mantém três navegadores/acessibilidade.
+
+Branch fix/explicit-publication-account-selection criada da main verificada. Registro detalhado: [escolha explícita de conta](EXECUTION_LOG_2026-09-16_PUBLICATION_ACCOUNT_SELECTION.md). Próximos gates: conferir diff, CI head final, merge, identidade/health e leitura real após deploy. PR de implementação e resumo de fechamento conterão SHA/CI/merge/deploy efetivamente observados. Não inferir sucesso a partir deste registro preparado.
+
+Tinyfish: métodos create/list/setup/save de Browser Context Profiles continuam ausentes no catálogo exposto. A run anterior d1fecfb9… terminou signed out; não repetida, não usado vault e não exportados cookies para transferir a sessão nativa. Pendência continua setup/save válido do perfil Tinyfish. Publicação real, escrita/isolamento E2E, comparação visual final, Claude final e freeze permanecem em aberto.

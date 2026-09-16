@@ -11,7 +11,7 @@ Purpose: single operational checkpoint for resuming Growth OS work without relyi
 
 - Repository: `dbdanielbaracho/GROWTH-OS`.
 - Current accepted application runtime/main after PR #180: `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`. Prior accepted PR #173 runtime is preserved in the historical evidence below.
-- PR #173, `test: add cross-browser responsive accessibility gate`, is merged and production-deployed on that exact SHA.
+- PR #173, `test: add cross-browser responsive accessibility gate`, is merged; its historical production SHA is recorded below. PR #180 is the current accepted application runtime.
 - Documentation-only commits after the accepted runtime SHA must be tracked separately from serving runtime identity. Railway Watch Paths are configured and physically proven to filter docs-only changes.
 - Historical stale PRs #29, #38, #49 and #65 were closed without merge after their valid work was proven already present or safely ported.
 - PR #154: bounded publication retries and terminal `dead` behavior.
@@ -260,3 +260,10 @@ PR #180 is merged/deployed/verified on runtime `2c70a33cb6bb4bfbce7e6a1e61cd5c09
 Tinyfish profile-reuse run d1fecfb9-da09-4436-922b-6fdddd8044dc completed signed out. Native-browser reuse is verified separately. Default/profile ID and Tinyfish profile setup/save remain unverified, and management methods are absent from the exposed connector. Do not rerun identical signed-out automations or claim a profile exists based on use_profile alone.
 
 Next pending work: valid Tinyfish profile setup/save for repeated Tinyfish runs; remaining production write/provider journeys with an appropriate approved account/content; competitive visual/final Claude/freeze gates. No publish permission or 100% completion claim from this execution.
+
+
+## Latest continuation — 2026-09-16 — explicit publication account selection
+
+Exact request: "continuar". Starting main `68f630c5e2b5f4ad860bfcc40fe90c13a029b0b2` / serving runtime `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`, confirmed live. Native authenticated session remains active; existing draft untouched. Code inspection identified implicit first-account selection despite the Choose account placeholder. Fix requires an explicit matching connected account and clears choices on session transitions; panel copy clarifies Execute can publish. Real approved-draft publication was not exercised. Implementation, CI and post-deploy acceptance: `docs/EXECUTION_LOG_2026-09-16_PUBLICATION_ACCOUNT_SELECTION.md` and its PR closing summary.
+
+Tinyfish persistent-profile setup/save remains pending and administrative methods are not exposed. No repeated signed-out run. The PR #180 authenticated read-only/data path is accepted; remaining write/onboarding/workspace-isolation/provider paths and final visual/Claude/freeze are separate open gates. Preserve all historical dated entries above.
