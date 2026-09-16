@@ -10,8 +10,8 @@ Purpose: single operational checkpoint for resuming Growth OS work without relyi
 ## Repository and lineage
 
 - Repository: `dbdanielbaracho/GROWTH-OS`.
-- Current accepted application runtime/main after PR #180: `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`. Prior accepted PR #173 runtime is preserved in the historical evidence below.
-- PR #173, `test: add cross-browser responsive accessibility gate`, is merged; its historical production SHA is recorded below. PR #180 is the current accepted application runtime.
+- Current accepted application runtime after PR #182: `d2794e8286672af0fcf7809f0b09241d89b8b0d4`. Prior PR #180/#173 runtime evidence is preserved below. Documentation-only main commits must be tracked separately.
+- PR #173, `test: add cross-browser responsive accessibility gate`, is merged; its historical production SHA is recorded below. PR #182 is the current accepted application runtime.
 - Documentation-only commits after the accepted runtime SHA must be tracked separately from serving runtime identity. Railway Watch Paths are configured and physically proven to filter docs-only changes.
 - Historical stale PRs #29, #38, #49 and #65 were closed without merge after their valid work was proven already present or safely ported.
 - PR #154: bounded publication retries and terminal `dead` behavior.
@@ -190,11 +190,11 @@ The following are closed by physical CI/production evidence:
 
 Growth OS is materially advanced but is not yet legitimately 100% complete.
 
-1. **Remaining authenticated production browser end-to-end validation**: real signin/signout/re-entry, selected workspace, Radar/provider/content/analytics reads and panel regressions are verified after PR #180. Still required on the accepted production lineage: signup/signin/session/workspace, Instagram/YouTube states, content CREATE/review/approval, publication operations and failure/recovery states using a real authenticated production session.
+1. **Remaining authenticated production browser end-to-end validation**: real signin/signout/re-entry, selected workspace, Radar/provider/content/analytics reads and panel regressions are verified after PR #180. Still required on the accepted production lineage: signup/onboarding, workspace switching/isolation, content CREATE/review/approval, provider/publication operations and failure/recovery states using real authenticated production accounts and appropriate approved content.
 2. **Controlled real-provider publication evidence** only where provider permissions/account configuration and explicitly authorized content permit it. No real-publish claim without provider-side confirmation.
 3. **Same-task competitive visual comparison and final visual freeze.** Automated responsive/accessibility/cross-browser coverage is closed; competitive/final visual acceptance remains separate.
 4. **Final consolidated adversarial review** only at the project/freeze gate. Claude is not an intermediate micro-gate and must not be claimed as completed without an actual review.
-5. **Final Production Truth Gate authenticated/data chain**: exact public runtime SHA, deployment and health are proven; frontend -> authenticated API -> real data -> expected result still requires a real authenticated production session/data path.
+5. **Final Production Truth Gate authenticated/data chain**: exact public runtime SHA, deployment and health are proven. Native authenticated read paths for Radar/provider/content/analytics and expected panel behavior passed in PR #180 and remain available after PR #182. Remaining write/isolation/provider chains and final consolidated acceptance are still open; controlled fixtures are never factual production evidence.
 
 ## Next execution order
 
@@ -267,3 +267,10 @@ Next pending work: valid Tinyfish profile setup/save for repeated Tinyfish runs;
 Exact request: "continuar". Starting main `68f630c5e2b5f4ad860bfcc40fe90c13a029b0b2` / serving runtime `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`, confirmed live. Native authenticated session remains active; existing draft untouched. Code inspection identified implicit first-account selection despite the Choose account placeholder. Fix requires an explicit matching connected account and clears choices on session transitions; panel copy clarifies Execute can publish. Real approved-draft publication was not exercised. Implementation, CI and post-deploy acceptance: `docs/EXECUTION_LOG_2026-09-16_PUBLICATION_ACCOUNT_SELECTION.md` and its PR closing summary.
 
 Tinyfish persistent-profile setup/save remains pending and administrative methods are not exposed. No repeated signed-out run. The PR #180 authenticated read-only/data path is accepted; remaining write/onboarding/workspace-isolation/provider paths and final visual/Claude/freeze are separate open gates. Preserve all historical dated entries above.
+
+
+## Accepted latest continuation — 2026-09-16 — PR #182
+
+Current application runtime: `d2794e8286672af0fcf7809f0b09241d89b8b0d4`; app deployment `c9f9b133-e1c1-44c5-838b-e824b215d359` SUCCESS. Exact PR CI `35047702029` and main CI `35047904556` success. /v1/deployment matches; health ready/database ok. Browser session preserved; four panels/Radar/providers visible; Create has corrected copy, one untouched draft, zero intents and zero panel overflow. Explicit-account preparation/platform/reset regression is CI-only because this real workspace has no approved draft. No production write/publication performed.
+
+Complete request/action/correction/evidence record: `docs/EXECUTION_LOG_2026-09-16_PUBLICATION_ACCOUNT_SELECTION.md` and central memory. Documentation closure [PR #183](https://github.com/dbdanielbaracho/GROWTH-OS/pull/183) records final checks/merge separately from runtime. Migrator/worker correctly unchanged, active SUCCESS SHAs f1b3009… / 1ad55eb… verified. Tinyfish profile setup/save still requires dashboard/API administration unavailable in the exposed connector; instructions and two-run read-only verification plan recorded. Remaining production write/provider/isolation and final visual/Claude/freeze gates remain open.
