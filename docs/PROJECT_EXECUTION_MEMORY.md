@@ -4186,3 +4186,18 @@ O PR #176 foi incluído e reconciliado explicitamente, sem repetir sua mesclagem
 A comparação do primeiro commit detectou que o checkpoint havia sido preparado num caminho novo incorreto, `docs/CURRENT_PROJECT_STATE.md`. O caminho canônico retornado pela leitura é `PROJECT_CURRENT_STATE.md` na raiz. O arquivo duplicado foi removido e a atualização aplicada ao checkpoint canônico, com correção dos links desta importação. Nenhuma alteração desse caminho incorreto foi mesclada.
 
 Os quatro conteúdos textuais foram comparados integralmente com os arquivos preparados. A consulta do conteúdo binário pela API não retornou uma leitura utilizável; a integridade foi conferida pelo SHA Git blob local `b0dd92ad93064f59f7c27a76c024fd20375f301e`, idêntico ao objeto criado pelo GitHub, e pelo SHA-256 da fonte registrado acima. A CI inicial `35025177714` estava em andamento; a correção requer checks no novo head antes do merge. O resumo final do PR #178 reúne esse resultado e a confirmação da branch main após merge.
+
+
+## 2026-09-16 — pedido individual "continuar" — Tinyfish e prontidão de sessão persistente
+
+Texto exato disponível: "continuar". Horário individual não fornecido. Ponto verificado: main `d6b3c3612d51b7f6af623629f5af8384a7b43892`, PR #178 mesclado com documento anterior importado e PR #176 incluído.
+
+Ações, resultados, correções e pendência detalhados no [registro desta continuação](EXECUTION_LOG_2026-09-16_TINYFISH_PROFILE_READINESS.md). Foram relidos checkpoint/memória/main, instruções de continuidade e contratos Tinyfish; conferidos endpoints públicos por Fetch gratuito; feita busca oficial e lidas as três documentações de perfil; lidos server/deployment-info e o bloqueio do PR #175. Nenhuma busca adicional de conversa foi necessária porque a fonte já está importada.
+
+Resultados públicos: health ready/database ok; tela pública de entrada; `/v1/system/info` 404, confirmado como endpoint antigo sem contrato atual; endpoint correto `/v1/deployment` retornou runtime `f1b3009e126faf6d388b1e5dca7e681c8e991ac6` e deployment `57cb874b-2dc9-4055-b64b-b5da38138a5e`, ambos correspondentes ao checkpoint aceito.
+
+Tinyfish conectado e chamadas gratuitas efetivamente realizadas nesta continuação; nenhuma run de automação autenticada. Preparados ciclo de perfil create/setup/login/save/reuse e matriz de leitura real: sessão em duas execuções, workspace, Instagram, YouTube, Radar, Analytics e conteúdo/fila existentes. Gestão de perfil não está exposta como método do conector nesta sessão; nenhum ID/default/perfil foi verificado ou criado. Mantida distinção entre browser_profile lite/stealth e contexto persistente; não repetidos strict/max_steps beta nem link direto incorreto.
+
+Bloqueio mantido: rejeição automática do PR #175 para solicitação/submissão de credenciais de produção sob pedido genérico. Não houve nova autenticação, vault, leitura de cookies, publicação, deploy, teste com fixture em produção ou revisão Claude. Próxima ação depende de autorização explícita para autenticação pelo formulário seguro no domínio Growth OS; em seguida persistir/verificar sessão e executar a matriz real.
+
+Alteração documental enviada pelo fluxo branch/PR/CI. O [PR #179](https://github.com/dbdanielbaracho/GROWTH-OS/pull/179) fornece o resultado efetivo de checks do head final, merge e releitura de main, registrado também em seu resumo de encerramento. Registro preparado não é evidência de teste autenticado ou merge concluído. Todas as entradas anteriores desta memória permanecem preservadas.
