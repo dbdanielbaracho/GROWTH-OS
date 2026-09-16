@@ -236,8 +236,8 @@ function ContentAuthoringPanel() {
             body,
             structure
           });
-      setMessage(`${editingId ? "Draft version saved" : "Draft saved"} · version ${result.version.version_no} · checksum ${result.version.checksum.slice(0, 12)}…`);
       startNewDraft();
+      setMessage(`${editingId ? "Draft version saved" : "Draft saved"} · version ${result.version.version_no} · checksum ${result.version.checksum.slice(0, 12)}…`);
       await Promise.all([loadDrafts(), loadPublications()]);
     } catch (error) {
       if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);

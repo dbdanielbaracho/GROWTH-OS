@@ -4271,3 +4271,30 @@ Tinyfish: métodos create/list/setup/save de Browser Context Profiles continuam 
 Próximo passo externo Tinyfish: no dashboard oficial, Browser Context Profiles -> Create Profile -> Growth OS Production -> Create and set up -> entrar em https://growos.predibeacon.com no navegador de setup -> Save. Depois recuperar apenas o profile ID e verificar duas runs independentes com use_profile true/profile_id explícito e use_vault false, somente leitura. Não usar o navegador nativo como fallback para a gestão indisponível nem transferir cookies. [Procedimento oficial](https://docs.tinyfish.ai/key-concepts/browser-context-profiles).
 
 Fechamento documental: [PR #183](https://github.com/dbdanielbaracho/GROWTH-OS/pull/183) reúne estes três registros finais. Seus checks/merge/releitura e resumo de encerramento registram o resultado efetivo; preparação deste texto não prova merge. Docs-only deve avançar a main documental sem mudar o runtime d2794e8…/c9f9b133… por Watch Paths. Não se declara projeto 100%.
+
+
+## 2026-09-16 — pedido individual de alternativa à espera por Tinyfish
+
+Texto exato: "nao tem outra alternativa ao invez de ficar nisto". Horário individual não fornecido. Base diretamente verificada: main `99c9f1bcc617afd6d96fb973b9c9e0ccc38bc9e6` (PR #183). Fetch gratuito TTL zero confirmou runtime `d2794e8286672af0fcf7809f0b09241d89b8b0d4`, app deployment `c9f9b133-e1c1-44c5-838b-e824b215d359`, health ready/database ok.
+
+### Decisão e rota independente
+
+Retomar a validação do Growth OS pelo navegador nativo já autenticado e pelo Playwright/CI canônico. O Tinyfish é ferramenta auxiliar de validação, não funcionalidade obrigatória do produto. Persistência Tinyfish permanece pendente; deixa de ser dependência para continuar implementação e aceite direto do Growth OS. Não trocar de ferramenta para contornar bot_blocked/administrar perfil Tinyfish: não houve acesso ao dashboard Tinyfish pelo navegador nativo nem transferência de cookies. A rota aqui executa testes do próprio Growth OS já autorizados e planejados.
+
+Sessão da aba nativa existente confirmada por DOM: Sign out, Radar, providers Connected e painel Create com formulário vazio. Credenciais não relidas/nova autenticação não solicitada. Rascunho real existente não alterado. Lidos checkpoint, main, código de conteúdo, spec Playwright, integração de conteúdo e complementos de orientação no PR #183. A integração .mts encontrada verifica create/list contra schema; não foi executada como se fosse E2E completo de aprovação. Os gates SQL/integração canônicos permanecem separados.
+
+### Correção preparada e testes
+
+Inspeção de submit mostrou setMessage de sucesso imediatamente seguido por startNewDraft, que também chama setMessage(null). A confirmação de salvar v1/nova versão era apagada no mesmo ciclo React. Correção mínima: limpar o formulário antes de definir o aviso com versão/checksum. API/SQL/permissores/provedores não alterados.
+
+Nova regressão Playwright com API local completamente interceptada: criar v1 e manter confirmação visível após limpar formulário; editar/salvar v2 e manter aviso; request changes -> draft; salvar v3 -> review; aprovar -> approved sem intent automático; rejeição 400 preserva texto digitado e versão v3. Verificadas rotas/payloads, estados renderizados e fail-closed para endpoints não previstos, incluindo publicação automática não autorizada. Nenhum fixture usado como dado factual de produção. Mantidos Chromium/Firefox/WebKit, acessibilidade e todos os gates canônicos.
+
+Branch fix/content-save-acknowledgement-and-editorial-gate preparada da main verificada; cinco caminhos pretendidos (código, spec, memória, checkpoint e log). Próximos gates: conferir conteúdos/diff/head, CI, merge, implantação exata e leitura real da tela. [Registro detalhado](EXECUTION_LOG_2026-09-16_DIRECT_VALIDATION_ALTERNATIVE.md) e PR de implementação/fechamento devem registrar resultados efetivos, sem concluir sucesso por preparação.
+
+### Orientações anteriores agora consolidadas
+
+As orientações de acesso após PR #183 foram registradas durante cada resposta como complementos daquele PR e estão agora incorporadas à memória/log. Capturas mostram, em ordem: documentação; Browser API sem sessão; Agent com Profiles; Vault; seletor Use Browser Context Profile ativo/Default; Dashboards expandido somente Agent/Search/Fetch/Browser. Menu Profiles visível/default selecionado não comprova domínios/cookies Growth OS salvos. O desvio por Dashboards não encontrou gestão; isso foi explicitamente corrigido, sem inventar endereço. Pesquisa/fetch oficial confirmou ciclo setup/login/save, sem URL administrativa profunda; Fetch público do Agent retornou bot_blocked, não contornado. Nenhuma run metered, Vault, login ou perfil foi criada nessas orientações.
+
+Mensagens textuais disponíveis dessa sequência, separadas: "aonde eu destravo"; "e agora"; JSON result pedindo uma tarefa específica; mensagem de assistente pedindo convite Discord (incluindo **svgsvg**); resposta nossa com convite oficial discord.gg/tinyfish. As respostas completas/ações/limites disponíveis constam da seção incorporada ao log a partir do PR #183. Não atribuídos horários individuais nem texto inventado a mensagens que consistem apenas de imagem.
+
+Pendências reais preservadas: escrita/onboarding/isolamento/publicação de produção com conteúdo/conta apropriados, confirmação real do provedor para publicar, comparação visual final, Claude final e freeze. Testes controlados de UI não fecham esses gates. Nenhum post foi publicado ou usuário usado para repetir testes técnicos; nenhuma assinatura/top-up/plano contratado e nenhum terceiro contatado.

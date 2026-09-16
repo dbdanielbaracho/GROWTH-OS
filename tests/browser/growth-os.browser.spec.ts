@@ -416,3 +416,121 @@ test("publication preparation requires an explicit connected account for the dra
   expect(preparations).toHaveLength(1);
   expect(unhandled).toEqual([]);
 });
+
+
+test("content authoring preserves save acknowledgements through review and approval", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  const draftId = "b0000000-0000-4000-8000-000000000005";
+  const versions = [
+    "",
+    "b0000000-0000-4000-8000-000000000006",
+    "b0000000-0000-4000-8000-000000000007",
+    "b0000000-0000-4000-8000-000000000008"
+  ];
+  const objective = "Controlled editorial lifecycle fixture";
+  const rejectedBody = "Controlled rejected version";
+  let created = false;
+  let version = 1;
+  let status = "draft";
+  let body = "";
+  const writes: { path: string; payload: Record<string, unknown> }[] = [];
+  const draft = () => ({
+    id: draftId, objective, market: "US", language: "en-US",
+    platform_target: "Instagram", source_type: "manual", status,
+    current_version_id: versions[version], version_no: version, body,
+    created_at: "2026-09-15T01:00:00.000Z"
+  });
+  const mutationResponse = () => ({
+    status: "ok", item: draft(),
+    version: { id: versions[version], version_no: version, checksum: "b".repeat(64) }
+  });
+
+  await page.route("**/v1/content", async (route, request) => {
+    if (request.method() === "GET") return json(route, 200, {
+      status: "ok", content: created ? [draft()] : []
+    });
+    if (request.method() !== "POST") return route.fallback();
+    const payload = request.postDataJSON();
+    writes.push({ path: "/v1/content", payload });
+    body = payload.body;
+    created = true;
+    return json(route, 200, mutationResponse());
+  });
+  await page.route(`**/v1/content/${draftId}/versions`, async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    const payload = request.postDataJSON();
+    writes.push({ path: new URL(request.url()).pathname, payload });
+    if (payload.body === rejectedBody) return json(route, 400, { status: "validation_failed" });
+    version += 1;
+    body = payload.body;
+    status = "ready_for_review";
+    return json(route, 200, mutationResponse());
+  });
+  for (const action of ["approve", "request-changes"]) {
+    await page.route(`**/v1/content/versions/*/${action}`, async (route, request) => {
+      if (request.method() !== "POST") return route.fallback();
+      const path = new URL(request.url()).pathname;
+      writes.push({ path, payload: request.postDataJSON() });
+      if (status !== "ready_for_review" || !path.includes(versions[version])) {
+        return json(route, 409, { status: "invalid_content_transition" });
+      }
+      status = action === "approve" ? "approved" : "draft";
+      return json(route, 200, { status: "ok", item: draft(), approval: { decision: action } });
+    });
+  }
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Create Content Authoring", exact: true }).click();
+  await expect(page.getByText("No drafts saved in this workspace yet.", { exact: true })).toBeVisible();
+  await page.getByLabel("Objective", { exact: false }).fill(objective);
+  await page.getByLabel("Draft text", { exact: true }).fill("Controlled first version.");
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Draft saved · version 1");
+  await expect(page.getByLabel("Draft text", { exact: true })).toHaveValue("");
+  await expect(page.getByText("Instagram · v1", { exact: true })).toBeVisible();
+  expect(writes[0]).toMatchObject({
+    path: "/v1/content",
+    payload: { objective, market: "US", language: "en-US",
+      platformTarget: "Instagram", sourceType: "manual", body: "Controlled first version." }
+  });
+
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(page.getByLabel("Draft text", { exact: true })).toHaveValue("Controlled first version.");
+  await page.getByLabel("Draft text", { exact: true }).fill("Controlled second version.");
+  await page.getByRole("button", { name: "Save new version", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Draft version saved · version 2");
+  await expect(page.getByText("Instagram · v2", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Changes", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Changes requested. The item returned to draft.");
+  await expect(page.getByRole("button", { name: "Approve", exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Draft text", { exact: true }).fill("Controlled third version.");
+  await page.getByRole("button", { name: "Save new version", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Draft version saved · version 3");
+  await page.getByRole("button", { name: "Approve", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Version approved. Publishing remains a separate controlled step.");
+  await expect(page.getByText("Connect Instagram first.", { exact: true })).toBeVisible();
+  await expect(page.getByText("No publication intents exist in this workspace yet.", { exact: true })).toBeVisible();
+  expect(writes.map(write => write.path)).toEqual([
+    "/v1/content",
+    `/v1/content/${draftId}/versions`,
+    `/v1/content/versions/${versions[2]}/request-changes`,
+    `/v1/content/${draftId}/versions`,
+    `/v1/content/versions/${versions[3]}/approve`
+  ]);
+
+  // A rejected save keeps the typed text and the last acknowledged version.
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Draft text", { exact: true }).fill(rejectedBody);
+  await page.getByRole("button", { name: "Save new version", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Complete the required content fields before saving.");
+  await expect(page.getByLabel("Draft text", { exact: true })).toHaveValue(rejectedBody);
+  await expect(page.getByRole("heading", { name: "Edit this draft", exact: true })).toBeVisible();
+  await expect(page.getByText("Instagram · v3", { exact: true })).toBeVisible();
+  expect(version).toBe(3);
+  expect(status).toBe("approved");
+  expect(writes).toHaveLength(6);
+  expect(unhandled).toEqual([]);
+});
