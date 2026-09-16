@@ -10,7 +10,7 @@ Purpose: single operational checkpoint for resuming Growth OS work without relyi
 ## Repository and lineage
 
 - Repository: `dbdanielbaracho/GROWTH-OS`.
-- Last runtime-affecting merged `main` SHA before this documentation-only checkpoint: `f1b3009e126faf6d388b1e5dca7e681c8e991ac6`.
+- Current accepted application runtime/main after PR #180: `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`. Prior accepted PR #173 runtime is preserved in the historical evidence below.
 - PR #173, `test: add cross-browser responsive accessibility gate`, is merged and production-deployed on that exact SHA.
 - Documentation-only commits after the accepted runtime SHA must be tracked separately from serving runtime identity. Railway Watch Paths are configured and physically proven to filter docs-only changes.
 - Historical stale PRs #29, #38, #49 and #65 were closed without merge after their valid work was proven already present or safely ported.
@@ -44,7 +44,17 @@ Canonical services:
 - Postgres
 - `growth-os-publication-worker`
 
-Accepted serving runtime evidence after PR #173:
+Current accepted application evidence after PR #180 (2026-09-16):
+
+- runtime SHA: `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`;
+- PR-head CI `35045212581` and exact merged-main CI `35045369593`: SUCCESS;
+- application deployment `9fd77faf-bce0-47c9-a610-0ebefe510698`: SUCCESS;
+- public `/v1/deployment` confirms that exact SHA/deployment; health ready/database ok;
+- real secure signin/signout/signin on the same page, secondary-panel visibility, pointer access to Analytics and corrected 152/152 counts: verified;
+- content read/edit form exercised without saving; one v1 draft / zero publication intents; no horizontal panel overflow;
+- migrator and worker unchanged by Watch Paths. Migrator SHA `f1b3009e126faf6d388b1e5dca7e681c8e991ac6`; worker SHA `1ad55eb293fb19f6fa0107e6d39073950414c47d`. Do not claim all services share the application SHA.
+
+Historical accepted serving runtime evidence after PR #173:
 
 - accepted runtime SHA: `f1b3009e126faf6d388b1e5dca7e681c8e991ac6`;
 - merged-main GitHub CI run `34979049457`: `SUCCESS`;
@@ -180,7 +190,7 @@ The following are closed by physical CI/production evidence:
 
 Growth OS is materially advanced but is not yet legitimately 100% complete.
 
-1. **Authenticated production browser end-to-end validation** on the accepted production lineage: signup/signin/session/workspace, Instagram/YouTube states, content CREATE/review/approval, publication operations and failure/recovery states using a real authenticated production session.
+1. **Remaining authenticated production browser end-to-end validation**: real signin/signout/re-entry, selected workspace, Radar/provider/content/analytics reads and panel regressions are verified after PR #180. Still required on the accepted production lineage: signup/signin/session/workspace, Instagram/YouTube states, content CREATE/review/approval, publication operations and failure/recovery states using a real authenticated production session.
 2. **Controlled real-provider publication evidence** only where provider permissions/account configuration and explicitly authorized content permit it. No real-publish claim without provider-side confirmation.
 3. **Same-task competitive visual comparison and final visual freeze.** Automated responsive/accessibility/cross-browser coverage is closed; competitive/final visual acceptance remains separate.
 4. **Final consolidated adversarial review** only at the project/freeze gate. Claude is not an intermediate micro-gate and must not be claimed as completed without an actual review.
@@ -241,3 +251,12 @@ The user explicitly authorized the secure Growth OS login ("sim autorizo"). The 
 Authenticated read-only evidence and discovered defects: `docs/EXECUTION_LOG_2026-09-16_AUTHENTICATED_PANEL_ACCEPTANCE.md`. PR #180 corrects missing secondary panels after same-page signin, stale session reads, Analytics/YouTube overlap, numeric count concatenation and long draft layout. CI, merge and a fresh production browser pass remain required before accepting its runtime.
 
 No Tinyfish Browser Context Profile was created or checked; reuse across two native tabs is a separate fact. No existing content was saved/approved and no external post was published. Initial accepted production runtime remains f1b3009… until new deployment proof. Remaining provider publication, write-path production acceptance, final competitive visual/Claude/freeze gates are still open.
+
+
+## Accepted authorized continuation — 2026-09-16
+
+PR #180 is merged/deployed/verified on runtime `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`. All action/failure/correction/CI/production evidence is in `docs/EXECUTION_LOG_2026-09-16_AUTHENTICATED_PANEL_ACCEPTANCE.md` and the central execution memory. Documentation closure PR #181 tracks the final record/checks/merge. Historical dated blockers/checkpoints above remain as history; current authorization and secure native login succeeded.
+
+Tinyfish profile-reuse run d1fecfb9-da09-4436-922b-6fdddd8044dc completed signed out. Native-browser reuse is verified separately. Default/profile ID and Tinyfish profile setup/save remain unverified, and management methods are absent from the exposed connector. Do not rerun identical signed-out automations or claim a profile exists based on use_profile alone.
+
+Next pending work: valid Tinyfish profile setup/save for repeated Tinyfish runs; remaining production write/provider journeys with an appropriate approved account/content; competitive visual/final Claude/freeze gates. No publish permission or 100% completion claim from this execution.

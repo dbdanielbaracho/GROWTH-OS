@@ -4225,3 +4225,14 @@ Leitura de Analytics por teclado (clique estava coberto pelo YouTube) revelou du
 Dois erros na preparação/orquestração (sintaxe da consulta CSS, import/guarda fora de escopo no patch) foram corrigidos antes da gravação final dos arquivos. Não são falhas de login/provedor. Regressões adicionadas ao gate existente, sem baixar assertions de acessibilidade ou trocar fixtures por prova real.
 
 [Registro detalhado](EXECUTION_LOG_2026-09-16_AUTHENTICATED_PANEL_ACCEPTANCE.md). [PR #180](https://github.com/dbdanielbaracho/GROWTH-OS/pull/180) registra head, CI/merge e confirmações finais; nesta etapa execução ainda aguarda esses gates e nova produção. Não criado perfil Tinyfish, não alterado rascunho existente e não publicada postagem.
+
+
+### Aceitação final desta autorização — PR #180 e documentação PR #181
+
+[Registro completo de aceitação](EXECUTION_LOG_2026-09-16_AUTHENTICATED_PANEL_ACCEPTANCE.md) atualizado com todos os resultados observados. Head PR #180 `3fc6a82bde7bfec18b44c677e03c994b9257f035`, CI `35045212581` success; merge/runtime `2c70a33cb6bb4bfbce7e6a1e61cd5c090ac64aac`, CI main `35045369593` success. App Railway `9fd77faf-bce0-47c9-a610-0ebefe510698` SUCCESS e /v1/deployment/health reconfirmados. A espera WAITING era checkSuites; não contornada. Migrator/worker SKIPPED para a mudança; ativos nos SHAs distintos descritos no registro.
+
+Repetição real: abrir Analytics por clique, contador 152/152; Create sem overflow, um rascunho v1/zero intents, Edit mostra formulário sem salvar; Sign out remove quatro painéis e volta ao signin; novo formulário seguro submetido e sessão/painéis confirmados na mesma página sem reload. Autorização do usuário efetivamente aplicada e bloqueio histórico de autorização superado. Logs públicos de identidade e proxy 200 lidos de forma limitada, sem gravar IPs/querys/credenciais ou confundir chamadas de outros atores com E2E próprio.
+
+Tinyfish run `d1fecfb9-da09-4436-922b-6fdddd8044dc`, use_profile true/use_vault false, completed, três passos, sete segundos reportados: terminou na tela de login. Não prova default/feature habilitados nem persistência. Nenhuma nova run repetida, login Tinyfish, leitura/exportação de cookies ou gestão de perfil. Próxima pendência Tinyfish: setup/save de perfil Growth OS válido por dashboard/API oficial, cujos métodos administrativos não estão expostos neste conector.
+
+Código final e arquivo central/checkpoint relidos; alterações finais exclusivamente documentais enviadas no [PR #181](https://github.com/dbdanielbaracho/GROWTH-OS/pull/181), com checks/merge/releitura rastreáveis no seu encerramento. Nenhum rascunho foi modificado/aprovado, nenhuma publicação real ocorreu e nenhum Claude final foi executado. A cobertura mobile/três navegadores é CI, não teste mobile físico de produção. Resultados parciais reais não equivalem ao fechamento de todo o projeto.
