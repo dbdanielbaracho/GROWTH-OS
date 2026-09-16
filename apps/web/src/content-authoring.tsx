@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   appendContentVersion,
@@ -45,6 +45,7 @@ type ConnectedPublicationAccount = {
 };
 
 function ContentAuthoringPanel() {
+  const authGeneration = useRef(0);
   const [authenticated, setAuthenticated] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -66,10 +67,14 @@ function ContentAuthoringPanel() {
   const [message, setMessage] = useState<string | null>(null);
 
   const loadDrafts = useCallback(async () => {
+    const generation = authGeneration.current;
     setLoadingDrafts(true);
     try {
-      setDrafts(await fetchContent());
+      const rows = await fetchContent();
+      if (generation !== authGeneration.current) return;
+      setDrafts(rows);
     } catch (error) {
+      if (generation !== authGeneration.current) return;
       if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
     } finally {
       setLoadingDrafts(false);
@@ -77,10 +82,14 @@ function ContentAuthoringPanel() {
   }, []);
 
   const loadPublications = useCallback(async () => {
+    const generation = authGeneration.current;
     setLoadingPublications(true);
     try {
-      setPublicationIntents(await fetchPublicationIntents());
+      const rows = await fetchPublicationIntents();
+      if (generation !== authGeneration.current) return;
+      setPublicationIntents(rows);
     } catch (error) {
+      if (generation !== authGeneration.current) return;
       if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
     } finally {
       setLoadingPublications(false);
@@ -88,10 +97,12 @@ function ContentAuthoringPanel() {
   }, []);
 
   const loadConnectedAccounts = useCallback(async () => {
+    const generation = authGeneration.current;
     const [instagram, youtube] = await Promise.allSettled([
       fetchInstagramStatus(),
       fetchYoutubeStatus()
     ]);
+    if (generation !== authGeneration.current) return;
     const accounts: ConnectedPublicationAccount[] = [];
     if (instagram.status === "fulfilled") {
       for (const row of instagram.value.integrations) {
@@ -125,11 +136,14 @@ function ContentAuthoringPanel() {
   }, []);
 
   const refresh = useCallback(async () => {
+    const generation = authGeneration.current;
     try {
       await fetchAuthSession();
+      if (generation !== authGeneration.current) return;
       setAuthenticated(true);
       await Promise.all([loadDrafts(), loadPublications(), loadConnectedAccounts()]);
     } catch (error) {
+      if (generation !== authGeneration.current) return;
       if (error instanceof RadarApiError && error.httpStatus === 401) {
         setAuthenticated(false);
         setDrafts([]);
@@ -138,6 +152,25 @@ function ContentAuthoringPanel() {
       setChecking(false);
     }
   }, [loadDrafts, loadPublications, loadConnectedAccounts]);
+
+
+  useEffect(() => {
+    const onAuthChange = (event: Event) => {
+      authGeneration.current += 1;
+      setAuthenticated(false);
+      setExpanded(false);
+      setMessage(null);
+      setDrafts([]);
+      setPublicationIntents([]);
+      setConnectedAccounts([]);
+      setEditingId(null);
+      setObjective("");
+      setBody("");
+      if ((event as CustomEvent<{ authenticated?: boolean }>).detail?.authenticated) void refresh();
+    };
+    window.addEventListener("growth-os:auth-change", onAuthChange);
+    return () => window.removeEventListener("growth-os:auth-change", onAuthChange);
+  }, [refresh]);
 
   useEffect(() => {
     void refresh();

@@ -927,3 +927,34 @@ footer span:first-child { color: #d4d0c5; }
   border-color: var(--accent);
   color: var(--accent-strong);
 }
+
+
+/* Keep Analytics separate from the YouTube toggle; secondary modules start closed. */
+body .analytics-panel {
+  left: 22px;
+  right: auto;
+  bottom: 104px;
+  z-index: 60;
+}
+
+/* Narrow screens use document flow so every module remains reachable by touch. */
+@media (max-width: 900px) {
+  body .youtube-integration-panel,
+  body .instagram-integration-panel,
+  body .content-authoring-panel,
+  body .analytics-panel {
+    position: relative;
+    inset: auto;
+    width: auto;
+    margin: 14px;
+    z-index: auto;
+    filter: none;
+  }
+}
+
+body .content-draft-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+body .content-draft-row > div {
+  min-width: 0;
+}

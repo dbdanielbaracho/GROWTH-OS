@@ -1195,6 +1195,7 @@ function RootApp() {
   }, [verificationToken, resetToken]);
 
   async function doSignOut() {
+    window.dispatchEvent(new CustomEvent("growth-os:auth-change", { detail: { authenticated: false } }));
     try { await signOut(); } catch { /* local state still clears */ }
     setSession(null);
     setState("signed_out");
@@ -1203,6 +1204,9 @@ function RootApp() {
   function acceptSession(result: AuthSessionResponse) {
     setSession(result);
     setState(result.selected_workspace ? "ready" : result.workspaces.length > 0 ? "workspace" : "onboarding");
+    window.dispatchEvent(new CustomEvent("growth-os:auth-change", {
+      detail: { authenticated: Boolean(result.selected_workspace) }
+    }));
   }
 
   if (state === "loading") return <AuthLoading />;
