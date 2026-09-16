@@ -62,7 +62,7 @@ function json(route: Route, status: number, body: unknown) {
   });
 }
 
-async function mockApi(page: Page, initialMode: "signed_out" | "authenticated", metrics: unknown[] = []) {
+async function mockApi(page: Page, initialMode: "signed_out" | "authenticated", metrics: unknown[] = [], content: unknown[] = []) {
   let mode = initialMode;
   const unhandled: string[] = [];
 
@@ -120,7 +120,7 @@ async function mockApi(page: Page, initialMode: "signed_out" | "authenticated", 
     }
 
     if (mode === "authenticated" && path === "/v1/content") {
-      return json(route, 200, { status: "ok", content: [] });
+      return json(route, 200, { status: "ok", content });
     }
 
     if (mode === "authenticated" && path === "/v1/publication-intents") {
@@ -323,7 +323,14 @@ test("signin and signout update all secondary panels without reload or focus", a
 });
 
 test("secondary panels can each be opened and closed by pointer on desktop and mobile", async ({ page }) => {
-  const unhandled = await mockApi(page, "authenticated");
+  const unhandled = await mockApi(page, "authenticated", [], [{
+    id: "b0000000-0000-4000-8000-000000000002",
+    objective: "Controlled long draft title ".repeat(20),
+    market: "US", language: "en-US", platform_target: "Instagram",
+    source_type: "user", status: "draft", current_version_id: null,
+    version_no: 1, body: "Controlled draft body for browser layout verification.",
+    created_at: "2026-09-15T01:00:00.000Z"
+  }]);
   await page.goto("/");
   for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(size);
@@ -333,6 +340,10 @@ test("secondary panels can each be opened and closed by pointer on desktop and m
       await toggle.click();
       await expect(toggle).toHaveAttribute("aria-expanded", "true");
       await expectNoHorizontalOverflow(page);
+      if (name === "Create Content Authoring") {
+        const overflow = await page.locator(".content-panel-body").evaluate((panel) => panel.scrollWidth - panel.clientWidth);
+        expect(overflow).toBeLessThanOrEqual(1);
+      }
       await toggle.click();
       await expect(toggle).toHaveAttribute("aria-expanded", "false");
     }

@@ -951,3 +951,10 @@ body .analytics-panel {
     filter: none;
   }
 }
+
+body .content-draft-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+body .content-draft-row > div {
+  min-width: 0;
+}
