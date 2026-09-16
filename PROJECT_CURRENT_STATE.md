@@ -4,7 +4,7 @@
 
 Every request to continue this project, including repeated or abbreviated requests, must receive a separate dated entry in `docs/PROJECT_EXECUTION_MEMORY.md`. Record the exact available request text, verified starting point, every performed action/attempt/check/correction, actual result, any blocker and the next pending action. Consult the last entry before resuming and update the central record during work and before ending the response. A request is not execution evidence. Preserve repetitions and history; never invent unavailable messages, timestamps or results, and never reproduce secrets. Full standing instruction: central memory, “Regra permanente — registrar cada pedido de continuação — v1.0 — 2026-09-15”.
 
-Last updated: 2026-09-15  
+Last updated: 2026-09-16  
 Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.
 
 ## Repository and lineage
@@ -221,3 +221,14 @@ The source's `main ad4dad727012b92cbe9c3675d5994016ec8a1488` is historical (PR #
 The native secure production login request in the subsequent resumption was rejected by automatic approval review and remains recorded in `docs/EXECUTION_LOG_2026-09-15_AUTHENTICATED_ACCEPTANCE_BLOCKER.md` / PR #175. The historical source does not override that rejection. No Tinyfish call, authentication, real publication or Claude review was executed in this import.
 
 PR #177's three recovered messages remain preserved; `docs/CONVERSATION_RECOVERY_2026-09-15_TINYFISH_PARTIAL.md` now links the fuller operational source. Consult the appended central-memory entry “importação do documento anterior e inclusão explícita do PR #176” for this request, all actions, corrections, source limits and next pending work.
+
+
+## Latest continuation — 2026-09-16 — Tinyfish profile readiness
+
+Exact request: "continuar". Verified documentation base: `d6b3c3612d51b7f6af623629f5af8384a7b43892` (PR #178). Every continuation remains separately recorded in the central execution memory; PR #176 rule is unchanged.
+
+Public production reconfirmed through Tinyfish Fetch with TTL zero: health ready/database ok, signed-out landing, and canonical `GET /v1/deployment` reporting runtime `f1b3009e126faf6d388b1e5dca7e681c8e991ac6` / deployment `57cb874b-2dc9-4055-b64b-b5da38138a5e`. Legacy `/v1/system/info` returns 404 and is not the current metadata contract. No deployment or authenticated acceptance claim.
+
+Official Tinyfish profile lifecycle and initial authenticated read-only matrix are prepared in `docs/EXECUTION_LOG_2026-09-16_TINYFISH_PROFILE_READINESS.md`. Search/Fetch calls succeeded; no authenticated automation or profile setup was run. Profile management methods are not exposed by this session's connector; no concrete default/profile ID has been retrieved.
+
+The prior automatic-review rejection of production credential request/submission remains active. Next dependent step: explicit authentication authorization for the exact Growth OS origin through the secure form, then set up/save/reuse a persistent profile and run actual production journeys. Do not circumvent the rejection through vault or another automation. Documentation PR #179 supplies final checks/merge evidence; core acceptance gates remain open.
