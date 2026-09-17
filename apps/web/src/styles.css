@@ -958,3 +958,66 @@ body .content-draft-row {
 body .content-draft-row > div {
   min-width: 0;
 }
+
+
+/* Persisted experiment outcome learning loop. */
+.experiment-outcome-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #b9ad93;
+  border-radius: 14px;
+  background: #fffaf0;
+}
+.experiment-outcome-form > p {
+  margin: 0;
+  color: #343931;
+  font-size: .82rem;
+  font-weight: 750;
+}
+.experiment-outcome-form label {
+  display: grid;
+  gap: 6px;
+  color: #252822;
+  font-size: .78rem;
+  font-weight: 800;
+}
+.experiment-outcome-form label small { color: #596059; font-weight: 600; }
+.experiment-outcome-form input,
+.experiment-outcome-form select,
+.experiment-outcome-form textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #837b6c;
+  border-radius: 9px;
+  background: #fffdf8;
+  color: #171817;
+  padding: 10px 12px;
+}
+.experiment-outcome-form textarea { min-height: 88px; resize: vertical; }
+.experiment-outcome-form input:focus,
+.experiment-outcome-form select:focus,
+.experiment-outcome-form textarea:focus {
+  border-color: #8a641f;
+  outline: 2px solid rgba(138,100,31,.22);
+  outline-offset: 1px;
+}
+.experiment-outcome-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.experiment-success {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid #7fa186;
+  border-radius: 10px;
+  background: #edf6ee;
+  color: #284f31;
+  font-size: .8rem;
+}
+@media (max-width: 620px) {
+  .experiment-outcome-grid { grid-template-columns: 1fr; }
+  .experiment-variant-list li { align-items: flex-start; flex-direction: column; }
+}
