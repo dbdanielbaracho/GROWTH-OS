@@ -424,3 +424,8 @@ Audit found that **Start a content draft** stored a recommendation but did not o
 ### PR #191 technical acceptance — 2026-09-17
 
 Head `4db4acbe2481069b338d0ccb96c751347de7473c`; CI run `35250067721`; job `105299954362`; SUCCESS. Eleven Chromium/Axe journeys, all database/identity/intelligence/shell/final gates passed. The stored draft recommendation opened Content Authoring with evidence-linked context while preserving an empty body and making no automatic content write. The documentation head requires full CI before exact-head merge.
+
+
+### Latest continuation — 2026-09-17
+
+Exact request: `"continuar"`. PR #191 documentation head `b4e5860880976ad151ebbdf1296d142d9a9957d8` passed CI run `35250519807` / job `105301442167`. The new continuation record creates the final candidate head, which must pass full CI before exact-head merge, main CI and Railway proof.
