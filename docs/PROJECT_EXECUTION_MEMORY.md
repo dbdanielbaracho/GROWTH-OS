@@ -4655,3 +4655,26 @@ Passaram: integridade, hardening, typecheck, build, onze jornadas Chromium com A
 **Ponto de retomada:** PR #191 no head documental `b4e5860880976ad151ebbdf1296d142d9a9957d8`; CI run `35250519807`, job `105301442167`, conclusão `success`. Onze jornadas Chromium/Axe, migrations, gates SQL, identidade, inteligência, shell e testes finais passaram novamente.
 
 **Próxima ação autorizada:** mesclar somente esse SHA aceito, validar CI de `main` e Railway, registrar o fechamento de produção e reauditar as transições restantes do ciclo completo. Nenhum merge ou deploy é reivindicado nesta entrada.
+
+
+## Fechamento de produção — PR #191 — handoff recomendar → criar — 2026-09-17
+
+- PR: [#191](https://github.com/dbdanielbaracho/GROWTH-OS/pull/191), `feat: connect recommendations to product actions`.
+- Head final aceito: `329602e7e8608354e4e84ac304de82e2d272c505`.
+- CI final do PR: run `35280585842`, job `105401318532`, `success`.
+- Merge commit em `main`: `027fb4060c051d6d656a86dbfb1442b403f33eb8`.
+- CI de `main`: run `35280922343`, job `105402395854`, `success`.
+- Railway app `0cff9fb3-0808-41d9-89b9-bb6e115d1672`: `SUCCESS` no merge exato; logs confirm identidade do commit e porta 8080.
+- Migrator e worker permaneceram corretamente no release anterior, pois o PR não continha migration nem mudança nesses serviços.
+- Healthcheck público `/health/ready`: HTTP 200 com `{"status":"ready","database":"ok"}`.
+- Resultado: a recomendação `draft_content` abre a autoria com contexto e corpo vazio, sem salvar ou publicar automaticamente; as ações de evidência e experimento navegam às superfícies corretas.
+
+## Reauditoria contínua — lacuna criar → aprovar — 2026-09-17
+
+A inspeção após o PR #191 encontrou que um primeiro conteúdo era salvo em `draft`, porém a interface só oferecia **Approve/Changes** para `ready_for_review`. O helper legado `content_new_version` mudava implicitamente uma edição para revisão, obrigando o usuário a criar uma segunda versão para revisar o primeiro rascunho e misturando edição com submissão.
+
+**Execução candidata:** PR [#192](https://github.com/dbdanielbaracho/GROWTH-OS/pull/192), branch `feat/content-review-submission`, iniciada no merge aceito `027fb4060c051d6d656a86dbfb1442b403f33eb8`. A migration 065 cria `content_review_submissions` com ator, versão, nota e horário, RLS forçada e helper SECURITY DEFINER least-privilege. Criar ou editar mantém `draft`; somente a versão mais recente pode ser enviada explicitamente por **Submit for review**, liberando então as decisões separadas de aprovação ou mudanças.
+
+**Provas preparadas:** gate SQL 067 verifica tenant guard, versão mais recente, lifecycle, auditoria, owner/RLS e privilégios; a jornada Chromium cobre primeiro draft → review → changes → nova versão → review → approve, payloads exatos, preservação após erro, overflow e Axe/WCAG. A migration está registrada no reconciliador de produção.
+
+**Estado nesta entrada:** head candidato `cb5d4c03c591af4349de4395d1b90cf67b9dc895`; PR aberto. CI, merge, migration e produção ainda não são reivindicados.
