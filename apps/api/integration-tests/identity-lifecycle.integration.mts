@@ -60,11 +60,11 @@ function invitationToken(email: CapturedEmail): string {
   return match[1];
 }
 
-function latestEmail(subject: string, recipient: string): CapturedEmail {
+function latestEmail(expectedSubject: string, expectedRecipient: string): CapturedEmail {
   const email = [...capturedEmails].reverse().find((item) =>
-    item.subject === subject && item.to.includes(recipient)
+    item.subject === expectedSubject && item.to.includes(expectedRecipient)
   );
-  if (!email) throw new Error(`captured email not found: ${subject} -> ${recipient}`);
+  if (!email) throw new Error(`captured email not found: ${expectedSubject} -> ${expectedRecipient}`);
   return email;
 }
 

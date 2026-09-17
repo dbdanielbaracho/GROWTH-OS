@@ -4371,3 +4371,8 @@ Primeira auditoria direta encontrou um gap objetivo no gate de identidade: `prod
 Branch `feat/identity-lifecycle-production-gate` criada do SHA verificado. Primeira entrega preparada: rotas autenticadas owner/admin para listar e atualizar memberships, preservando RLS e o trigger canônico de autorização; novo teste integrado com provedor de e-mail capturado localmente, sem envio externo; inclusão do teste de identidade de produção já existente e do novo ciclo completo no CI. Uma inspeção auxiliar do workflow falhou inicialmente com `ReferenceError: i is not defined` por erro do script de leitura; nenhuma mudança ocorreu, e a leitura foi repetida corretamente.
 
 Esta entrada registra início/preparação. CI, correções, merge, deploy e aceite serão registrados apenas depois de acontecerem. O projeto não está declarado concluído.
+
+
+### PR #186 — primeira execução do CI
+
+Head `38ef6b06e01acf7205eff86ecc21601f22d3adac`; run `35174898967`; job `105054309065`. O Test Integrity Gate interrompeu a execução antes de typecheck/build por um padrão classificado como `self-comparison-tautology` em `identity-lifecycle.integration.mts:65` (`item.subject === subject`). A comparação pretendia confrontar o assunto capturado com o assunto esperado, mas os nomes eram ambíguos para o detector. Correção: parâmetros renomeados para `expectedSubject` e `expectedRecipient`. O gate não foi desativado nem relaxado. Nenhuma implantação ocorreu.
