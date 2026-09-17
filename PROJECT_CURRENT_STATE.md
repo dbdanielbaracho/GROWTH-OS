@@ -381,3 +381,8 @@ PR #188 final head `3dc4da1b42ce54a095447c5baeadf68b23318f1f` passed CI run `351
 Exact request: `"continuar"`. Audit after PR #188 found that experiment creation existed, but web state did not reload experiments/variants and exposed no outcome feedback. Thus the `measure → learn` step was not yet a durable product journey.
 
 Branch `feat/experiment-outcome-learning-loop` prepares migration 063, a least-privilege variant read helper with latest evidence-backed outcome, running/completed experiment transitions, API/web clients, persisted UI recovery and winner/loser/inconclusive recording. SQL gate 065 and a Chromium reload/Axe journey are required. No CI, merge, production migration or real publication is claimed yet.
+
+
+### PR #189 active CI correction — 2026-09-17
+
+Head `4f8a9224b2746796b0f500654c6c381cc31ce71e`, CI run `35245085540`, job `105283119064`: the functional experiment journey recorded an evidence-backed winner and recovered it after reload, but Axe blocked three supporting texts at 2.59:1 contrast on the light experiment panel. Their scoped color was corrected from inherited `#989b94` to `#5b6059`; no functional or accessibility gate was removed. Fresh full CI is required before acceptance.
