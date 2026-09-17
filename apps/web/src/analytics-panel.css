@@ -60,7 +60,7 @@
 .analytics-copy { margin: 8px 0 15px; color: #92968e; font-size: .82rem; line-height: 1.55; }
 .analytics-muted,
 .analytics-empty span,
-.analytics-note { color: #777b73; font-size: .75rem; line-height: 1.45; }
+.analytics-note { color: #82867e; font-size: .75rem; line-height: 1.45; }
 .analytics-empty {
   display: grid;
   gap: 5px;
