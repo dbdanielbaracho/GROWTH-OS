@@ -310,3 +310,8 @@ First verified gap: the production identity integration file existed but was not
 ### Active CI correction — 2026-09-17
 
 PR #186 head `d83b7e9e4d8a81df811982c5570123611e96824f` passed integrity, hardening, typecheck, build, migrations and SQL gates, then exposed a real deferred-trigger privilege defect during production identity workspace creation (CI run `35175000720`, job `105054638361`). Migration 061 and SQL gate 063 prepare the least-privilege correction: the two internal authority-projection constraint triggers execute as `growth_migrator` with fixed search path while `app_runtime` retains no direct `authority_history` read. This is pending fresh CI; no merge or deployment is claimed.
+
+
+### CI provisioning correction — 2026-09-17
+
+PR #186 head `85727cdd686c92ca8ad49bd6aa0fae140cd78616`, CI run `35175366020`: migration 061/gate 063 passed. The production identity test then exposed that isolated CI omitted the canonical production grant files before Identity migration 006, causing an artificial `memberships` permission failure despite the reviewed production grant matrix. CI now prepares to apply production provisioning 02–05 after migrations 001–005 and before 006, matching the documented bootstrap order. Fresh CI is pending; no merge/deploy claim.
