@@ -29,6 +29,10 @@
   border-bottom: 1px solid rgba(31, 35, 38, 0.1);
 }
 
+.team-header .eyebrow {
+  color: #72510e;
+}
+
 .team-header h2,
 .team-invite h3,
 .team-members h3 {
@@ -179,7 +183,7 @@
 .team-member-identity span,
 .team-owner-lock small,
 .team-member-controls small {
-  color: #777d80;
+  color: #5d6366;
   font-size: 0.78rem;
 }
 
