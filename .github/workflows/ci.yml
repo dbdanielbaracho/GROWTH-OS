@@ -58,6 +58,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Browser product gate
+        env:
+          BROWSER_QUALITY_PROJECTS: chromium
+        run: node tests/browser/run-browser-quality.mjs
+
       - name: Provision isolated CI roles
         env:
           PGPASSWORD: postgres

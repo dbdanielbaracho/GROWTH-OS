@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import {
   fetchAuthSession,
   createWorkspace,
+  acceptWorkspaceInvitation,
   signUp,
   requestPasswordReset,
   completePasswordReset,
@@ -37,6 +38,7 @@ import {
   type WorkspaceEntitlements,
   type EnterprisePolicy
 } from "./api.js";
+import { TeamManagement } from "./team-management.js";
 import "./styles.css";
 import "./auth.css";
 
@@ -597,6 +599,7 @@ function RadarApp({
   const [detailMessage, setDetailMessage] = useState<string | null>(null);
   const [radarRefreshToken, setRadarRefreshToken] = useState(0);
   const [feedNotice, setFeedNotice] = useState<string | null>(null);
+  const [teamOpen, setTeamOpen] = useState(false);
 
   useEffect(() => {
     const refresh = () => setRadarRefreshToken((value) => value + 1);
@@ -686,12 +689,21 @@ function RadarApp({
           {auth?.selected_workspace && (
             <span className="workspace-chip">{auth.selected_workspace.name}</span>
           )}
+          {auth?.selected_workspace && ["owner", "admin"].includes(auth.selected_workspace.role) && (
+            <button className="signout-button" type="button" onClick={() => setTeamOpen(true)} aria-label="Manage team">
+              Team
+            </button>
+          )}
           <button className="product-label radar-nav-button" type="button" onClick={openRadar} aria-label="Open Opportunity Radar"><span className="live-dot" /> Opportunity Radar</button>
           {onSignOut && (
             <button className="signout-button" type="button" onClick={() => void onSignOut()}>Sign out</button>
           )}
         </div>
       </header>
+
+      {teamOpen && auth?.selected_workspace && (
+        <TeamManagement workspace={auth.selected_workspace} onClose={() => setTeamOpen(false)} />
+      )}
 
       <section className="hero editorial-hero">
         <div className="hero-copy">
@@ -1159,10 +1171,66 @@ function WorkspaceScreen({
   );
 }
 
+function InvitationAcceptanceScreen({
+  token,
+  session,
+  onAccepted,
+  onSignOut
+}: {
+  token: string;
+  session: AuthSessionResponse;
+  onAccepted: (session: AuthSessionResponse) => void;
+  onSignOut: () => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function accept() {
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await acceptWorkspaceInvitation(token);
+      onAccepted(await fetchAuthSession());
+    } catch (error) {
+      if (error instanceof RadarApiError && (error.httpStatus === 409 || error.httpStatus === 400)) {
+        setMessage("This invitation is invalid, expired, already used, or belongs to another verified email.");
+      } else if (error instanceof RadarApiError && error.httpStatus === 403) {
+        setMessage("The invitation could not be accepted by this signed-in account.");
+      } else {
+        setMessage("Growth OS could not accept this invitation right now.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="auth-brand"><span className="brand-mark">G</span><strong>Growth OS</strong></div>
+        <p className="eyebrow">Workspace invitation</p>
+        <h1 className="auth-title">Join the workspace securely.</h1>
+        <p className="auth-copy">This one-time invitation will be checked against your verified account before access is granted.</p>
+        <div className="auth-empty">
+          <strong>Signed in account</strong>
+          <p>User {session.session.user_id.slice(0, 8)} · invitation token hidden</p>
+        </div>
+        {message && <p className="auth-error" role="alert">{message}</p>}
+        <button className="auth-primary" type="button" disabled={submitting} onClick={() => void accept()}>
+          {submitting ? "Accepting…" : "Accept invitation"}
+        </button>
+        <button className="auth-secondary" type="button" onClick={() => void onSignOut()}>Use another account</button>
+      </section>
+    </main>
+  );
+}
+
 function RootApp() {
-  const [state, setState] = useState<"loading" | "signed_out" | "signup" | "reset_request" | "reset_complete" | "verify" | "workspace" | "onboarding" | "ready" | "dev">("loading");
-  const verificationToken = new URLSearchParams(window.location.search).get("token");
-  const resetToken = verificationToken;
+  const [state, setState] = useState<"loading" | "signed_out" | "signup" | "reset_request" | "reset_complete" | "verify" | "invitation" | "workspace" | "onboarding" | "ready" | "dev">("loading");
+  const queryToken = new URLSearchParams(window.location.search).get("token");
+  const verificationToken = window.location.pathname === "/verify-email" ? queryToken : null;
+  const resetToken = window.location.pathname === "/reset-password" ? queryToken : null;
+  const invitationToken = window.location.pathname === "/accept-invitation" ? queryToken : null;
   const [session, setSession] = useState<AuthSessionResponse | null>(null);
 
   useEffect(() => {
@@ -1174,7 +1242,7 @@ function RootApp() {
       setState("verify");
       return;
     }
-    if (hasDevelopmentIdentity()) {
+    if (!invitationToken && hasDevelopmentIdentity()) {
       setState("dev");
       return;
     }
@@ -1184,7 +1252,7 @@ function RootApp() {
       .then((result) => {
         if (!active) return;
         setSession(result);
-        setState(result.selected_workspace ? "ready" : result.workspaces.length > 0 ? "workspace" : "onboarding");
+        setState(invitationToken ? "invitation" : result.selected_workspace ? "ready" : result.workspaces.length > 0 ? "workspace" : "onboarding");
       })
       .catch(() => {
         if (!active) return;
@@ -1192,7 +1260,7 @@ function RootApp() {
         setState("signed_out");
       });
     return () => { active = false; };
-  }, [verificationToken, resetToken]);
+  }, [verificationToken, resetToken, invitationToken]);
 
   async function doSignOut() {
     window.dispatchEvent(new CustomEvent("growth-os:auth-change", { detail: { authenticated: false } }));
@@ -1202,6 +1270,15 @@ function RootApp() {
   }
 
   function acceptSession(result: AuthSessionResponse) {
+    setSession(result);
+    setState(invitationToken ? "invitation" : result.selected_workspace ? "ready" : result.workspaces.length > 0 ? "workspace" : "onboarding");
+    window.dispatchEvent(new CustomEvent("growth-os:auth-change", {
+      detail: { authenticated: Boolean(result.selected_workspace) }
+    }));
+  }
+
+  function finishInvitation(result: AuthSessionResponse) {
+    window.history.replaceState({}, "", "/");
     setSession(result);
     setState(result.selected_workspace ? "ready" : result.workspaces.length > 0 ? "workspace" : "onboarding");
     window.dispatchEvent(new CustomEvent("growth-os:auth-change", {
@@ -1224,6 +1301,9 @@ function RootApp() {
       window.history.replaceState({}, "", "/");
       setState("signed_out");
     }} />;
+  }
+  if (state === "invitation" && session && invitationToken) {
+    return <InvitationAcceptanceScreen token={invitationToken} session={session} onAccepted={finishInvitation} onSignOut={doSignOut} />;
   }
   if (state === "onboarding" && session) {
     return <WorkspaceOnboardingScreen session={session} onCreated={acceptSession} onSignOut={doSignOut} />;

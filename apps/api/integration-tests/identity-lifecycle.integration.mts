@@ -55,9 +55,14 @@ function verificationToken(email: CapturedEmail): string {
 }
 
 function invitationToken(email: CapturedEmail): string {
-  const match = email.html.match(/<code>([^<]+)<\/code>/);
-  if (!match?.[1]) throw new Error("invitation token not found in captured email");
-  return match[1];
+  const match = email.html.match(/<a href="([^"]+)">Accept invitation<\/a>/);
+  if (!match?.[1]) throw new Error("invitation link not found in captured email");
+  const invitationUrl = new URL(match[1]);
+  assert.equal(invitationUrl.origin, APP_ORIGIN);
+  assert.equal(invitationUrl.pathname, "/accept-invitation");
+  const token = invitationUrl.searchParams.get("token");
+  if (!token) throw new Error("invitation token not found in captured email link");
+  return token;
 }
 
 function latestEmail(expectedSubject: string, expectedRecipient: string): CapturedEmail {
@@ -197,6 +202,18 @@ try {
     headers: { cookie: member.cookies.header() }
   });
   assert.equal(forbiddenMembers.statusCode, 403, forbiddenMembers.body);
+
+  const forbiddenInvite = await app.inject({
+    method: "POST",
+    url: `/v1/workspaces/${workspaceId}/invitations`,
+    headers: {
+      origin: APP_ORIGIN,
+      cookie: member.cookies.header(),
+      "x-csrf-token": member.csrf
+    },
+    payload: { email: `blocked-${memberEmail}`, role: "viewer", canPublish: false }
+  });
+  assert.equal(forbiddenInvite.statusCode, 403, forbiddenInvite.body);
 
   const membersBefore = await app.inject({
     method: "GET",

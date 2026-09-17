@@ -335,3 +335,15 @@ PR #186 head `df01c945b9d093a443f0ddf11c43612d00695348`; CI run `35175922229`; j
 ### Latest continuation — 2026-09-17
 
 Exact request: `"continuar"`. PR #186 documentation head `a5b7af59e174cd8e44bdcd80102846a9dfb3a390`; CI run `35176124483`, job `105058117500`, SUCCESS. Next: exact-head merge, main CI, migrations 061–062, deployment and public health/runtime proof.
+
+### PR #186 production acceptance — 2026-09-17
+
+PR #186 was merged at head `b08bb3feb164e529a79284f2b67f770e860440ea`; `main` merge commit `54861e0de2168a2d2326d9b4a69b1315ab794dc8`. Main CI run `35179342042`, job `105067923415`, succeeded. Railway migrator `8a7b3200-dd43-4a55-8ef6-e430c8ec12eb` applied migrations 061–062 and passed publication operational smokes; worker `3eb9cb3e-cfe1-423a-b468-39e2ed0e0b9f` succeeded; app `41c1e820-fe1f-49ea-9307-3633a08a49d1` succeeded from the exact merge SHA. The app healthcheck remains `/health/ready`; runtime logs verified deployment identity and Railway observed `GET /v1/deployment` HTTP 200. Direct response-body inspection was blocked by the verification clients, so no unobserved body content is claimed.
+
+### Active team and invitation surface — 2026-09-17
+
+Branch `feat/team-invitations-product-surface` now contains the typed team client, owner/admin team dialog, actionable invitation-email link, signed-in one-time acceptance screen, explicit route-level invitation authority, integration coverage, Playwright journeys and a Chromium browser gate in CI. This branch is not yet accepted or merged. After green CI: review the exact head, merge, follow main CI/Railway, and validate the production shell without creating a real invitation unless a concrete recipient is approved.
+
+### Team and invitation CI accepted — 2026-09-17
+
+PR #187 head `02f63b135560982204044554236eba563eb423a9`; CI run `35180576112`; job `105071621596`; SUCCESS. The new Chromium gate passed all eight critical journeys and Axe/WCAG checks, followed by all database, identity, intelligence, shell and unit gates. The documentation head `13d9d4631137e618fff4f014b769d7976f2b8ced` now awaits its final CI before exact-head merge.

@@ -22,7 +22,16 @@ if (process.env.CI !== "true") {
   process.exit(0);
 }
 
-console.log("BROWSER QUALITY GATE: installing exact CI-only browser tooling without modifying package manifests or lockfile.");
+const requestedProjects = (process.env.BROWSER_QUALITY_PROJECTS ?? "chromium,firefox,webkit")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const supportedProjects = new Set(["chromium", "firefox", "webkit"]);
+if (requestedProjects.length === 0 || requestedProjects.some((project) => !supportedProjects.has(project))) {
+  throw new Error("BROWSER_QUALITY_PROJECTS must contain chromium, firefox, or webkit");
+}
+
+console.log(`BROWSER QUALITY GATE: installing exact CI-only tooling for ${requestedProjects.join(", ")} without modifying package manifests or lockfile.`);
 run("npm", [
   "install",
   "--no-save",
@@ -34,6 +43,10 @@ run("npm", [
 ]);
 
 const playwright = join(ROOT, "node_modules", ".bin", "playwright");
-run(playwright, ["install", "--with-deps", "chromium", "firefox", "webkit"]);
-run(playwright, ["test", "--config=tests/browser/playwright.config.ts"]);
-console.log("BROWSER QUALITY GATE: PASSED — Chromium, Firefox and WebKit browser journeys completed.");
+run(playwright, ["install", "--with-deps", ...requestedProjects]);
+run(playwright, [
+  "test",
+  "--config=tests/browser/playwright.config.ts",
+  ...requestedProjects.map((project) => `--project=${project}`)
+]);
+console.log(`BROWSER QUALITY GATE: PASSED — ${requestedProjects.join(", ")} browser journeys completed.`);
