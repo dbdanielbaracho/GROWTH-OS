@@ -315,3 +315,8 @@ PR #186 head `d83b7e9e4d8a81df811982c5570123611e96824f` passed integrity, harden
 ### CI provisioning correction — 2026-09-17
 
 PR #186 head `85727cdd686c92ca8ad49bd6aa0fae140cd78616`, CI run `35175366020`: migration 061/gate 063 passed. The production identity test then exposed that isolated CI omitted the canonical production grant files before Identity migration 006, causing an artificial `memberships` permission failure despite the reviewed production grant matrix. CI now prepares to apply production provisioning 02–05 after migrations 001–005 and before 006, matching the documented bootstrap order. Fresh CI is pending; no merge/deploy claim.
+
+
+### Minimal identity runtime reconciliation — 2026-09-17
+
+CI run `35175571036` proved that replaying the full historical runtime-grant file would violate the later Growth Intelligence gate by restoring direct `insights` reads. That broad CI change is removed. Migration 062 and gate 064 instead reconcile only the canonical identity boundary: workspace SELECT plus RLS-protected membership CRUD, physical owner discovery and forged-workspace isolation. Fresh CI is pending.

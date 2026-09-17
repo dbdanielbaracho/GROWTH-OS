@@ -475,6 +475,27 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '062_identity_runtime_table_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('app_runtime', 'growth.workspaces', 'SELECT')
+          and not has_table_privilege('app_runtime', 'growth.workspaces', 'UPDATE')
+          and has_table_privilege('app_runtime', 'growth.memberships', 'SELECT')
+          and has_table_privilege('app_runtime', 'growth.memberships', 'INSERT')
+          and has_table_privilege('app_runtime', 'growth.memberships', 'UPDATE')
+          and has_table_privilege('app_runtime', 'growth.memberships', 'DELETE')
+          and has_function_privilege(
+            'app_runtime',
+            'growth.can_manage_memberships(uuid)',
+            'EXECUTE'
+          )
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {
