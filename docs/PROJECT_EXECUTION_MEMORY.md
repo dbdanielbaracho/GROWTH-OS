@@ -4464,3 +4464,9 @@ Estado: implementação enviada à branch; CI ainda não foi executado. Nenhuma 
 CI run `35180228943`, job `105070576461`: integridade, hardening, typecheck e build passaram. O novo Browser product gate executou oito jornadas em Chromium; sete passaram e a jornada de equipe falhou por timeout ao localizar o seletor genérico `Role`. A falha ocorreu antes dos gates de banco, que foram corretamente interrompidos.
 
 Correção: o seletor de papel do formulário de convite recebeu o nome acessível explícito `Invitation role`, e o teste passou a localizar esse contrato não ambíguo. O gate não foi removido nem relaxado; nova CI completa é obrigatória.
+
+### PR #187 — segunda execução do gate de navegador
+
+CI run `35180431267`, job `105071181760`: integridade, hardening, typecheck e build passaram. As ações funcionais da jornada de equipe passaram, mas o Axe bloqueou o gate por contraste WCAG AA insuficiente: `Workspace access` tinha razão 2.1:1 e três textos auxiliares tinham 4.0:1 sobre o fundo do diálogo.
+
+Correção: o eyebrow do diálogo recebeu cor `#72510e` e os textos auxiliares `#5d6366`, preservando hierarquia visual com contraste maior. A verificação Axe permanece intacta; nova CI completa é obrigatória.
