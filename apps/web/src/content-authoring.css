@@ -78,7 +78,7 @@
 .content-form { display: grid; gap: 11px; }
 .content-form label { display: grid; gap: 5px; color: #b8b9b1; font-size: .72rem; font-weight: 750; }
 .content-form label span { display: flex; justify-content: space-between; }
-.content-form label small { color: #777b73; font-size: .66rem; font-weight: 500; }
+.content-form label small { color: #8f938a; font-size: .66rem; font-weight: 500; }
 .content-form input,
 .content-form select,
 .content-form textarea {
@@ -164,13 +164,13 @@
   font-weight: 800;
 }
 .content-list-heading small {
-  color: #777b73;
+  color: #8f938a;
   font-size: .68rem;
   letter-spacing: 0;
 }
 .content-list-empty {
   margin: 0;
-  color: #777b73;
+  color: #8f938a;
   font-size: .75rem;
 }
 .content-draft-row {
@@ -195,7 +195,7 @@
 }
 .content-draft-row small {
   margin-top: 3px;
-  color: #777b73;
+  color: #8f938a;
   font-size: .65rem;
 }
 .content-draft-row p {
@@ -242,7 +242,7 @@
   font-size: .62rem;
 }
 .content-publish-hint {
-  color: #777b73;
+  color: #8f938a;
   font-size: .65rem;
   text-align: right;
 }
