@@ -370,3 +370,24 @@ Head `e03496dc2d202226aa7601980eeccb7b403e1160`, CI run `35181755467`, job `1050
 ### PR #188 technical acceptance — 2026-09-17
 
 Head `10c1fae7b8774a62dce08716f5c605ea8734a256`; CI run `35181926781`; job `105075740082`; SUCCESS. Nine Chromium/Axe journeys, every migration/publication/identity/intelligence gate, same-origin shell and final tests passed. The recovery journey proved evidence-required `needs_user_action` → `confirmed` reconciliation without a second execution request. This controlled proof is not a real provider publication. The new documentation head requires its own full CI before exact-head merge.
+
+
+### PR #188 production acceptance — 2026-09-17
+
+PR #188 final head `3dc4da1b42ce54a095447c5baeadf68b23318f1f` passed CI run `35182228997` / job `105076661877` and merged as `c33725d8c362e8767b5c14b5480a9c9e4f792306`. Main CI run `35182527721` succeeded. Railway app deployment `36b9acdd-df42-4ede-b761-d8b6b82d225e` is SUCCESS on that exact merge SHA; logs verified deployment identity, port 8080 and `/health/ready` HTTP 200. Worker change was correctly SKIPPED and the prior active worker remains SUCCESS. Evidence-required recovery from `needs_user_action` is accepted in production without a duplicate execution request. No real provider post is claimed.
+
+### Active experiment outcome learning loop — 2026-09-17
+
+Exact request: `"continuar"`. Audit after PR #188 found that experiment creation existed, but web state did not reload experiments/variants and exposed no outcome feedback. Thus the `measure → learn` step was not yet a durable product journey.
+
+Branch `feat/experiment-outcome-learning-loop` prepares migration 063, a least-privilege variant read helper with latest evidence-backed outcome, running/completed experiment transitions, API/web clients, persisted UI recovery and winner/loser/inconclusive recording. SQL gate 065 and a Chromium reload/Axe journey are required. No CI, merge, production migration or real publication is claimed yet.
+
+
+### PR #189 active CI correction — 2026-09-17
+
+Head `4f8a9224b2746796b0f500654c6c381cc31ce71e`, CI run `35245085540`, job `105283119064`: the functional experiment journey recorded an evidence-backed winner and recovered it after reload, but Axe blocked three supporting texts at 2.59:1 contrast on the light experiment panel. Their scoped color was corrected from inherited `#989b94` to `#5b6059`; no functional or accessibility gate was removed. Fresh full CI is required before acceptance.
+
+
+### PR #189 technical acceptance — 2026-09-17
+
+Head `9cbf28ac050d168f0c26707dfac7553397d0fd54`; CI run `35245429725`; job `105284283836`; SUCCESS. Ten Chromium/Axe journeys, migration and all SQL gates including outcome learning 065, identity/intelligence integrations, same-origin shell and final tests passed. The product recovered persisted experiments/variants, recorded an evidence-backed winner, completed the plan and preserved the outcome after reload. This does not auto-publish variants or claim a real provider publication. The resulting documentation head requires full CI before exact-head merge.

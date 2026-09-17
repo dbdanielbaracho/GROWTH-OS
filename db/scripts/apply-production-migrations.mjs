@@ -496,6 +496,29 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '063_experiment_outcome_learning_loop.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          to_regprocedure('growth.list_experiment_variants(uuid,uuid)') is not null
+          and has_function_privilege(
+            'app_runtime',
+            'growth.list_experiment_variants(uuid,uuid)',
+            'EXECUTE'
+          )
+          and position(
+            'update growth.experiments'
+            in lower(pg_get_functiondef(
+              'growth.record_experiment_feedback(uuid,uuid,uuid,text,text,text)'::regprocedure
+            ))
+          ) > 0
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+
 ];
 
 try {

@@ -14,7 +14,10 @@ import {
   createRecommendation,
   recordRecommendationFeedback,
   createExperiment,
+  fetchExperiments,
+  fetchExperimentVariants,
   addExperimentVariant,
+  recordExperimentFeedback,
   fetchAutomationPolicy,
   fetchAutomationRequests,
   createAutomationRequest,
@@ -235,16 +238,58 @@ function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
   const [variantLabel, setVariantLabel] = useState("");
   const [experiment, setExperiment] = useState<Experiment | null>(null);
   const [variants, setVariants] = useState<ExperimentVariant[]>([]);
+  const [outcomeVariantId, setOutcomeVariantId] = useState("");
+  const [outcome, setOutcome] = useState<"winner" | "loser" | "inconclusive">("winner");
+  const [outcomeEvidence, setOutcomeEvidence] = useState("");
+  const [outcomeNote, setOutcomeNote] = useState("");
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageIsError, setMessageIsError] = useState(false);
+
+  async function loadExperiment() {
+    setLoading(true);
+    try {
+      const stored = (await fetchExperiments(opportunityId))[0] ?? null;
+      setExperiment(stored);
+      if (!stored) {
+        setVariants([]);
+        setOutcomeVariantId("");
+        return;
+      }
+      const storedVariants = await fetchExperimentVariants(stored.id);
+      setVariants(storedVariants);
+      setOutcomeVariantId((current) =>
+        storedVariants.some((variant) => variant.id === current)
+          ? current
+          : storedVariants[0]?.id ?? ""
+      );
+    } catch {
+      setMessageIsError(true);
+      setMessage("The stored experiment could not be loaded. No synthetic plan was substituted.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    setExperiment(null);
+    setVariants([]);
+    setMessage(null);
+    void loadExperiment();
+  }, [opportunityId]);
 
   async function submitExperiment(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setMessage(null);
     try {
-      setExperiment(await createExperiment({ opportunityId, name, hypothesis, decisionRule }));
+      await createExperiment({ opportunityId, name, hypothesis, decisionRule });
+      setMessageIsError(false);
+      setMessage("Experiment plan stored. Add a variant before recording an outcome.");
+      await loadExperiment();
     } catch {
+      setMessageIsError(true);
       setMessage("The experiment plan could not be stored. Evidence and tenant checks remain enforced.");
     } finally {
       setBusy(false);
@@ -257,11 +302,40 @@ function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
     setBusy(true);
     setMessage(null);
     try {
-      const variant = await addExperimentVariant(experiment.id, variantLabel, opportunityId);
-      setVariants((current) => [...current, variant]);
+      await addExperimentVariant(experiment.id, variantLabel, opportunityId);
       setVariantLabel("");
+      setMessageIsError(false);
+      setMessage("Variant stored with its source opportunity. No content was published.");
+      await loadExperiment();
     } catch {
+      setMessageIsError(true);
       setMessage("The variant lineage could not be stored.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitOutcome(event: React.FormEvent) {
+    event.preventDefault();
+    if (!experiment || !outcomeVariantId || !outcomeEvidence.trim()) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      await recordExperimentFeedback({
+        experimentId: experiment.id,
+        variantId: outcomeVariantId,
+        outcome,
+        evidenceRef: outcomeEvidence.trim(),
+        note: outcomeNote.trim() || undefined
+      });
+      setOutcomeEvidence("");
+      setOutcomeNote("");
+      setMessageIsError(false);
+      setMessage("Outcome recorded from evidence. Growth OS will preserve this result for the next decision.");
+      await loadExperiment();
+    } catch {
+      setMessageIsError(true);
+      setMessage("The experiment outcome could not be stored. Evidence and tenant checks remain enforced.");
     } finally {
       setBusy(false);
     }
@@ -270,34 +344,79 @@ function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
   return (
     <section className="detail-section experiment-planner">
       <p className="section-kicker experiments-kicker">Experiments</p>
-      <h3 className="experiments-title">Plan a measurable next test</h3>
-      <p className="experiments-copy">Planning is stored with the source opportunity. Growth OS does not publish variants or declare a winner without outcome evidence.</p>
-      {!experiment ? (
+      <h3 className="experiments-title">Plan, measure and learn</h3>
+      <p className="experiments-copy">Plans and outcomes stay linked to the source opportunity. Growth OS never publishes a variant or declares a winner without an evidence reference.</p>
+      {loading && <p className="recommendation-muted">Loading the stored experiment…</p>}
+      {!loading && !experiment ? (
         <form className="experiment-form" onSubmit={submitExperiment}>
           <label><span>Experiment name</span><input value={name} onChange={(event) => setName(event.target.value)} required maxLength={160} /></label>
           <label><span>Hypothesis</span><textarea value={hypothesis} onChange={(event) => setHypothesis(event.target.value)} required maxLength={2000} /></label>
           <label><span>Decision rule</span><textarea value={decisionRule} onChange={(event) => setDecisionRule(event.target.value)} required maxLength={2000} /></label>
           <button className="detail-action-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Save experiment plan"}</button>
         </form>
-      ) : (
+      ) : experiment ? (
         <>
           <div className="experiment-summary">
             <strong>{experiment.name}</strong>
             <span>{titleCase(experiment.status)} · {experiment.hypothesis}</span>
             <small>Decision rule: {experiment.decision_rule}</small>
           </div>
-          <form className="experiment-variant-form" onSubmit={submitVariant}>
-            <label><span>Variant label</span><input value={variantLabel} onChange={(event) => setVariantLabel(event.target.value)} required maxLength={120} /></label>
-            <button className="detail-action-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Add lineage-preserving variant"}</button>
-          </form>
+          {experiment.status !== "completed" && (
+            <form className="experiment-variant-form" onSubmit={submitVariant}>
+              <label><span>Variant label</span><input value={variantLabel} onChange={(event) => setVariantLabel(event.target.value)} required maxLength={120} /></label>
+              <button className="detail-action-button" type="submit" disabled={busy}>{busy ? "Saving…" : "Add lineage-preserving variant"}</button>
+            </form>
+          )}
           {variants.length > 0 && (
-            <ul className="experiment-variant-list">
-              {variants.map((variant) => <li key={variant.id}><strong>{variant.label}</strong><span>{titleCase(variant.status)} · source opportunity preserved</span></li>)}
-            </ul>
+            <>
+              <ul className="experiment-variant-list">
+                {variants.map((variant) => (
+                  <li key={variant.id}>
+                    <strong>{variant.label}</strong>
+                    <span>
+                      {titleCase(variant.status)}
+                      {variant.latest_outcome ? ` · latest outcome: ${titleCase(variant.latest_outcome)}` : " · awaiting outcome"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {experiment.status !== "completed" && (
+                <form className="experiment-outcome-form" onSubmit={submitOutcome}>
+                  <p>Record what the measured result taught the workspace.</p>
+                  <div className="experiment-outcome-grid">
+                    <label>
+                      <span>Experiment variant</span>
+                      <select value={outcomeVariantId} onChange={(event) => setOutcomeVariantId(event.target.value)} required>
+                        {variants.map((variant) => <option key={variant.id} value={variant.id}>{variant.label}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Outcome</span>
+                      <select value={outcome} onChange={(event) => setOutcome(event.target.value as typeof outcome)}>
+                        <option value="winner">Winner</option>
+                        <option value="loser">Loser</option>
+                        <option value="inconclusive">Inconclusive</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label>
+                    <span>Outcome evidence</span>
+                    <input value={outcomeEvidence} onChange={(event) => setOutcomeEvidence(event.target.value)} required maxLength={1000} placeholder="Metric snapshot, provider permalink or audit reference" />
+                  </label>
+                  <label>
+                    <span>Learning note <small>optional</small></span>
+                    <textarea value={outcomeNote} onChange={(event) => setOutcomeNote(event.target.value)} maxLength={1000} placeholder="What should the next decision retain?" />
+                  </label>
+                  <button className="detail-action-button" type="submit" disabled={busy || !outcomeVariantId || !outcomeEvidence.trim()}>
+                    {busy ? "Recording…" : "Record outcome"}
+                  </button>
+                </form>
+              )}
+            </>
           )}
         </>
-      )}
-      {message && <p className="recommendation-error" role="alert">{message}</p>}
+      ) : null}
+      {message && <p className={messageIsError ? "recommendation-error" : "experiment-success"} role={messageIsError ? "alert" : "status"}>{message}</p>}
     </section>
   );
 }

@@ -922,7 +922,24 @@ export type ExperimentVariant = {
   lineage: Record<string, unknown>;
   status: "candidate" | "active" | "winner" | "loser" | "archived";
   created_at: string;
+  latest_outcome?: "winner" | "loser" | "inconclusive" | null;
+  latest_evidence_ref?: string | null;
+  feedback_created_at?: string | null;
 };
+
+export async function fetchExperiments(opportunityId?: string): Promise<Experiment[]> {
+  const response = await requestJson<{ status: "ok"; experiments: Experiment[] }>("/v1/experiments");
+  return opportunityId
+    ? response.experiments.filter((experiment) => experiment.opportunity_id === opportunityId)
+    : response.experiments;
+}
+
+export async function fetchExperimentVariants(experimentId: string): Promise<ExperimentVariant[]> {
+  const response = await requestJson<{ status: "ok"; variants: ExperimentVariant[] }>(
+    `/v1/experiments/${encodeURIComponent(experimentId)}/variants`
+  );
+  return response.variants;
+}
 
 export async function createExperiment(input: {
   opportunityId: string;
@@ -939,7 +956,7 @@ export async function createExperiment(input: {
       decision_rule: input.decisionRule
     }
   });
-  return response.experiment;
+  return { ...response.experiment, variant_count: response.experiment.variant_count ?? 0 };
 }
 
 export async function addExperimentVariant(
@@ -954,7 +971,28 @@ export async function addExperimentVariant(
       body: { label, lineage: { source_opportunity_id: opportunityId, autonomous_publishing: false } }
     }
   );
-  return response.variant;
+  return { ...response.variant, latest_outcome: null, latest_evidence_ref: null, feedback_created_at: null };
+}
+
+export async function recordExperimentFeedback(input: {
+  experimentId: string;
+  variantId: string;
+  outcome: "winner" | "loser" | "inconclusive";
+  evidenceRef: string;
+  note?: string;
+}): Promise<void> {
+  await requestJson<{ status: "recorded"; feedback: unknown }>(
+    `/v1/experiments/${encodeURIComponent(input.experimentId)}/feedback`,
+    {
+      method: "POST",
+      body: {
+        variant_id: input.variantId,
+        outcome: input.outcome,
+        evidence_ref: input.evidenceRef,
+        note: input.note
+      }
+    }
+  );
 }
 
 

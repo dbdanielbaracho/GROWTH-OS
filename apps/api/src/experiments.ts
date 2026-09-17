@@ -31,6 +31,18 @@ export async function listExperiments(client: PoolClient, principal: AuthPrincip
   return result.rows;
 }
 
+export async function listExperimentVariants(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  experimentId: string
+): Promise<ExperimentVariant[]> {
+  const result = await client.query<ExperimentVariant>(
+    "select * from growth.list_experiment_variants($1, $2)",
+    [principal.workspaceId, experimentId]
+  );
+  return result.rows;
+}
+
 export async function createExperiment(
   client: PoolClient,
   principal: AuthPrincipal,
