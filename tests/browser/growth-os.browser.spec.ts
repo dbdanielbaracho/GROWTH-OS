@@ -298,6 +298,55 @@ const stringCountMetrics = [
   }
 ];
 
+test("an evidence-linked recommendation opens the content handoff without auto-creating a draft", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  const recommendationWrites: Record<string, unknown>[] = [];
+
+  await page.route(`**/v1/opportunities/${opportunity.id}/recommendations`, async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    recommendationWrites.push(request.postDataJSON());
+    return json(route, 200, {
+      status: "created",
+      recommendation: {
+        id: "f0000000-0000-4000-8000-000000000030",
+        opportunity_id: opportunity.id,
+        action_code: "draft_content",
+        status: "proposed",
+        rationale: {
+          source: "opportunity_radar",
+          rule_version: "recommendation.action.v2",
+          evidence_count: 1,
+          autonomous_execution: false
+        },
+        feedback_count: 0,
+        created_at: "2026-09-15T01:00:00.000Z",
+        updated_at: "2026-09-15T01:00:00.000Z"
+      }
+    });
+  });
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Instagram · US" })).toBeVisible();
+  await page.getByRole("button", { name: "Start a content draft", exact: true }).click();
+
+  const authoring = page.locator("#content-authoring-root");
+  await expect(authoring.getByRole("button", { name: "Create Content Authoring", exact: true })).toHaveAttribute("aria-expanded", "true");
+  await expect(authoring.getByLabel("Objective optional", { exact: true })).toHaveValue(
+    "Evidence-linked Instagram opportunity from Opportunity Radar"
+  );
+  await expect(authoring.getByLabel("Market", { exact: true })).toHaveValue("US");
+  await expect(authoring.getByLabel("Platform", { exact: true })).toHaveValue("Instagram");
+  await expect(authoring.getByLabel("Draft text", { exact: true })).toHaveValue("");
+  await expect(authoring.getByRole("status")).toHaveText(
+    "Opportunity context loaded. Add the draft text before saving."
+  );
+  expect(recommendationWrites).toEqual([{ action_code: "draft_content" }]);
+  expect(unhandled).toEqual([]);
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+});
+
+
 test("signin and signout update all secondary panels without reload or focus", async ({ page }) => {
   const unhandled = await mockApi(page, "signed_out", stringCountMetrics);
   let documents = 0;

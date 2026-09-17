@@ -410,3 +410,22 @@ Head `d86facdb2ed2ae6ef7416a08b8d2f3c108997f0b`, CI run `35247914858`, job `1052
 ### PR #190 technical acceptance — 2026-09-17
 
 Head `4f22226d22453bb9db4e5f89528385f2b252102a`; CI run `35248242340`; job `105293807409`; SUCCESS. Ten Chromium/Axe journeys, every migration and SQL gate including learning recommendation 066, identity/intelligence integrations, same-origin shell and final tests passed. The measured winner/evidence refreshed the recommendation immediately and survived reload under tenant and least-privilege guards. No autonomous generation, execution or publication is claimed. The documentation head requires full CI before exact-head merge.
+
+
+### PR #190 production acceptance — 2026-09-17
+
+PR #190 final head `8a748e9cd478f4d9ba21aa1ae6d53e6ba3c5c6d5` passed CI run `35248686307` / job `105295296522` and merged as `a440908e4262c696c7520d19031949af443a88de`. Main CI run `35249116473` / job `105296766894` succeeded. Railway migrator `906bfdab-e5d0-4774-aed1-f7ae2599a8ac` applied migration 064; worker `1feeb796-f570-48ee-8cbd-56b76a357576` and app `e4bf4137-a7ce-4608-863e-9054552213a7` are SUCCESS on the exact merge. Public health returned HTTP 200 with ready/database ok. Evidence-backed learning now feeds stored recommendations without autonomous execution.
+
+### Active recommendation-to-content handoff — 2026-09-17
+
+Audit found that **Start a content draft** stored a recommendation but did not open Content Authoring, despite an existing safe `growth-os:create-draft` listener. Branch `feat/recommendation-to-content-handoff` now routes draft/evidence/experiment actions to their product surfaces. The draft handoff preloads objective, market and platform while keeping body empty and performing no automatic save or publication. Chromium/Axe proof is prepared; CI, merge and production are not yet claimed.
+
+
+### PR #191 technical acceptance — 2026-09-17
+
+Head `4db4acbe2481069b338d0ccb96c751347de7473c`; CI run `35250067721`; job `105299954362`; SUCCESS. Eleven Chromium/Axe journeys, all database/identity/intelligence/shell/final gates passed. The stored draft recommendation opened Content Authoring with evidence-linked context while preserving an empty body and making no automatic content write. The documentation head requires full CI before exact-head merge.
+
+
+### Latest continuation — 2026-09-17
+
+Exact request: `"continuar"`. PR #191 documentation head `b4e5860880976ad151ebbdf1296d142d9a9957d8` passed CI run `35250519807` / job `105301442167`. The new continuation record creates the final candidate head, which must pass full CI before exact-head merge, main CI and Railway proof.

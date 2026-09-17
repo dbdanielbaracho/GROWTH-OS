@@ -4615,3 +4615,43 @@ Passaram integralmente: integridade, hardening, typecheck, build, dez jornadas C
 **Limite preservado:** aprendizado e recomendação são derivados apenas de dados persistidos; nenhuma conclusão, execução ou publicação é automática.
 
 **Estado:** implementação tecnicamente aceita. Este registro cria novo head e requer CI completa antes do merge exato. Merge, migration e produção ainda não são reivindicados.
+
+
+## Fechamento de produção — PR #190 — realimentação aprender → recomendar — 2026-09-17
+
+- PR: [#190](https://github.com/dbdanielbaracho/GROWTH-OS/pull/190), `feat: feed measured learning into recommendations`.
+- Head final aceito: `8a748e9cd478f4d9ba21aa1ae6d53e6ba3c5c6d5`.
+- CI final do PR: run `35248686307`, job `105295296522`, `success`.
+- Merge commit em `main`: `a440908e4262c696c7520d19031949af443a88de`.
+- CI de `main`: run `35249116473`, job `105296766894`, `success`.
+- Railway migrator `906bfdab-e5d0-4774-aed1-f7ae2599a8ac`, worker `1feeb796-f570-48ee-8cbd-56b76a357576` e app `e4bf4137-a7ce-4608-863e-9054552213a7`: `SUCCESS` no mesmo merge SHA.
+- Logs do migrator: `Applied migration: 064_learning_recommendation_feedback.sql`, reconciliação concluída e smokes operacionais de fila/reconciliação/cancelamento aprovados.
+- Logs do app: identidade de deploy verificada e porta 8080.
+- Healthcheck público `/health/ready`: HTTP 200 com `{"status":"ready","database":"ok"}`.
+- Resultado: resultado experimental e feedbacks persistidos realimentam o racional da recomendação com vencedor/evidência rastreáveis; nenhuma ação autônoma é executada.
+
+## Reauditoria contínua — lacuna recomendar → criar — 2026-09-17
+
+A inspeção da interface encontrou uma transição quebrada: o botão **Start a content draft** armazenava a recomendação, mas não abria o Content Authoring. O painel de autoria já possuía listener seguro `growth-os:create-draft`, porém nenhum emissor existia. Assim, os módulos recomendar e criar estavam presentes, mas o usuário precisava reencontrar manualmente outro painel.
+
+**Execução candidata:** branch `feat/recommendation-to-content-handoff`, iniciada no merge aceito `a440908e4262c696c7520d19031949af443a88de`. Após armazenar a recomendação, `draft_content` abre o painel de autoria e carrega objetivo/mercado/plataforma; `review_evidence` e `plan_experiment` navegam às seções correspondentes. O corpo permanece vazio e nenhum draft é salvo automaticamente.
+
+**Prova preparada:** jornada Chromium/Axe valida o POST exato da recomendação, abertura do painel, contexto preenchido, texto vazio, ausência de criação automática, overflow e acessibilidade. CI, PR, merge e produção ainda não são reivindicados nesta entrada.
+
+
+### PR #191 — aceite técnico do handoff recomendar → criar
+
+Head `4db4acbe2481069b338d0ccb96c751347de7473c`; CI run `35250067721`; job `105299954362`; conclusão `success`.
+
+Passaram: integridade, hardening, typecheck, build, onze jornadas Chromium com Axe/WCAG, todas as migrations/gates SQL, identidade, Growth Intelligence, shell same-origin e testes finais. A jornada nova armazenou `action_code=draft_content`, abriu Content Authoring, preencheu objetivo/mercado/plataforma, manteve o corpo vazio e comprovou que nenhum draft foi salvo automaticamente.
+
+**Estado:** implementação tecnicamente aceita. O registro cria novo head e exige CI completa antes do merge exato. Merge e produção ainda não são reivindicados.
+
+
+## Continuação registrada — 2026-09-17 — conclusão do handoff e próxima auditoria
+
+**Pedido exato do usuário:** `"continuar"`.
+
+**Ponto de retomada:** PR #191 no head documental `b4e5860880976ad151ebbdf1296d142d9a9957d8`; CI run `35250519807`, job `105301442167`, conclusão `success`. Onze jornadas Chromium/Axe, migrations, gates SQL, identidade, inteligência, shell e testes finais passaram novamente.
+
+**Próxima ação autorizada:** mesclar somente esse SHA aceito, validar CI de `main` e Railway, registrar o fechamento de produção e reauditar as transições restantes do ciclo completo. Nenhum merge ou deploy é reivindicado nesta entrada.
