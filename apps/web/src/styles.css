@@ -825,7 +825,7 @@ footer span:first-child { color: #d4d0c5; }
 .experiment-summary span,
 .experiment-summary small,
 .experiment-variant-list span {
-  color: var(--muted, #68736e);
+  color: #5b6059;
 }
 
 .experiment-variant-list {
