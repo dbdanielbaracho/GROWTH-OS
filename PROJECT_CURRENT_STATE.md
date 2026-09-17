@@ -438,3 +438,8 @@ PR #191 final head `329602e7e8608354e4e84ac304de82e2d272c505` passed CI run `352
 ### Active explicit content review submission — 2026-09-17
 
 Audit found that the first saved draft had no direct path to review while saving another version implicitly changed status to `ready_for_review`. PR #192 / branch `feat/content-review-submission` separates editing from review: every save remains `draft`, **Submit for review** records actor/version/note/time and only the latest version can transition to review. Migration 065, SQL gate 067, API/UI wiring, production registration and a Chromium/Axe lifecycle proof are prepared at candidate head `cb5d4c03c591af4349de4395d1b90cf67b9dc895`. CI, merge and production are not yet claimed.
+
+
+### PR #192 technical acceptance — 2026-09-17
+
+Head `39c42f082bd3ef4ea6b62b9a098d308710a82185`; CI run `35282063448`; job `105406016235`; SUCCESS. Integrity, hardening, typecheck, build, eleven Chromium/Axe journeys, all migrations and SQL gates including TEST-067, identity/intelligence/same-origin integrations and 33 final cross-browser tests passed. A first draft now requires explicit audited submission before approval; edits remain drafts and require resubmission. The documentation head requires full CI before exact-head merge.
