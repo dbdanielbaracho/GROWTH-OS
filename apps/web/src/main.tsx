@@ -138,7 +138,17 @@ function recommendationLabel(code: Recommendation["action_code"]) {
   return "Plan an experiment";
 }
 
-function RecommendationPanel({ opportunityId, refreshToken }: { opportunityId: string; refreshToken: number }) {
+function RecommendationPanel({
+  opportunityId,
+  refreshToken,
+  market,
+  platform
+}: {
+  opportunityId: string;
+  refreshToken: number;
+  market: string;
+  platform: string;
+}) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -169,6 +179,21 @@ function RecommendationPanel({ opportunityId, refreshToken }: { opportunityId: s
         const withoutDuplicate = current.filter((item) => item.id !== created.id);
         return [created, ...withoutDuplicate];
       });
+      if (actionCode === "draft_content") {
+        window.dispatchEvent(new CustomEvent("growth-os:create-draft", {
+          detail: {
+            objective: `Evidence-linked ${titleCase(platform)} opportunity from Opportunity Radar`,
+            market,
+            platform: titleCase(platform),
+            opportunityId
+          }
+        }));
+        document.getElementById("content-authoring-root")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (actionCode === "review_evidence") {
+        document.getElementById(`opportunity-evidence-${opportunityId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        document.getElementById(`experiment-planner-${opportunityId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     } catch {
       setMessage("This action remains unavailable until stored evidence passes the recommendation boundary.");
     } finally {
@@ -350,7 +375,7 @@ function ExperimentPlanner({ opportunityId, onLearningRecorded }: { opportunityI
   }
 
   return (
-    <section className="detail-section experiment-planner">
+    <section id={`experiment-planner-${opportunityId}`} className="detail-section experiment-planner">
       <p className="section-kicker experiments-kicker">Experiments</p>
       <h3 className="experiments-title">Plan, measure and learn</h3>
       <p className="experiments-copy">Plans and outcomes stay linked to the source opportunity. Growth OS never publishes a variant or declares a winner without an evidence reference.</p>
@@ -627,7 +652,7 @@ function DetailPanel({
         <span>Ranking {opportunity.ranking_version}</span>
       </div>
 
-      <section className="detail-section">
+      <section id={`opportunity-evidence-${opportunity.id}`} className="detail-section">
         <div className="section-heading">
           <div>
             <p className="section-kicker">Evidence</p>
@@ -702,7 +727,12 @@ function DetailPanel({
         )}
       </section>
 
-      <RecommendationPanel opportunityId={opportunity.id} refreshToken={learningRefreshToken} />
+      <RecommendationPanel
+        opportunityId={opportunity.id}
+        refreshToken={learningRefreshToken}
+        market={opportunity.market}
+        platform={opportunity.platform}
+      />
       <ExperimentPlanner
         opportunityId={opportunity.id}
         onLearningRecorded={() => setLearningRefreshToken((current) => current + 1)}
