@@ -585,7 +585,7 @@ test("team owners can invite and update members from the product surface", async
   const dialog = page.getByRole("dialog", { name: "Team and invitations" });
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("Email", { exact: true }).fill("teammate@example.invalid");
-  await dialog.getByLabel("Role", { exact: true }).selectOption("viewer");
+  await dialog.getByLabel("Invitation role", { exact: true }).selectOption("viewer");
   await dialog.getByLabel("Allow controlled publishing").check();
   await dialog.getByRole("button", { name: "Send invitation" }).click();
   await expect(dialog.getByRole("status")).toHaveText("Invitation sent to teammate@example.invalid.");
