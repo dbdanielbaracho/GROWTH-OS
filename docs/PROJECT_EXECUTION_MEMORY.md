@@ -4527,3 +4527,31 @@ Passaram: integridade, hardening, typecheck, build, nove jornadas Chromium com A
 A jornada nova comprovou que `needs_user_action` exige ID do conteúdo e referência de evidência, envia `attemptNo=3`, `method=manual`, `confidence=high`, `reconciliationStatus=matched`, passa a `confirmed`, remove o formulário de recuperação e não executa uma segunda chamada de publicação. A prova é controlada; não afirma post real no provedor.
 
 Estado: implementação tecnicamente aceita. Este registro documental cria um novo head que também deve passar a suíte completa antes do merge exato. Merge e produção ainda não são reivindicados.
+
+
+## Fechamento de produção — PR #188 — recuperação de publicação incerta — 2026-09-17
+
+- PR: [#188](https://github.com/dbdanielbaracho/GROWTH-OS/pull/188), `feat: recover uncertain publications without duplicate sends`.
+- Head final aceito: `3dc4da1b42ce54a095447c5baeadf68b23318f1f`.
+- CI final do PR: run `35182228997`, job `105076661877`, conclusão `success`.
+- Merge commit em `main`: `c33725d8c362e8767b5c14b5480a9c9e4f792306`.
+- CI de `main`: run `35182527721`, conclusão `success`.
+- Railway app: deployment `36b9acdd-df42-4ede-b761-d8b6b82d225e`, `SUCCESS`, com `commitHash` igual ao merge SHA exato.
+- Logs registraram `verified Railway deployment identity`, servidor na porta 8080 e healthcheck `GET /health/ready` concluído com HTTP 200.
+- Railway worker: o deployment `f7ab5bec-08b5-4890-b164-28ef9ef26abc` foi corretamente `SKIPPED` pelos Watch Paths; o worker ativo anterior `9b25c36b-98b9-46f5-90c6-f6857df03d9c` permanece `SUCCESS`.
+- Migrator permaneceu inalterado porque o PR não contém migration.
+- Resultado: a superfície de produto agora resolve `needs_user_action` com ID do conteúdo e evidência obrigatórios, registra conteúdo já existente e não executa um segundo envio. Nenhum post real de provedor é reivindicado.
+
+## Continuação registrada — 2026-09-17 — persistência do ciclo medir → aprender
+
+**Pedido exato do usuário:** `"continuar"`.
+
+**Ponto de retomada:** PR #188 mesclado, CI de `main` verde e app canônica em produção no merge `c33725d8c362e8767b5c14b5480a9c9e4f792306`.
+
+**Auditoria executada:** o backend já possuía criação/listagem de experimentos, criação de variante e gravação de feedback. A interface, porém, mantinha experimento e variantes apenas em estado React: após recarregar a página eles desapareciam; não existia cliente para listar variantes nem formulário para registrar vencedor, perdedor ou resultado inconclusivo. Portanto `medir → aprender` existia parcialmente no banco, mas não estava fechado como produto utilizável.
+
+**Execução candidata:** branch `feat/experiment-outcome-learning-loop`. A migration 063 adiciona listagem de variantes com último resultado/evidência, mantém experimentos em `running` enquanto aprendem e conclui somente quando há vencedor sustentado por referência de evidência. API e interface passam a recarregar o plano persistido, registrar o resultado e preservar a aprendizagem para a próxima decisão. Nenhuma variante é publicada automaticamente.
+
+**Provas preparadas:** gate SQL 065 para tenant/SECURITY DEFINER/least privilege/transições; jornada Chromium para plano persistido, resultado vencedor, payload exato, recarga da página, overflow e Axe/WCAG; migration registrada no reconciliador de produção.
+
+**Estado:** implementação em preparação; nenhum CI, merge, migration de produção ou deploy é reivindicado nesta entrada.
