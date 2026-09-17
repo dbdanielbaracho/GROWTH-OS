@@ -121,6 +121,7 @@
 .content-error { background: rgba(163, 76, 67, .16); border: 1px solid rgba(202, 109, 98, .38); color: #f0b9b0; }
 
 @media (max-width: 640px) {
+  .content-reconciliation-grid { grid-template-columns: 1fr; }
   .content-authoring-panel {
     left: 14px;
     bottom: 14px;
@@ -251,4 +252,52 @@
   justify-content: flex-end;
   align-items: center;
   gap: 4px;
+}
+.content-draft-row.needs-reconciliation {
+  border-color: rgba(213, 168, 79, .58);
+}
+.content-reconciliation {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid #34362f;
+}
+.content-reconciliation > p {
+  margin: 0;
+  color: #c8c5ba;
+}
+.content-reconciliation > p strong {
+  display: inline;
+  color: #f0c96e;
+  white-space: normal;
+}
+.content-reconciliation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.content-reconciliation label {
+  display: grid;
+  gap: 5px;
+  color: #b8b9b1;
+  font-size: .68rem;
+  font-weight: 750;
+}
+.content-reconciliation input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #3b3c35;
+  border-radius: 2px;
+  background: #1a1b18;
+  color: #f0ede4;
+  padding: 8px 9px;
+  outline: none;
+}
+.content-reconciliation input:focus {
+  border-color: #d5a84f;
+  box-shadow: 0 0 0 2px rgba(213, 168, 79, .16);
+}
+.content-reconciliation > .content-secondary {
+  justify-self: end;
 }
