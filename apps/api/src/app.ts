@@ -39,7 +39,7 @@ import { createDatabasePublicationExecutionStore } from "./publication-store.js"
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
 import { listMetricAnalyticsSummary, listMetricQualityAnomalies } from "./analytics.js";
 import { createRecommendation, listRecommendations, recordRecommendationFeedback } from "./recommendations.js";
-import { addExperimentVariant, createExperiment, listExperiments, recordExperimentFeedback } from "./experiments.js";
+import { addExperimentVariant, createExperiment, listExperimentVariants, listExperiments, recordExperimentFeedback } from "./experiments.js";
 import {
   createAutomationActionRequest,
   decideAutomationActionRequest,
@@ -507,6 +507,25 @@ export function buildApp(logger = false) {
         )
       );
       return reply.code(201).send({ status: "created", experiment });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/experiments/:id/variants", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = RecommendationParamsSchema.safeParse(request.params);
+    if (!params.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const variants = await withTenantTransaction(principal, (client) =>
+        listExperimentVariants(client, principal, params.data.id)
+      );
+      return { status: "ok", variants };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
