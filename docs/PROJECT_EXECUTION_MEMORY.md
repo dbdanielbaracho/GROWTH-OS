@@ -4555,3 +4555,10 @@ Estado: implementação tecnicamente aceita. Este registro documental cria um no
 **Provas preparadas:** gate SQL 065 para tenant/SECURITY DEFINER/least privilege/transições; jornada Chromium para plano persistido, resultado vencedor, payload exato, recarga da página, overflow e Axe/WCAG; migration registrada no reconciliador de produção.
 
 **Estado:** implementação em preparação; nenhum CI, merge, migration de produção ou deploy é reivindicado nesta entrada.
+
+
+### PR #189 — primeira CI bloqueada por contraste do resultado persistido
+
+Head `4f8a9224b2746796b0f500654c6c381cc31ce71e`; CI run `35245085540`; job `105283119064`; conclusão `failure`. Integridade, hardening, typecheck e build passaram, e a jornada nova comprovou a gravação de vencedor com evidência e a persistência após recarregar a página. O Axe bloqueou três textos auxiliares do resumo de experimento no painel claro: `#989b94` sobre `#faf5ea` produziu contraste de 2,59:1, abaixo dos 4,5:1 exigidos.
+
+**Correção:** os textos de resumo, regra de decisão e resultado de variante receberam cor escopada `#5b6059`, preservando o tema escuro global e todos os gates funcionais. Nenhuma exigência foi relaxada. O head corrigido exige uma nova CI completa; merge e produção continuam não reivindicados.
