@@ -405,3 +405,8 @@ Audit after PR #189 found that experiment learning was stored but `create_recomm
 ### PR #190 active CI correction — 2026-09-17
 
 Head `d86facdb2ed2ae6ef7416a08b8d2f3c108997f0b`, CI run `35247914858`, job `105292715858`: integrity, hardening, typecheck, build and Chromium/Axe passed. Migration application then rejected a single-dollar PL/pgSQL delimiter in `record_recommendation_feedback`. It was replaced with the unambiguous named delimiter `$recommendation_feedback$`; no gate was weakened. Fresh full CI is required.
+
+
+### PR #190 technical acceptance — 2026-09-17
+
+Head `4f22226d22453bb9db4e5f89528385f2b252102a`; CI run `35248242340`; job `105293807409`; SUCCESS. Ten Chromium/Axe journeys, every migration and SQL gate including learning recommendation 066, identity/intelligence integrations, same-origin shell and final tests passed. The measured winner/evidence refreshed the recommendation immediately and survived reload under tenant and least-privilege guards. No autonomous generation, execution or publication is claimed. The documentation head requires full CI before exact-head merge.
