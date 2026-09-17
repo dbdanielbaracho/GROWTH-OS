@@ -4573,3 +4573,27 @@ Passaram integralmente: integridade, hardening, typecheck, build, dez jornadas C
 **Limite preservado:** o experimento mede e aprende; não publica variante automaticamente e não reivindica publicação real de provedor.
 
 **Estado:** implementação tecnicamente aceita. Este registro documental gera um novo head, que também deve passar a suíte completa antes do merge exato. Merge, migration e produção ainda não são reivindicados.
+
+
+## Fechamento de produção — PR #189 — aprendizagem de experimento persistida — 2026-09-17
+
+- PR: [#189](https://github.com/dbdanielbaracho/GROWTH-OS/pull/189), `feat: persist experiment outcomes and learning`.
+- Head final aceito: `51b7497e6a0c55f515dfe8a7abebd4a10192efa2`.
+- CI final do PR: run `35245940947`, job `105286037095`, conclusão `success`.
+- Merge commit em `main`: `283e4b130cb38126a3fae966a85d67a8a358b73e`.
+- CI de `main`: run `35246405779`, job `105287612510`, conclusão `success`.
+- Railway migrator: deployment `96e74692-3eb3-4f8f-ad90-97b38763bcae`, `SUCCESS`, migration `063_experiment_outcome_learning_loop.sql` aplicada e reconciliação concluída.
+- Railway worker: deployment `53777999-aa92-47fe-a1b7-166d5951207f`, `SUCCESS`, no mesmo merge SHA.
+- Railway app: deployment `3573fe6e-b129-4608-8d6a-5eb1a476ba76`, `SUCCESS`, no mesmo merge SHA; logs registraram identidade verificada e porta 8080.
+- Healthcheck público `GET /health/ready`: HTTP 200, corpo `{"status":"ready","database":"ok"}`.
+- Resultado: o produto persiste plano, variantes e resultado com evidência, conclui o experimento e recupera a aprendizagem após reload. Nenhuma publicação automática ou post real é reivindicado.
+
+## Reauditoria contínua — lacuna aprender → recomendar — 2026-09-17
+
+Após aceitar o PR #189 em produção, a inspeção de `growth.create_recommendation` confirmou que a próxima recomendação ainda considerava apenas a quantidade de evidências da oportunidade. Resultados em `growth.experiment_feedback` e feedbacks anteriores de recomendação eram armazenados, mas não voltavam ao racional da próxima ação. O ciclo, portanto, persistia o aprendizado sem realimentar a recomendação.
+
+**Execução candidata:** branch `feat/evidence-backed-learning-recommendations`, iniciada no merge aceito `283e4b130cb38126a3fae966a85d67a8a358b73e`. A migration 064 prepara um contexto tenant-bound de aprendizado com contagens de experimentos/feedbacks e último vencedor sustentado por `evidence_ref`; criação de recomendação passa a incorporar esse snapshot; novo feedback experimental atualiza recomendações existentes da mesma oportunidade. A interface prepara exibição do vencedor/evidência e recarrega a recomendação imediatamente após registrar o resultado.
+
+**Limites:** nenhum modelo inventa conclusões, nenhuma ação é executada automaticamente e nenhuma variante é publicada. O contexto deriva apenas de linhas persistidas e permanece submetido à decisão humana.
+
+**Provas preparadas:** gate SQL 066 para lineage, tenant, consumo do aprendizado e least privilege; extensão da jornada Chromium para comprovar atualização imediata e persistência após reload; migration registrada no reconciliador de produção. CI, PR, merge e produção ainda não são reivindicados nesta entrada.
