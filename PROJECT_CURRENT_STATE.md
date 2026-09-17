@@ -429,3 +429,12 @@ Head `4db4acbe2481069b338d0ccb96c751347de7473c`; CI run `35250067721`; job `1052
 ### Latest continuation — 2026-09-17
 
 Exact request: `"continuar"`. PR #191 documentation head `b4e5860880976ad151ebbdf1296d142d9a9957d8` passed CI run `35250519807` / job `105301442167`. The new continuation record creates the final candidate head, which must pass full CI before exact-head merge, main CI and Railway proof.
+
+
+### PR #191 production acceptance — 2026-09-17
+
+PR #191 final head `329602e7e8608354e4e84ac304de82e2d272c505` passed CI run `35280585842` / job `105401318532` and merged as `027fb4060c051d6d656a86dbfb1442b403f33eb8`. Main CI run `35280922343` / job `105402395854` succeeded. Railway app deployment `0cff9fb3-0808-41d9-89b9-bb6e115d1672` is SUCCESS on the exact merge; migrator and worker correctly remained unchanged. Public health returned HTTP 200 with ready/database ok. Recommendation actions now reach the correct product surfaces without automatic save or publication.
+
+### Active explicit content review submission — 2026-09-17
+
+Audit found that the first saved draft had no direct path to review while saving another version implicitly changed status to `ready_for_review`. PR #192 / branch `feat/content-review-submission` separates editing from review: every save remains `draft`, **Submit for review** records actor/version/note/time and only the latest version can transition to review. Migration 065, SQL gate 067, API/UI wiring, production registration and a Chromium/Axe lifecycle proof are prepared at candidate head `cb5d4c03c591af4349de4395d1b90cf67b9dc895`. CI, merge and production are not yet claimed.
