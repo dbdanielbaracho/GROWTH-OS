@@ -4637,3 +4637,12 @@ A inspeção da interface encontrou uma transição quebrada: o botão **Start a
 **Execução candidata:** branch `feat/recommendation-to-content-handoff`, iniciada no merge aceito `a440908e4262c696c7520d19031949af443a88de`. Após armazenar a recomendação, `draft_content` abre o painel de autoria e carrega objetivo/mercado/plataforma; `review_evidence` e `plan_experiment` navegam às seções correspondentes. O corpo permanece vazio e nenhum draft é salvo automaticamente.
 
 **Prova preparada:** jornada Chromium/Axe valida o POST exato da recomendação, abertura do painel, contexto preenchido, texto vazio, ausência de criação automática, overflow e acessibilidade. CI, PR, merge e produção ainda não são reivindicados nesta entrada.
+
+
+### PR #191 — aceite técnico do handoff recomendar → criar
+
+Head `4db4acbe2481069b338d0ccb96c751347de7473c`; CI run `35250067721`; job `105299954362`; conclusão `success`.
+
+Passaram: integridade, hardening, typecheck, build, onze jornadas Chromium com Axe/WCAG, todas as migrations/gates SQL, identidade, Growth Intelligence, shell same-origin e testes finais. A jornada nova armazenou `action_code=draft_content`, abriu Content Authoring, preencheu objetivo/mercado/plataforma, manteve o corpo vazio e comprovou que nenhum draft foi salvo automaticamente.
+
+**Estado:** implementação tecnicamente aceita. O registro cria novo head e exige CI completa antes do merge exato. Merge e produção ainda não são reivindicados.
