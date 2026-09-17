@@ -16,7 +16,8 @@ import {
   reconcilePublicationIntent,
   PublicationIntentListItem,
   RadarApiError,
-  requestContentChanges
+  requestContentChanges,
+  submitContentForReview
 } from "./api.js";
 import "./content-authoring.css";
 
@@ -255,6 +256,22 @@ function ContentAuthoringPanel() {
     }
   }
 
+  async function submitForReview(draft: ContentListItem) {
+    if (!draft.current_version_id || draft.status !== "draft") return;
+    setDecisionBusyId(draft.id);
+    setMessage(null);
+    try {
+      await submitContentForReview(draft.current_version_id);
+      setMessage("Draft submitted for review. Approval is now available as a separate decision.");
+      await loadDrafts();
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
+      setMessage(contentError(error));
+    } finally {
+      setDecisionBusyId(null);
+    }
+  }
+
   async function decide(draft: ContentListItem, decision: "approve" | "request_changes") {
     if (!draft.current_version_id || draft.status !== "ready_for_review") return;
     setDecisionBusyId(draft.id);
@@ -424,6 +441,16 @@ function ContentAuthoringPanel() {
                 </div>
                 <div className="content-draft-actions">
                   <button className="content-secondary" type="button" onClick={() => editDraft(draft)}>Edit</button>
+                  {draft.status === "draft" && draft.current_version_id && (
+                    <button
+                      className="content-secondary content-approve"
+                      type="button"
+                      disabled={decisionBusyId === draft.id}
+                      onClick={() => void submitForReview(draft)}
+                    >
+                      {decisionBusyId === draft.id ? "Submitting…" : "Submit for review"}
+                    </button>
+                  )}
                   {draft.status === "ready_for_review" && (
                     <>
                       <button className="content-secondary content-approve" type="button" disabled={decisionBusyId === draft.id} onClick={() => void decide(draft, "approve")}>Approve</button>
