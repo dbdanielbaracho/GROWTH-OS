@@ -62,7 +62,13 @@ function json(route: Route, status: number, body: unknown) {
   });
 }
 
-async function mockApi(page: Page, initialMode: "signed_out" | "authenticated", metrics: unknown[] = [], content: unknown[] = []) {
+async function mockApi(
+  page: Page,
+  initialMode: "signed_out" | "authenticated",
+  metrics: unknown[] = [],
+  content: unknown[] = [],
+  publicationIntents: unknown[] = []
+) {
   let mode = initialMode;
   const unhandled: string[] = [];
 
@@ -124,7 +130,7 @@ async function mockApi(page: Page, initialMode: "signed_out" | "authenticated", 
     }
 
     if (mode === "authenticated" && path === "/v1/publication-intents") {
-      return json(route, 200, { status: "ok", publicationIntents: [] });
+      return json(route, 200, { status: "ok", publicationIntents });
     }
 
     if (mode === "authenticated" && path === "/v1/opportunities") {
@@ -533,6 +539,73 @@ test("content authoring preserves save acknowledgements through review and appro
   expect(version).toBe(3);
   expect(status).toBe("approved");
   expect(writes).toHaveLength(6);
+  expect(unhandled).toEqual([]);
+});
+
+
+test("a provider match resolves needs-user-action without sending a second post", async ({ page }) => {
+  const publicationIntentId = "f0000000-0000-4000-8000-000000000010";
+  const publicationIntent = {
+    id: publicationIntentId,
+    social_account_id: "d0000000-0000-4000-8000-000000000010",
+    content_version_id: "b0000000-0000-4000-8000-000000000010",
+    status: "needs_user_action",
+    scheduled_for: null,
+    current_attempt_no: 3,
+    retry_count: 3,
+    last_error_class: "provider_timeout",
+    provider_content_id: null as string | null,
+    provider_permalink: null,
+    created_at: "2026-09-15T01:00:00.000Z",
+    updated_at: "2026-09-15T01:03:00.000Z",
+    cancelled_at: null
+  };
+  const unhandled = await mockApi(page, "authenticated", [], [], [publicationIntent]);
+  const reconciliations: Record<string, unknown>[] = [];
+
+  await page.route(`**/v1/publication-intents/${publicationIntentId}/reconcile`, async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    const payload = request.postDataJSON() as Record<string, unknown>;
+    reconciliations.push(payload);
+    publicationIntent.status = "confirmed";
+    publicationIntent.provider_content_id = String(payload.candidateProviderContentId);
+    return json(route, 200, {
+      status: "reconciled",
+      reconciliation: { publication_intent_id: publicationIntentId, reconciliation_status: "matched" }
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Create Content Authoring", exact: true }).click();
+
+  const providerId = page.getByLabel("Provider content ID for attempt 3", { exact: true });
+  const evidence = page.getByLabel("Evidence reference for attempt 3", { exact: true });
+  const confirm = page.getByRole("button", { name: "Confirm provider match", exact: true });
+
+  await expect(page.getByText(/This records existing provider content and never sends a second post./)).toBeVisible();
+  await expect(confirm).toBeDisabled();
+  await providerId.fill("provider-post-controlled-001");
+  await expect(confirm).toBeDisabled();
+  await evidence.fill("https://provider.example.invalid/posts/provider-post-controlled-001");
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+
+  await expect(page.getByRole("status")).toHaveText(
+    "Provider match confirmed. The existing provider content is now recorded; no second post was sent."
+  );
+  await expect(page.getByText("confirmed", { exact: true }).first()).toBeVisible();
+  await expect(providerId).toHaveCount(0);
+  expect(reconciliations).toEqual([{
+    attemptNo: 3,
+    method: "manual",
+    confidence: "high",
+    reconciliationStatus: "matched",
+    candidateProviderContentId: "provider-post-controlled-001",
+    evidenceRef: "https://provider.example.invalid/posts/provider-post-controlled-001"
+  }]);
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
   expect(unhandled).toEqual([]);
 });
 

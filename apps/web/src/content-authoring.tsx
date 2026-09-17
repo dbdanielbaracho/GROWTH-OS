@@ -13,6 +13,7 @@ import {
   createPublicationIntent,
   executePublicationIntent,
   cancelPublicationIntent,
+  reconcilePublicationIntent,
   PublicationIntentListItem,
   RadarApiError,
   requestContentChanges
@@ -44,6 +45,11 @@ type ConnectedPublicationAccount = {
   platform: "Instagram" | "YouTube";
 };
 
+type PublicationReconciliationDraft = {
+  providerContentId: string;
+  evidenceRef: string;
+};
+
 function ContentAuthoringPanel() {
   const authGeneration = useRef(0);
   const [authenticated, setAuthenticated] = useState(false);
@@ -58,6 +64,7 @@ function ContentAuthoringPanel() {
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedPublicationAccount[]>([]);
   const [publicationBusyId, setPublicationBusyId] = useState<string | null>(null);
   const [selectedAccountByDraft, setSelectedAccountByDraft] = useState<Record<string, string>>({});
+  const [reconciliationByIntent, setReconciliationByIntent] = useState<Record<string, PublicationReconciliationDraft>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [market, setMarket] = useState("US");
   const [language, setLanguage] = useState("en-US");
@@ -164,6 +171,7 @@ function ContentAuthoringPanel() {
       setPublicationIntents([]);
       setConnectedAccounts([]);
       setSelectedAccountByDraft({});
+      setReconciliationByIntent({});
       setEditingId(null);
       setObjective("");
       setBody("");
@@ -313,6 +321,58 @@ function ContentAuthoringPanel() {
     }
   }
 
+  function updateReconciliationDraft(
+    publicationIntentId: string,
+    field: keyof PublicationReconciliationDraft,
+    value: string
+  ) {
+    setReconciliationByIntent((current) => ({
+      ...current,
+      [publicationIntentId]: {
+        providerContentId: current[publicationIntentId]?.providerContentId ?? "",
+        evidenceRef: current[publicationIntentId]?.evidenceRef ?? "",
+        [field]: value
+      }
+    }));
+  }
+
+  async function confirmProviderMatch(intent: PublicationIntentListItem) {
+    const draft = reconciliationByIntent[intent.id];
+    const providerContentId = draft?.providerContentId.trim() ?? "";
+    const evidenceRef = draft?.evidenceRef.trim() ?? "";
+    if (
+      intent.status !== "needs_user_action"
+      || !intent.current_attempt_no
+      || !providerContentId
+      || !evidenceRef
+    ) return;
+
+    setPublicationBusyId(intent.id);
+    setMessage(null);
+    try {
+      await reconcilePublicationIntent(intent.id, {
+        attemptNo: intent.current_attempt_no,
+        method: "manual",
+        confidence: "high",
+        reconciliationStatus: "matched",
+        candidateProviderContentId: providerContentId,
+        evidenceRef
+      });
+      setReconciliationByIntent((current) => {
+        const next = { ...current };
+        delete next[intent.id];
+        return next;
+      });
+      setMessage("Provider match confirmed. The existing provider content is now recorded; no second post was sent.");
+      await loadPublications();
+    } catch (error) {
+      if (error instanceof RadarApiError && error.httpStatus === 401) setAuthenticated(false);
+      setMessage(contentError(error));
+    } finally {
+      setPublicationBusyId(null);
+    }
+  }
+
   async function cancelIntent(intent: PublicationIntentListItem) {
     if (!["ready", "scheduled", "queued", "failed_retryable", "retrying", "needs_user_action"].includes(intent.status)) return;
     if (!window.confirm("Cancel this publication intent? This does not remove provider content already confirmed.")) return;
@@ -410,38 +470,88 @@ function ContentAuthoringPanel() {
             <div className="content-list-heading"><span>Publishing status</span><small>{publicationIntents.length}</small></div>
             {loadingPublications && <p className="content-list-empty">Loading publication status…</p>}
             {!loadingPublications && publicationIntents.length === 0 && <p className="content-list-empty">No publication intents exist in this workspace yet.</p>}
-            {!loadingPublications && publicationIntents.slice(0, 5).map((intent) => (
-              <div className="content-draft-row" key={intent.id}>
-                <div>
-                  <strong>{publicationLabel(intent)}</strong>
-                  <small>Attempt {intent.current_attempt_no ?? "—"} · retry {intent.retry_count}</small>
-                  <p>{intent.provider_content_id ? "Provider content id recorded." : "No provider content id recorded."}</p>
-                </div>
-                <div className="content-publication-actions">
-                  <span className="content-status">{publicationLabel(intent)}</span>
-                  {["ready", "queued", "failed_retryable", "retrying"].includes(intent.status) && (
-                    <button
-                      className="content-secondary content-approve"
-                      type="button"
-                      disabled={publicationBusyId === intent.id}
-                      onClick={() => void executeIntent(intent)}
-                    >
-                      {publicationBusyId === intent.id ? "Processing…" : "Execute"}
-                    </button>
+            {!loadingPublications && publicationIntents.slice(0, 5).map((intent) => {
+              const reconciliationDraft = reconciliationByIntent[intent.id] ?? {
+                providerContentId: "",
+                evidenceRef: ""
+              };
+              const canConfirmMatch = Boolean(
+                intent.current_attempt_no
+                && reconciliationDraft.providerContentId.trim()
+                && reconciliationDraft.evidenceRef.trim()
+              );
+
+              return (
+                <div className={`content-draft-row${intent.status === "needs_user_action" ? " needs-reconciliation" : ""}`} key={intent.id}>
+                  <div>
+                    <strong>{publicationLabel(intent)}</strong>
+                    <small>Attempt {intent.current_attempt_no ?? "—"} · retry {intent.retry_count}</small>
+                    <p>{intent.provider_content_id ? "Provider content id recorded." : "No provider content id recorded."}</p>
+                  </div>
+                  <div className="content-publication-actions">
+                    <span className="content-status">{publicationLabel(intent)}</span>
+                    {["ready", "queued", "failed_retryable", "retrying"].includes(intent.status) && (
+                      <button
+                        className="content-secondary content-approve"
+                        type="button"
+                        disabled={publicationBusyId === intent.id}
+                        onClick={() => void executeIntent(intent)}
+                      >
+                        {publicationBusyId === intent.id ? "Processing…" : "Execute"}
+                      </button>
+                    )}
+                    {["ready", "scheduled", "queued", "failed_retryable", "retrying", "needs_user_action"].includes(intent.status) && (
+                      <button
+                        className="content-secondary"
+                        type="button"
+                        disabled={publicationBusyId === intent.id}
+                        onClick={() => void cancelIntent(intent)}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                  {intent.status === "needs_user_action" && (
+                    <div className="content-reconciliation">
+                      <p>
+                        <strong>Verify the provider first.</strong> Confirm only if this exact post already exists.
+                        This records existing provider content and never sends a second post.
+                      </p>
+                      <div className="content-reconciliation-grid">
+                        <label>
+                          <span>Provider content ID</span>
+                          <input
+                            aria-label={`Provider content ID for attempt ${intent.current_attempt_no ?? "unknown"}`}
+                            value={reconciliationDraft.providerContentId}
+                            maxLength={500}
+                            onChange={(event) => updateReconciliationDraft(intent.id, "providerContentId", event.target.value)}
+                            placeholder="Provider post or video ID"
+                          />
+                        </label>
+                        <label>
+                          <span>Evidence reference</span>
+                          <input
+                            aria-label={`Evidence reference for attempt ${intent.current_attempt_no ?? "unknown"}`}
+                            value={reconciliationDraft.evidenceRef}
+                            maxLength={500}
+                            onChange={(event) => updateReconciliationDraft(intent.id, "evidenceRef", event.target.value)}
+                            placeholder="Provider permalink or audit reference"
+                          />
+                        </label>
+                      </div>
+                      <button
+                        className="content-secondary content-approve"
+                        type="button"
+                        disabled={!canConfirmMatch || publicationBusyId === intent.id}
+                        onClick={() => void confirmProviderMatch(intent)}
+                      >
+                        {publicationBusyId === intent.id ? "Confirming…" : "Confirm provider match"}
+                      </button>
+                    </div>
                   )}
-                  {["ready", "scheduled", "queued", "failed_retryable", "retrying", "needs_user_action"].includes(intent.status) && (
-                    <button
-                      className="content-secondary"
-                      type="button"
-                      disabled={publicationBusyId === intent.id}
-                      onClick={() => void cancelIntent(intent)}
-                    >
-                      Cancel
-                    </button>
-                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <form className="content-form" onSubmit={submit}>
@@ -464,7 +574,15 @@ function ContentAuthoringPanel() {
               <span id="content-draft-text-label">Draft text</span>
               <textarea aria-labelledby="content-draft-text-label" value={body} onChange={(event) => setBody(event.target.value)} maxLength={100000} required rows={6} placeholder="Add the first version of the idea or copy…" />
             </label>
-            {message && <div className={message.startsWith("Draft") ? "content-notice" : "content-error"} role="status">{message}</div>}
+            {message && <div className={
+              message.includes("could not")
+              || message.includes("expired")
+              || message.includes("not allowed")
+              || message.includes("no longer available")
+              || message.startsWith("Complete ")
+                ? "content-error"
+                : "content-notice"
+            } role="status">{message}</div>}
             <button className="content-primary" type="submit" disabled={saving || body.trim().length === 0}>
               {saving ? "Saving draft…" : editingId ? "Save new version" : "Save draft"}
             </button>

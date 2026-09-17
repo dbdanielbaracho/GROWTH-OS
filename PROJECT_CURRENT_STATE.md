@@ -347,3 +347,26 @@ Branch `feat/team-invitations-product-surface` now contains the typed team clien
 ### Team and invitation CI accepted — 2026-09-17
 
 PR #187 head `02f63b135560982204044554236eba563eb423a9`; CI run `35180576112`; job `105071621596`; SUCCESS. The new Chromium gate passed all eight critical journeys and Axe/WCAG checks, followed by all database, identity, intelligence, shell and unit gates. The documentation head `13d9d4631137e618fff4f014b769d7976f2b8ced` now awaits its final CI before exact-head merge.
+
+
+### PR #187 production acceptance — 2026-09-17
+
+PR #187 was merged at exact head `0266d6919c0a4abe540d387904c645cb3ccecdf3`; `main` merge commit `3339325fd75861e6e9815470fe4cff9ba3c1da7b`. Final PR CI run `35180819696` / job `105072366961` and main CI run `35181096529` / job `105073202303` succeeded. Railway app deployment `841e9014-1fda-4e6c-ba07-469aaaa72083` and worker deployment `9b25c36b-98b9-46f5-90c6-f6857df03d9c` are SUCCESS; app logs verified the deployment identity and port 8080. Migrator correctly remained unchanged. Team administration and one-time invitation acceptance are accepted in the product/CI lineage. No real invitation was sent because no concrete recipient was approved.
+
+### Active publication recovery surface — 2026-09-17
+
+Exact request: `"continuar"`. Branch `feat/publication-reconciliation-recovery` starts from accepted `main` `3339325fd75861e6e9815470fe4cff9ba3c1da7b`.
+
+Verified gap: the backend already records publication reconciliation, but the user-facing `needs_user_action` state only allowed cancellation. The candidate UI now requires a provider content ID and evidence reference before recording a manual/high-confidence match, clearly states that it records existing content and sends no second post, retains cancellation for no safe match, and refreshes to the confirmed state. A controlled Chromium journey covers validation, exact request payload, confirmed rendering, overflow and Axe/WCAG.
+
+This branch is not accepted, merged or deployed yet. Next: PR #188, full CI, exact-head merge, main CI and Railway deployment proof. No real provider post or provider-side confirmation is claimed.
+
+
+### PR #188 active CI correction — 2026-09-17
+
+Head `e03496dc2d202226aa7601980eeccb7b403e1160`, CI run `35181755467`, job `105075216017`: integrity, hardening, typecheck and build passed; the new functional recovery reached `confirmed`. Axe then rejected three existing supporting-text colors at 4.1:1–4.28:1. All five `#777b73` tokens in the content panel were raised to `#8f938a`; no functional or accessibility gate was removed. Fresh full CI is required.
+
+
+### PR #188 technical acceptance — 2026-09-17
+
+Head `10c1fae7b8774a62dce08716f5c605ea8734a256`; CI run `35181926781`; job `105075740082`; SUCCESS. Nine Chromium/Axe journeys, every migration/publication/identity/intelligence gate, same-origin shell and final tests passed. The recovery journey proved evidence-required `needs_user_action` → `confirmed` reconciliation without a second execution request. This controlled proof is not a real provider publication. The new documentation head requires its own full CI before exact-head merge.

@@ -4478,3 +4478,52 @@ Head `02f63b135560982204044554236eba563eb423a9`; CI run `35180576112`; job `1050
 O gate de navegador comprovou: journeys signed-out; shell autenticado desktop/mobile; signin/signout; painéis secundários; seleção explícita de conta antes de preparar publicação; preservação editorial; owner convidando e alterando membro; usuário autenticado aceitando link único. Nenhum convite real, e-mail externo, OAuth ou publicação em provedor foi criado.
 
 Estado: tecnicamente aceito no PR. Este registro documental exige uma CI final do novo head antes de merge. Merge e produção ainda não são reivindicados.
+
+
+## Fechamento de produção — PR #187 — equipe e convites — 2026-09-17
+
+- PR: [#187](https://github.com/dbdanielbaracho/GROWTH-OS/pull/187), `feat: ship team and invitation product journeys`.
+- Head final aceito e mesclado: `0266d6919c0a4abe540d387904c645cb3ccecdf3`.
+- Merge commit em `main`: `3339325fd75861e6e9815470fe4cff9ba3c1da7b`.
+- CI final do PR: run `35180819696`, job `105072366961`, conclusão `success`.
+- CI de `main`: run `35181096529`, job `105073202303`, conclusão `success`.
+- Railway app: deployment `841e9014-1fda-4e6c-ba07-469aaaa72083`, `SUCCESS`, originado do merge SHA exato.
+- Railway worker: deployment `9b25c36b-98b9-46f5-90c6-f6857df03d9c`, `SUCCESS`.
+- Migrator corretamente sem alteração porque o PR não contém migrations.
+- Logs da app registraram `verified Railway deployment identity` e processo ouvindo na porta 8080.
+- Resultado aceito: owner/admin dispõe de painel de equipe, convite com link acionável, alteração controlada de papel/permissão/status e aceite autenticado de convite único. O gate Chromium passou oito jornadas críticas com Axe/WCAG, seguido de todos os gates de banco, identidade, inteligência, shell e testes unitários.
+- Limite preservado: nenhum convite real foi enviado porque não existe destinatário concreto aprovado. Nenhum e-mail externo ou publicação em rede social é reivindicado.
+
+## Continuação registrada — 2026-09-17 — recuperação de publicação incerta
+
+**Pedido exato do usuário:** `"continuar"`.
+
+**Ponto de retomada:** `main` e runtime aceitos no merge `3339325fd75861e6e9815470fe4cff9ba3c1da7b`; app Railway `841e9014-1fda-4e6c-ba07-469aaaa72083` e worker `9b25c36b-98b9-46f5-90c6-f6857df03d9c`, ambos `SUCCESS`.
+
+**Lacuna verificada:** o backend já oferece `POST /v1/publication-intents/:id/reconcile` e o banco possui transição auditável de uma tentativa ambígua para `confirmed`, mas a interface de `needs_user_action` só permitia cancelar. Não havia caminho de produto para registrar um conteúdo já encontrado no provedor sem arriscar outro envio.
+
+**Execução candidata:** branch `feat/publication-reconciliation-recovery`, criada a partir do merge exato. Foram adicionados cliente tipado, formulário responsivo de recuperação, ID do conteúdo e referência de evidência obrigatórios na interface, confirmação manual de alta confiança e recarregamento do estado. A mensagem deixa explícito que a confirmação registra conteúdo existente e não envia um segundo post. Cancelamento continua disponível quando não existe correspondência segura.
+
+**Prova controlada preparada:** nova jornada Playwright inicia em `needs_user_action`, impede confirmação sem os dois campos, envia exatamente o contrato `manual/high/matched`, atualiza para `confirmed`, remove o formulário e executa overflow + Axe. O mock não chama provedor externo e não conta como publicação real.
+
+**Estado:** implementação enviada à branch; CI ainda não foi aceito nesta entrada. PR, merge e produção não são reivindicados até evidência do head exato.
+
+**Próxima pendência:** abrir o PR #188, executar a suíte completa, corrigir qualquer falha sem reduzir gates, mesclar somente o head verde e validar CI/Railway da linhagem exata.
+
+
+### PR #188 — primeira execução da CI e contraste do estado reconciliado
+
+Head `e03496dc2d202226aa7601980eeccb7b403e1160`; CI run `35181755467`; job `105075216017`; conclusão `failure`. Integridade, hardening, typecheck e build passaram. A nova jornada funcional chegou ao estado `confirmed`, porém o Axe bloqueou três textos auxiliares antigos do painel com contraste entre 4.1:1 e 4.28:1, abaixo dos 4.5:1 exigidos.
+
+Correção: os cinco usos do token auxiliar `#777b73` no painel de conteúdo foram elevados para `#8f938a`, cobrindo rótulos e metadados nos fundos escuros do componente. A jornada, a validação dos dois campos e o gate Axe foram preservados sem relaxamento. Nova CI completa do head corrigido é obrigatória.
+
+
+### PR #188 — aceite técnico da recuperação sem envio duplicado
+
+Head `10c1fae7b8774a62dce08716f5c605ea8734a256`; CI run `35181926781`; job `105075740082`; conclusão `success`.
+
+Passaram: integridade, hardening, typecheck, build, nove jornadas Chromium com Axe/WCAG, todas as migrations e gates SQL — incluindo finalização, retry, cancelamento, reconciliação, service principal e projeção de status de publicação —, adaptador/ciclo completo de identidade, Growth Intelligence, shell same-origin e testes finais.
+
+A jornada nova comprovou que `needs_user_action` exige ID do conteúdo e referência de evidência, envia `attemptNo=3`, `method=manual`, `confidence=high`, `reconciliationStatus=matched`, passa a `confirmed`, remove o formulário de recuperação e não executa uma segunda chamada de publicação. A prova é controlada; não afirma post real no provedor.
+
+Estado: implementação tecnicamente aceita. Este registro documental cria um novo head que também deve passar a suíte completa antes do merge exato. Merge e produção ainda não são reivindicados.
