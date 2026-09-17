@@ -63,6 +63,16 @@ export type WorkspaceSummary = {
   membership_status: "active" | "invited" | "revoked";
 };
 
+export type WorkspaceMember = {
+  user_id: string;
+  role: "owner" | "admin" | "editor" | "viewer";
+  can_publish: boolean;
+  status: "active" | "invited" | "revoked";
+  created_at: string;
+};
+
+export type WorkspaceInvitationRole = "admin" | "editor" | "viewer";
+
 export type AuthSessionResponse = {
   status: "ok";
   session: {
@@ -422,6 +432,60 @@ export async function createWorkspace(input: {
     body: input,
     useDevelopmentIdentity: false
   });
+}
+
+export async function fetchWorkspaceMembers(workspaceId: string): Promise<WorkspaceMember[]> {
+  const response = await requestJson<{ status: "ok"; members: WorkspaceMember[] }>(
+    `/v1/workspaces/${encodeURIComponent(workspaceId)}/members`,
+    { useDevelopmentIdentity: false }
+  );
+  return response.members;
+}
+
+export async function inviteWorkspaceMember(input: {
+  workspaceId: string;
+  email: string;
+  role: WorkspaceInvitationRole;
+  canPublish: boolean;
+}): Promise<void> {
+  await requestJson<{ status: "invitation_sent" }>(
+    `/v1/workspaces/${encodeURIComponent(input.workspaceId)}/invitations`,
+    {
+      method: "POST",
+      body: { email: input.email, role: input.role, canPublish: input.canPublish },
+      useDevelopmentIdentity: false
+    }
+  );
+}
+
+export async function updateWorkspaceMember(input: {
+  workspaceId: string;
+  userId: string;
+  role: WorkspaceInvitationRole;
+  canPublish: boolean;
+  status: "active" | "revoked";
+}): Promise<WorkspaceMember> {
+  const response = await requestJson<{ status: "ok"; member: WorkspaceMember }>(
+    `/v1/workspaces/${encodeURIComponent(input.workspaceId)}/members/${encodeURIComponent(input.userId)}`,
+    {
+      method: "PATCH",
+      body: { role: input.role, canPublish: input.canPublish, status: input.status },
+      useDevelopmentIdentity: false
+    }
+  );
+  return response.member;
+}
+
+export async function acceptWorkspaceInvitation(token: string): Promise<string> {
+  const response = await requestJson<{ status: "accepted"; workspace_id: string }>(
+    "/v1/auth/invitations/accept",
+    {
+      method: "POST",
+      body: { token },
+      useDevelopmentIdentity: false
+    }
+  );
+  return response.workspace_id;
 }
 
 
