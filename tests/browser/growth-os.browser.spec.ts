@@ -90,7 +90,7 @@ async function mockApi(
       "/v1/integrations/youtube/status", "/v1/integrations/instagram/status",
       "/v1/analytics/metrics", "/v1/content", "/v1/publication-intents",
       "/v1/opportunities", `/v1/opportunities/${opportunity.id}`,
-      "/v1/recommendations", "/v1/automation/policy", "/v1/automation/requests",
+      "/v1/recommendations", "/v1/experiments", "/v1/automation/policy", "/v1/automation/requests",
       "/v1/commercial/entitlements", "/v1/commercial/enterprise-policy"
     ].includes(path)) return json(route, 401, { status: "unauthorized" });
 
@@ -144,6 +144,11 @@ async function mockApi(
     if (mode === "authenticated" && path === "/v1/recommendations") {
       return json(route, 200, { status: "ok", recommendations: [] });
     }
+
+    if (mode === "authenticated" && path === "/v1/experiments") {
+      return json(route, 200, { status: "ok", experiments: [] });
+    }
+
 
     if (mode === "authenticated" && path === "/v1/automation/policy") {
       return json(route, 200, {
@@ -604,6 +609,88 @@ test("a provider match resolves needs-user-action without sending a second post"
     evidenceRef: "https://provider.example.invalid/posts/provider-post-controlled-001"
   }]);
 
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  expect(unhandled).toEqual([]);
+});
+
+
+test("stored experiment outcomes survive reload and close the learning step", async ({ page }) => {
+  const experimentId = "f0000000-0000-4000-8000-000000000020";
+  const variantId = "f0000000-0000-4000-8000-000000000021";
+  const experiment = {
+    id: experimentId,
+    opportunity_id: opportunity.id,
+    name: "Controlled learning fixture",
+    hypothesis: "A measured variant improves the primary signal.",
+    decision_rule: "Select a winner only from stored outcome evidence.",
+    status: "running",
+    variant_count: 1,
+    created_at: "2026-09-15T01:00:00.000Z",
+    updated_at: "2026-09-15T01:05:00.000Z"
+  };
+  const variant = {
+    id: variantId,
+    experiment_id: experimentId,
+    label: "Evidence-backed variant A",
+    lineage: { source_opportunity_id: opportunity.id, autonomous_publishing: false },
+    status: "active",
+    created_at: "2026-09-15T01:02:00.000Z",
+    latest_outcome: null as string | null,
+    latest_evidence_ref: null as string | null,
+    feedback_created_at: null as string | null
+  };
+  const feedbackWrites: Record<string, unknown>[] = [];
+  const unhandled = await mockApi(page, "authenticated");
+
+  await page.route("**/v1/experiments", async (route, request) => {
+    if (request.method() !== "GET") return route.fallback();
+    return json(route, 200, { status: "ok", experiments: [experiment] });
+  });
+  await page.route(`**/v1/experiments/${experimentId}/variants`, async (route, request) => {
+    if (request.method() !== "GET") return route.fallback();
+    return json(route, 200, { status: "ok", variants: [variant] });
+  });
+  await page.route(`**/v1/experiments/${experimentId}/feedback`, async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    const payload = request.postDataJSON() as Record<string, unknown>;
+    feedbackWrites.push(payload);
+    experiment.status = "completed";
+    variant.status = "winner";
+    variant.latest_outcome = "winner";
+    variant.latest_evidence_ref = String(payload.evidence_ref);
+    variant.feedback_created_at = "2026-09-15T01:10:00.000Z";
+    return json(route, 200, { status: "recorded", feedback: { outcome: "winner" } });
+  });
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Plan, measure and learn" })).toBeVisible();
+  await expect(page.getByText("Controlled learning fixture", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Active · awaiting outcome/)).toBeVisible();
+
+  const recordOutcome = page.getByRole("button", { name: "Record outcome", exact: true });
+  await expect(recordOutcome).toBeDisabled();
+  await page.getByLabel("Outcome evidence", { exact: true }).fill("controlled-metric-snapshot://variant-a");
+  await page.getByLabel("Learning note", { exact: false }).fill("Retain the measured winning structure.");
+  await expect(recordOutcome).toBeEnabled();
+  await recordOutcome.click();
+
+  await expect(page.getByRole("status")).toHaveText(
+    "Outcome recorded from evidence. Growth OS will preserve this result for the next decision."
+  );
+  await expect(page.getByText(/Completed · A measured variant improves/)).toBeVisible();
+  await expect(page.getByText(/Winner · latest outcome: Winner/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Record outcome", exact: true })).toHaveCount(0);
+  expect(feedbackWrites).toEqual([{
+    variant_id: variantId,
+    outcome: "winner",
+    evidence_ref: "controlled-metric-snapshot://variant-a",
+    note: "Retain the measured winning structure."
+  }]);
+
+  await page.reload();
+  await expect(page.getByText("Controlled learning fixture", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Winner · latest outcome: Winner/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousAccessibilityViolations(page);
   expect(unhandled).toEqual([]);
