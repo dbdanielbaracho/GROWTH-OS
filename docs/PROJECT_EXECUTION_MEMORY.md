@@ -4428,3 +4428,33 @@ O ciclo integrado aceito cobre: signup, captura local do e-mail de verificação
 **Bloqueios:** nenhum bloqueio interno neste ponto.
 
 **Próxima pendência:** mergear o PR #186 no head exato aceito; acompanhar CI de `main`; aplicar/reconciliar migrations 061–062 no serviço canônico; validar SHA/deployment/health públicos e registrar o fechamento.
+
+## Fechamento de produção — PR #186 — ciclo de identidade — 2026-09-17
+
+- PR: #186, `feat: gate the complete identity lifecycle`.
+- Head final aceito e mesclado: `b08bb3feb164e529a79284f2b67f770e860440ea`.
+- Merge commit em `main`: `54861e0de2168a2d2326d9b4a69b1315ab794dc8`.
+- CI de `main`: run `35179342042`, job `105067923415`, conclusão `success`. Passaram integridade, hardening, typecheck, build, migrations, gates SQL 063/064, adaptador de identidade de produção, ciclo completo de identidade, Growth Intelligence, shell same-origin e testes finais.
+- Railway migrator: deployment `8a7b3200-dd43-4a55-8ef6-e430c8ec12eb`, `SUCCESS`. Logs confirmam aplicação de `061_authority_projection_trigger_privileges.sql` e `062_identity_runtime_table_privileges.sql`, reconciliação completa e os smokes operacionais de fila, reconciliação e cancelamento em `PASS`.
+- Railway worker: deployment `3eb9cb3e-cfe1-423a-b468-39e2ed0e0b9f`, `SUCCESS`.
+- Railway app: deployment `41c1e820-fe1f-49ea-9307-3633a08a49d1`, `SUCCESS`, originado do merge commit exato. A configuração canônica usa healthcheck `/health/ready`; os logs registram `verified Railway deployment identity`, servidor em porta 8080 e `GET /v1/deployment` com HTTP 200.
+- Limite de verificação externa: o leitor web classificou os URLs Railway/custom-domain como não seguros para abertura e o navegador em nuvem retornou `ERR_BLOCKED_BY_CLIENT`. Nenhum bypass foi tentado e nenhum corpo de resposta é inventado. O aceite usa status do deployment, healthcheck configurado, identidade validada no processo, metadado de commit e HTTP 200 observado na borda Railway.
+- Resultado: o backend do ciclo signup → verificar → entrar → criar/selecionar workspace → convidar → aceitar uma vez → listar/alterar membro → rejeitar replay/forja está aceito em CI e promovido em produção. Isso não equivale a publicação real em rede social.
+
+## Execução ativa — superfície de equipe e convites — 2026-09-17
+
+Branch `feat/team-invitations-product-surface`, baseada no merge exato do PR #186.
+
+Entrega candidata:
+
+- cliente web tipado para listar membros, enviar convite, alterar papel/permissão/status e aceitar convite;
+- painel responsivo e acessível de equipe para owner/admin;
+- owner protegido e matriz de edição refletida na interface;
+- rota de convite com verificação explícita de owner/admin antes do banco;
+- e-mail de convite com link acionável `/accept-invitation?token=...` e token de contingência;
+- tela autenticada de aceite único, preservando o link durante signin;
+- teste integrado validando link/origem e rejeição de convite por viewer;
+- jornadas Playwright para convite, alteração de membro e aceite;
+- gate Chromium adicionado à CI com instalação efêmera, sem alterar manifestos ou lockfile.
+
+Estado: implementação enviada à branch; CI ainda não foi executado. Nenhuma afirmação de merge ou produção é feita nesta entrada.
