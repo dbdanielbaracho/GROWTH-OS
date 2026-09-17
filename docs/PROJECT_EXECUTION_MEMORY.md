@@ -4458,3 +4458,9 @@ Entrega candidata:
 - gate Chromium adicionado à CI com instalação efêmera, sem alterar manifestos ou lockfile.
 
 Estado: implementação enviada à branch; CI ainda não foi executado. Nenhuma afirmação de merge ou produção é feita nesta entrada.
+
+### PR #187 — primeira execução do gate de navegador
+
+CI run `35180228943`, job `105070576461`: integridade, hardening, typecheck e build passaram. O novo Browser product gate executou oito jornadas em Chromium; sete passaram e a jornada de equipe falhou por timeout ao localizar o seletor genérico `Role`. A falha ocorreu antes dos gates de banco, que foram corretamente interrompidos.
+
+Correção: o seletor de papel do formulário de convite recebeu o nome acessível explícito `Invitation role`, e o teste passou a localizar esse contrato não ambíguo. O gate não foi removido nem relaxado; nova CI completa é obrigatória.
