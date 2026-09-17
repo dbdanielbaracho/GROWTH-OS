@@ -360,3 +360,8 @@ Exact request: `"continuar"`. Branch `feat/publication-reconciliation-recovery` 
 Verified gap: the backend already records publication reconciliation, but the user-facing `needs_user_action` state only allowed cancellation. The candidate UI now requires a provider content ID and evidence reference before recording a manual/high-confidence match, clearly states that it records existing content and sends no second post, retains cancellation for no safe match, and refreshes to the confirmed state. A controlled Chromium journey covers validation, exact request payload, confirmed rendering, overflow and Axe/WCAG.
 
 This branch is not accepted, merged or deployed yet. Next: PR #188, full CI, exact-head merge, main CI and Railway deployment proof. No real provider post or provider-side confirmation is claimed.
+
+
+### PR #188 active CI correction — 2026-09-17
+
+Head `e03496dc2d202226aa7601980eeccb7b403e1160`, CI run `35181755467`, job `105075216017`: integrity, hardening, typecheck and build passed; the new functional recovery reached `confirmed`. Axe then rejected three existing supporting-text colors at 4.1:1–4.28:1. All five `#777b73` tokens in the content panel were raised to `#8f938a`; no functional or accessibility gate was removed. Fresh full CI is required.
