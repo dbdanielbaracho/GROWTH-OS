@@ -365,3 +365,8 @@ This branch is not accepted, merged or deployed yet. Next: PR #188, full CI, exa
 ### PR #188 active CI correction — 2026-09-17
 
 Head `e03496dc2d202226aa7601980eeccb7b403e1160`, CI run `35181755467`, job `105075216017`: integrity, hardening, typecheck and build passed; the new functional recovery reached `confirmed`. Axe then rejected three existing supporting-text colors at 4.1:1–4.28:1. All five `#777b73` tokens in the content panel were raised to `#8f938a`; no functional or accessibility gate was removed. Fresh full CI is required.
+
+
+### PR #188 technical acceptance — 2026-09-17
+
+Head `10c1fae7b8774a62dce08716f5c605ea8734a256`; CI run `35181926781`; job `105075740082`; SUCCESS. Nine Chromium/Axe journeys, every migration/publication/identity/intelligence gate, same-origin shell and final tests passed. The recovery journey proved evidence-required `needs_user_action` → `confirmed` reconciliation without a second execution request. This controlled proof is not a real provider publication. The new documentation head requires its own full CI before exact-head merge.
