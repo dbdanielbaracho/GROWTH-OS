@@ -138,7 +138,7 @@ function recommendationLabel(code: Recommendation["action_code"]) {
   return "Plan an experiment";
 }
 
-function RecommendationPanel({ opportunityId }: { opportunityId: string }) {
+function RecommendationPanel({ opportunityId, refreshToken }: { opportunityId: string; refreshToken: number }) {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -158,7 +158,7 @@ function RecommendationPanel({ opportunityId }: { opportunityId: string }) {
 
   useEffect(() => {
     void load();
-  }, [opportunityId]);
+  }, [opportunityId, refreshToken]);
 
   async function add(actionCode: Recommendation["action_code"]) {
     setBusy(actionCode);
@@ -216,6 +216,13 @@ function RecommendationPanel({ opportunityId }: { opportunityId: string }) {
               <div>
                 <strong>{recommendationLabel(recommendation.action_code)}</strong>
                 <span>{titleCase(recommendation.status)} · {recommendation.feedback_count} feedback item{recommendation.feedback_count === 1 ? "" : "s"}</span>
+                {recommendation.rationale.learning?.latest_winner && (
+                  <div className="recommendation-learning" aria-label="Measured learning applied">
+                    <strong>Measured learning applied</strong>
+                    <span>Winner: {recommendation.rationale.learning.latest_winner.label}</span>
+                    <span>Evidence: {recommendation.rationale.learning.latest_winner.evidence_ref}</span>
+                  </div>
+                )}
               </div>
               <div className="recommendation-feedback">
                 <button type="button" disabled={busy !== null} onClick={() => void giveFeedback(recommendation.id, "accepted")}>Accept</button>
@@ -231,7 +238,7 @@ function RecommendationPanel({ opportunityId }: { opportunityId: string }) {
   );
 }
 
-function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
+function ExperimentPlanner({ opportunityId, onLearningRecorded }: { opportunityId: string; onLearningRecorded: () => void }) {
   const [name, setName] = useState("");
   const [hypothesis, setHypothesis] = useState("");
   const [decisionRule, setDecisionRule] = useState("");
@@ -333,6 +340,7 @@ function ExperimentPlanner({ opportunityId }: { opportunityId: string }) {
       setMessageIsError(false);
       setMessage("Outcome recorded from evidence. Growth OS will preserve this result for the next decision.");
       await loadExperiment();
+      onLearningRecorded();
     } catch {
       setMessageIsError(true);
       setMessage("The experiment outcome could not be stored. Evidence and tenant checks remain enforced.");
@@ -568,6 +576,8 @@ function DetailPanel({
   loading: boolean;
   error: string | null;
 }) {
+  const [learningRefreshToken, setLearningRefreshToken] = useState(0);
+
   if (loading) {
     return (
       <section className="detail-panel loading-panel" aria-live="polite">
@@ -692,8 +702,11 @@ function DetailPanel({
         )}
       </section>
 
-      <RecommendationPanel opportunityId={opportunity.id} />
-      <ExperimentPlanner opportunityId={opportunity.id} />
+      <RecommendationPanel opportunityId={opportunity.id} refreshToken={learningRefreshToken} />
+      <ExperimentPlanner
+        opportunityId={opportunity.id}
+        onLearningRecorded={() => setLearningRefreshToken((current) => current + 1)}
+      />
       <AutomationPanel opportunityId={opportunity.id} evidenceRef={evidence[0]?.evidence_ref ?? null} />
       <CommercialPanel />
     </section>

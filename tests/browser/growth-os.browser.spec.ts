@@ -640,9 +640,41 @@ test("stored experiment outcomes survive reload and close the learning step", as
     latest_evidence_ref: null as string | null,
     feedback_created_at: null as string | null
   };
+  const recommendation = {
+    id: "f0000000-0000-4000-8000-000000000022",
+    opportunity_id: opportunity.id,
+    action_code: "draft_content",
+    status: "proposed",
+    rationale: {
+      source: "opportunity_radar",
+      rule_version: "recommendation.action.v2",
+      evidence_count: 1,
+      autonomous_execution: false,
+      learning: {
+        rule_version: "opportunity.learning.v1",
+        completed_experiment_count: 0,
+        winner_count: 0,
+        recommendation_feedback: { accepted: 0, completed: 0, dismissed: 0, irrelevant: 0 },
+        latest_winner: null as null | {
+          experiment_id: string;
+          variant_id: string;
+          label: string;
+          evidence_ref: string;
+          recorded_at: string;
+        }
+      }
+    },
+    feedback_count: 0,
+    created_at: "2026-09-15T01:00:00.000Z",
+    updated_at: "2026-09-15T01:05:00.000Z"
+  };
   const feedbackWrites: Record<string, unknown>[] = [];
   const unhandled = await mockApi(page, "authenticated");
 
+  await page.route(/\/v1\/recommendations\?/, async (route, request) => {
+    if (request.method() !== "GET") return route.fallback();
+    return json(route, 200, { status: "ok", recommendations: [recommendation] });
+  });
   await page.route("**/v1/experiments", async (route, request) => {
     if (request.method() !== "GET") return route.fallback();
     return json(route, 200, { status: "ok", experiments: [experiment] });
@@ -660,6 +692,16 @@ test("stored experiment outcomes survive reload and close the learning step", as
     variant.latest_outcome = "winner";
     variant.latest_evidence_ref = String(payload.evidence_ref);
     variant.feedback_created_at = "2026-09-15T01:10:00.000Z";
+    recommendation.updated_at = "2026-09-15T01:10:00.000Z";
+    recommendation.rationale.learning.completed_experiment_count = 1;
+    recommendation.rationale.learning.winner_count = 1;
+    recommendation.rationale.learning.latest_winner = {
+      experiment_id: experimentId,
+      variant_id: variantId,
+      label: variant.label,
+      evidence_ref: String(payload.evidence_ref),
+      recorded_at: "2026-09-15T01:10:00.000Z"
+    };
     return json(route, 200, { status: "recorded", feedback: { outcome: "winner" } });
   });
 
@@ -680,6 +722,8 @@ test("stored experiment outcomes survive reload and close the learning step", as
   );
   await expect(page.getByText(/Completed · A measured variant improves/)).toBeVisible();
   await expect(page.getByText(/Winner · latest outcome: Winner/)).toBeVisible();
+  await expect(page.getByLabel("Measured learning applied")).toContainText("Winner: Evidence-backed variant A");
+  await expect(page.getByLabel("Measured learning applied")).toContainText("Evidence: controlled-metric-snapshot://variant-a");
   await expect(page.getByRole("button", { name: "Record outcome", exact: true })).toHaveCount(0);
   expect(feedbackWrites).toEqual([{
     variant_id: variantId,
@@ -691,6 +735,7 @@ test("stored experiment outcomes survive reload and close the learning step", as
   await page.reload();
   await expect(page.getByText("Controlled learning fixture", { exact: true })).toBeVisible();
   await expect(page.getByText(/Winner · latest outcome: Winner/)).toBeVisible();
+  await expect(page.getByLabel("Measured learning applied")).toContainText("Winner: Evidence-backed variant A");
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousAccessibilityViolations(page);
   expect(unhandled).toEqual([]);

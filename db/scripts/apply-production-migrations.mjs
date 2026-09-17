@@ -518,6 +518,40 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '064_learning_recommendation_feedback.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          to_regprocedure('growth.opportunity_learning_context(uuid,uuid)') is not null
+          and not has_function_privilege(
+            'app_runtime',
+            'growth.opportunity_learning_context(uuid,uuid)',
+            'EXECUTE'
+          )
+          and position(
+            'opportunity_learning_context'
+            in lower(pg_get_functiondef(
+              'growth.create_recommendation(uuid,uuid,text)'::regprocedure
+            ))
+          ) > 0
+          and position(
+            'update growth.recommendations'
+            in lower(pg_get_functiondef(
+              'growth.record_experiment_feedback(uuid,uuid,uuid,text,text,text)'::regprocedure
+            ))
+          ) > 0
+          and position(
+            'opportunity_learning_context'
+            in lower(pg_get_functiondef(
+              'growth.record_recommendation_feedback(uuid,uuid,text,text)'::regprocedure
+            ))
+          ) > 0
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 
 ];
 

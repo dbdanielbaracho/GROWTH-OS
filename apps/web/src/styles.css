@@ -764,6 +764,26 @@ footer span:first-child { color: #d4d0c5; }
   font-size: 0.9rem;
 }
 
+.recommendation-learning {
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent, #d5a84f);
+  background: rgba(213, 168, 79, 0.09);
+}
+
+.recommendation-learning strong {
+  color: var(--accent-strong, #f0c96e);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.recommendation-learning span {
+  overflow-wrap: anywhere;
+}
+
 .recommendation-feedback button {
   border: 1px solid var(--line, #d9dedb);
   background: transparent;
