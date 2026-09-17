@@ -298,3 +298,40 @@ Accepted behavior: save acknowledgement persists after form reset; stable access
 The extra fresh-tab persistence check after the final state was not executed because the native Browser review layer hit its usage limit. No bypass was attempted. This tooling limit does not overturn the successful API-backed mutations and list reloads already observed. Tinyfish persistent-profile setup remains auxiliary/nonblocking; no metered Tinyfish run, Vault, plan/top-up or credential transfer occurred.
 
 Still open: signup/onboarding and workspace isolation; provider sync/failure recovery; an actual provider publication only with concretely approved content/account and provider-side confirmation; competitive visual review; final Claude review and freeze. Do not claim 100% completion. Full evidence and error boundaries: `docs/EXECUTION_LOG_2026-09-16_DIRECT_VALIDATION_ALTERNATIVE.md` and the 2026-09-17 entry in `docs/PROJECT_EXECUTION_MEMORY.md`. The exact request `"continuar"` is registered separately there under the PR #176 rule.
+
+
+## Active completion execution — 2026-09-17 — identity lifecycle gate
+
+Exact user order: `"então faça o que tem que ser feito e va até o final para estar tudo pronto e so pare quando chegar ao final de tudo"`. Baseline: main `84d009e85e43dc7099bc3d5fa23bac44b3d4a355`; serving app runtime `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`.
+
+First verified gap: the production identity integration file existed but was not wired into CI, and no integrated test covered signup through invitation acceptance, membership role update and cross-workspace rejection. Branch `feat/identity-lifecycle-production-gate` prepares that backend/CI gate. No success, merge or deployment is claimed until the exact head passes. User-facing invitation/team administration, closed-loop provider execution, visual review, final Claude review and freeze remain subsequent gates.
+
+
+### Active CI correction — 2026-09-17
+
+PR #186 head `d83b7e9e4d8a81df811982c5570123611e96824f` passed integrity, hardening, typecheck, build, migrations and SQL gates, then exposed a real deferred-trigger privilege defect during production identity workspace creation (CI run `35175000720`, job `105054638361`). Migration 061 and SQL gate 063 prepare the least-privilege correction: the two internal authority-projection constraint triggers execute as `growth_migrator` with fixed search path while `app_runtime` retains no direct `authority_history` read. This is pending fresh CI; no merge or deployment is claimed.
+
+
+### CI provisioning correction — 2026-09-17
+
+PR #186 head `85727cdd686c92ca8ad49bd6aa0fae140cd78616`, CI run `35175366020`: migration 061/gate 063 passed. The production identity test then exposed that isolated CI omitted the canonical production grant files before Identity migration 006, causing an artificial `memberships` permission failure despite the reviewed production grant matrix. CI now prepares to apply production provisioning 02–05 after migrations 001–005 and before 006, matching the documented bootstrap order. Fresh CI is pending; no merge/deploy claim.
+
+
+### Minimal identity runtime reconciliation — 2026-09-17
+
+CI run `35175571036` proved that replaying the full historical runtime-grant file would violate the later Growth Intelligence gate by restoring direct `insights` reads. That broad CI change is removed. Migration 062 and gate 064 instead reconcile only the canonical identity boundary: workspace SELECT plus RLS-protected membership CRUD, physical owner discovery and forged-workspace isolation. Fresh CI is pending.
+
+
+### SQL assertion correction — 2026-09-17
+
+CI run `35175786305` stopped at the Test Integrity Gate because gate 064 used four `\\quit 1` branches whose status could be ignored. They are replaced by computed transaction-local booleans and one PL/pgSQL exception assertion. No gate was weakened; fresh CI is pending.
+
+
+### Identity lifecycle CI accepted — 2026-09-17
+
+PR #186 head `df01c945b9d093a443f0ddf11c43612d00695348`; CI run `35175922229`; job `105057487061`; SUCCESS. Integrity, hardening, build, all migrations/SQL gates, production identity adapter, full signup-to-role-change lifecycle, tenant isolation, Growth Intelligence, same-origin shell and final tests passed. Merge and production migration/deploy are not yet claimed.
+
+
+### Latest continuation — 2026-09-17
+
+Exact request: `"continuar"`. PR #186 documentation head `a5b7af59e174cd8e44bdcd80102846a9dfb3a390`; CI run `35176124483`, job `105058117500`, SUCCESS. Next: exact-head merge, main CI, migrations 061–062, deployment and public health/runtime proof.

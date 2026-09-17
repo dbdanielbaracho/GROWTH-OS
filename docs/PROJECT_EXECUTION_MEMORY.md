@@ -4358,3 +4358,73 @@ A correção do PR #184, seu CI multiplataforma, o deployment exato e o percurso
 Permanecem abertos: signup/onboarding e isolamento de workspace; sync de provedor e recuperação de falhas; publicação real somente quando houver conteúdo e conta concretamente aprovados, com confirmação do próprio provedor; comparação visual competitiva; revisão final pelo Claude e freeze. Persistência de Browser Context Profile do Tinyfish permanece auxiliar e não bloqueia o produto. O fechamento de CI/merge desta atualização documental fica no corpo do PR documental que contém esta seção, evitando ciclo infinito de autorreferência.
 
 Registro complementar: [execução direta de 2026-09-16](EXECUTION_LOG_2026-09-16_DIRECT_VALIDATION_ALTERNATIVE.md).
+
+
+## 2026-09-17 — ordem individual para concluir todo o projeto
+
+**Texto exato:** "então faça o que tem que ser feito e va até o final para estar tudo pronto e so pare quando chegar ao final de tudo". Horário individual não fornecido. Base verificada ao iniciar: `main` documental `84d009e85e43dc7099bc3d5fa23bac44b3d4a355`; runtime público `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`; deployment `a39b6d40-e4b4-4627-ac6c-b2e93ba480a0`; health ready/database ok.
+
+A execução foi dividida em gates reais, sem declarar conclusão por presença de código: identidade/onboarding/isolamento; publicação → métricas → inteligência; produção real; visual; Claude final; freeze. Publicação externa só poderá usar conteúdo e conta concretamente aprovados. Tinyfish continua auxiliar, não bloqueador.
+
+Primeira auditoria direta encontrou um gap objetivo no gate de identidade: `production-identity-adapter.integration.mts` existia, mas não era executado pelo CI; o percurso exigido no design `signup → verify → signin → workspace → invitation → accept → role change → isolation` não tinha um teste integrado completo. A interface também não possui ainda a jornada de aceite de convite/administração de equipe, que será tratada depois do contrato backend.
+
+Branch `feat/identity-lifecycle-production-gate` criada do SHA verificado. Primeira entrega preparada: rotas autenticadas owner/admin para listar e atualizar memberships, preservando RLS e o trigger canônico de autorização; novo teste integrado com provedor de e-mail capturado localmente, sem envio externo; inclusão do teste de identidade de produção já existente e do novo ciclo completo no CI. Uma inspeção auxiliar do workflow falhou inicialmente com `ReferenceError: i is not defined` por erro do script de leitura; nenhuma mudança ocorreu, e a leitura foi repetida corretamente.
+
+Esta entrada registra início/preparação. CI, correções, merge, deploy e aceite serão registrados apenas depois de acontecerem. O projeto não está declarado concluído.
+
+
+### PR #186 — primeira execução do CI
+
+Head `38ef6b06e01acf7205eff86ecc21601f22d3adac`; run `35174898967`; job `105054309065`. O Test Integrity Gate interrompeu a execução antes de typecheck/build por um padrão classificado como `self-comparison-tautology` em `identity-lifecycle.integration.mts:65` (`item.subject === subject`). A comparação pretendia confrontar o assunto capturado com o assunto esperado, mas os nomes eram ambíguos para o detector. Correção: parâmetros renomeados para `expectedSubject` e `expectedRecipient`. O gate não foi desativado nem relaxado. Nenhuma implantação ocorreu.
+
+
+### PR #186 — segunda execução do CI e correção de privilégio adormecido
+
+Head `d83b7e9e4d8a81df811982c5570123611e96824f`; run `35175000720`; job `105054638361`. Test Integrity Gate, release hardening, typecheck, build, todas as migrations e todos os gates SQL concluíram. A execução parou somente no teste de identidade de produção, recém-conectado ao CI, ao confirmar uma transação de criação de workspace. O PostgreSQL retornou `permission denied for table authority_history` dentro de `check_managed_account_projection_consistency()` no `COMMIT`.
+
+Causa confirmada: `identity_create_workspace(...)` e `ensure_direct_managed_account(...)` usam limites `SECURITY DEFINER`, porém os dois constraint triggers de projeção são adiados. No encerramento da transação eles voltam a executar sob o papel `app_runtime`, que corretamente não possui SELECT direto em `growth.authority_history`. Portanto o teste revelou um defeito real de produção até então não exercitado; ampliar o acesso direto da aplicação seria incorreto.
+
+Correção preparada na migration `061_authority_projection_trigger_privileges.sql`: somente os dois gatilhos internos de consistência passam a `SECURITY DEFINER`, sob `growth_migrator`, com `search_path` fixo, zero EXECUTE público/runtime e SELECT mínimo do proprietário sobre `managed_accounts` e `authority_history`. O gate `063_authority_projection_trigger_privileges.sql` força os gatilhos adiados através de uma criação de workspace como `app_runtime`, confirma o par managed-account/authority-history e prova que `app_runtime` continua sem SELECT direto em `authority_history`. O reconciliador de migrations de produção e o CI foram atualizados. Nenhuma implantação ocorreu; novo CI é obrigatório antes de merge.
+
+
+### PR #186 — terceira execução do CI e correção da sequência de provisionamento
+
+Head `85727cdd686c92ca8ad49bd6aa0fae140cd78616`; run `35175366020`; job `105055783738`. A nova migration 061 e o gate SQL 063 passaram, provando que a falha diferida de `authority_history` foi corrigida sem conceder leitura direta ao runtime. O teste de identidade de produção então avançou até o signin e falhou ao listar workspaces com `permission denied for table memberships`.
+
+A primeira leitura do erro sugeria novo defeito de privilégio do runtime. A comparação com o contrato canônico corrigiu essa classificação: `db/provisioning/production/02_runtime_grants.sql` já concede exatamente SELECT em `workspaces` e o DML de memberships protegido por RLS ao `app_runtime`, e o login real de produção já havia sido aceito. O defeito estava na montagem do CI: ela criava as roles e aplicava migrations, mas omitia os arquivos canônicos de grants 02–04 descritos na própria sequência obrigatória de `db/tests/README.md`.
+
+Correção preparada: durante o loop ordenado, depois das migrations 001–005 e imediatamente antes da 006, o CI aplica como administrador os arquivos de provisionamento de produção 02, 03, 04 e o bootstrap idempotente 05. Isso reproduz a ordem real sem reexecutar grants antigos depois dos hardenings posteriores e sem inventar novos privilégios. A correção anterior da migration 061 permanece válida e fisicamente comprovada. Nenhum merge ou deploy ocorreu; o próximo head deve repetir toda a suíte.
+
+
+### PR #186 — quarta execução do CI e reconciliação mínima do runtime de identidade
+
+Head `a2fa2b8d6b1d61c20b30e3e528e3919631a1be97`; run `35175571036`; job `105056413271`. A tentativa de reproduzir todo o provisionamento histórico antes da migration 006 aplicou corretamente os grants antigos, porém o gate 033 interrompeu a suíte: o arquivo 02 ainda concede SELECT direto em `growth.insights`, enquanto o contrato posterior de Growth Intelligence proíbe essa leitura direta. A execução ampla foi, portanto, rejeitada; o gate não foi relaxado.
+
+A correção foi reduzida ao contrato realmente necessário para identidade e já usado em produção. A migration `062_identity_runtime_table_privileges.sql` reconcilia SELECT em `workspaces` e SELECT/INSERT/UPDATE/DELETE em `memberships`, todos atrás de RLS + FORCE RLS, preserva `workspaces` sem escrita direta e confirma os helpers de autorização. O novo gate `064_identity_runtime_table_privileges.sql` prova descoberta de dois workspaces próprios, invisibilidade com contexto forjado e impossibilidade de alterar a membership da vítima. O bloco amplo de provisionamento foi removido do workflow. O reconciliador de produção e o CI registram a migration 062. Novo CI completo é obrigatório.
+
+
+### PR #186 — quinta execução do CI e assertions SQL fail-closed
+
+Head `fe4d7031930221aebbb3d9837b3d75d05534b42a`; run `35175786305`; job `105057071887`. O Test Integrity Gate rejeitou quatro usos de `\\quit 1` no novo gate 064 como `psql-quit-status-is-ignored`. Nenhum gate posterior executou. A proteção não foi desativada. As quatro verificações foram reescritas como valores booleanos derivados das consultas reais, armazenados em configurações locais da transação e validados por um bloco PL/pgSQL que lança exceção. Isso mantém falha real via `ON_ERROR_STOP` e elimina o padrão de falso-verde.
+
+
+### PR #186 — aceite técnico do ciclo de identidade
+
+Head `df01c945b9d093a443f0ddf11c43612d00695348`; CI run `35175922229`; job `105057487061`; conclusão `success`. Passaram: Test Integrity Gate, release hardening, typecheck, build, todas as migrations, gates SQL existentes, novo gate 063 de gatilhos de autoridade, novo gate 064 de privilégios/isolamento, adaptador de identidade de produção, ciclo completo de identidade, Growth Intelligence, shell same-origin e testes finais.
+
+O ciclo integrado aceito cobre: signup, captura local do e-mail de verificação sem envio externo, verificação, signin, seleção/criação de workspace, convite, aceite único, rejeição de replay, listagem autorizada de membros, rejeição para membro comum, alteração de papel por owner/admin, rejeição de workspace forjado e isolamento entre tenants. O envio real de e-mail não é reivindicado; somente o contrato do provedor e a composição da mensagem são testados em ambiente controlado. Merge, migration de produção e deploy ainda não são reivindicados nesta entrada.
+
+
+## Continuação registrada — 2026-09-17 — retomada após aceite técnico de identidade
+
+**Pedido exato do usuário:** `"continuar"`.
+
+**Ponto de retomada:** PR #186 no head documental `a5b7af59e174cd8e44bdcd80102846a9dfb3a390`, depois do primeiro aceite técnico completo no head `df01c945b9d093a443f0ddf11c43612d00695348`.
+
+**Ações desta continuação:** confirmação do CI documental final run `35176124483`, job `105058117500`, com conclusão `success` em todos os passos, incluindo os dois gates novos, adaptador de identidade de produção, ciclo completo de identidade, Growth Intelligence, shell e testes finais.
+
+**Resultado atual:** a implementação está tecnicamente aceita no PR; nenhuma afirmação de merge, migration ou deploy é feita antes da execução correspondente.
+
+**Bloqueios:** nenhum bloqueio interno neste ponto.
+
+**Próxima pendência:** mergear o PR #186 no head exato aceito; acompanhar CI de `main`; aplicar/reconciliar migrations 061–062 no serviço canônico; validar SHA/deployment/health públicos e registrar o fechamento.
