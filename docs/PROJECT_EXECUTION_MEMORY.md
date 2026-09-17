@@ -4470,3 +4470,11 @@ Correção: o seletor de papel do formulário de convite recebeu o nome acessív
 CI run `35180431267`, job `105071181760`: integridade, hardening, typecheck e build passaram. As ações funcionais da jornada de equipe passaram, mas o Axe bloqueou o gate por contraste WCAG AA insuficiente: `Workspace access` tinha razão 2.1:1 e três textos auxiliares tinham 4.0:1 sobre o fundo do diálogo.
 
 Correção: o eyebrow do diálogo recebeu cor `#72510e` e os textos auxiliares `#5d6366`, preservando hierarquia visual com contraste maior. A verificação Axe permanece intacta; nova CI completa é obrigatória.
+
+### PR #187 — aceite técnico da superfície de equipe
+
+Head `02f63b135560982204044554236eba563eb423a9`; CI run `35180576112`; job `105071621596`; conclusão `success`. Passaram integridade, hardening, typecheck, build, oito jornadas críticas em Chromium com Axe/WCAG, todas as migrations e gates SQL, adaptador de identidade de produção, ciclo completo de identidade com link de convite, Growth Intelligence, shell same-origin e testes finais.
+
+O gate de navegador comprovou: journeys signed-out; shell autenticado desktop/mobile; signin/signout; painéis secundários; seleção explícita de conta antes de preparar publicação; preservação editorial; owner convidando e alterando membro; usuário autenticado aceitando link único. Nenhum convite real, e-mail externo, OAuth ou publicação em provedor foi criado.
+
+Estado: tecnicamente aceito no PR. Este registro documental exige uma CI final do novo head antes de merge. Merge e produção ainda não são reivindicados.
