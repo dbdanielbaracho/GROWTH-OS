@@ -39,6 +39,12 @@ const InvitationSchema = z.object({
   canPublish: z.boolean().default(false)
 });
 
+const MemberUpdateSchema = z.object({
+  role: z.enum(["admin", "editor", "viewer"]),
+  canPublish: z.boolean(),
+  status: z.enum(["active", "revoked"]).default("active")
+});
+
 const PasswordResetRequestSchema = z.object({
   email: z.string().trim().min(3).max(320).email()
 });
@@ -180,6 +186,92 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
       if (!created) return reply.code(500).send({ status: "internal_error" });
       setWorkspaceCookie(reply, created, view.session.absoluteExpiresAt);
       return { status: "created", workspace_id: created };
+    } catch (error) {
+      const mapped = errorStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/workspaces/:workspaceId/members", async (request, reply) => {
+    try {
+      const view = await requireSessionWithoutWorkspace(request, false);
+      const workspaceIdResult = z.string().uuid().safeParse((request.params as { workspaceId?: string }).workspaceId);
+      if (!workspaceIdResult.success) return reply.code(400).send({ status: "invalid_request" });
+      const workspaceId = workspaceIdResult.data;
+      if (
+        view.selectedWorkspace?.id !== workspaceId
+        || !["owner", "admin"].includes(view.selectedWorkspace.role)
+      ) {
+        return reply.code(403).send({ status: "forbidden" });
+      }
+
+      const members = await withTenantTransaction(
+        { userId: view.session.userId, workspaceId },
+        async (client) => {
+          const result = await client.query<{
+            user_id: string;
+            role: "owner" | "admin" | "editor" | "viewer";
+            can_publish: boolean;
+            status: "active" | "invited" | "revoked";
+            created_at: string;
+          }>(
+            `select user_id, role, can_publish, status, created_at
+               from growth.memberships
+              where workspace_id=$1
+              order by created_at, user_id`,
+            [workspaceId]
+          );
+          return result.rows;
+        }
+      );
+      return { status: "ok", members };
+    } catch (error) {
+      const mapped = errorStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.patch("/v1/workspaces/:workspaceId/members/:userId", async (request, reply) => {
+    const parsed = MemberUpdateSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const view = await requireSessionWithoutWorkspace(request, true);
+      const params = request.params as { workspaceId?: string; userId?: string };
+      const workspaceIdResult = z.string().uuid().safeParse(params.workspaceId);
+      const userIdResult = z.string().uuid().safeParse(params.userId);
+      if (!workspaceIdResult.success || !userIdResult.success) {
+        return reply.code(400).send({ status: "invalid_request" });
+      }
+      const workspaceId = workspaceIdResult.data;
+      if (
+        view.selectedWorkspace?.id !== workspaceId
+        || !["owner", "admin"].includes(view.selectedWorkspace.role)
+      ) {
+        return reply.code(403).send({ status: "forbidden" });
+      }
+
+      const member = await withTenantTransaction(
+        { userId: view.session.userId, workspaceId },
+        async (client) => {
+          const result = await client.query<{
+            user_id: string;
+            role: "owner" | "admin" | "editor" | "viewer";
+            can_publish: boolean;
+            status: "active" | "revoked";
+            created_at: string;
+          }>(
+            `update growth.memberships
+                set role=$3, can_publish=$4, status=$5
+              where workspace_id=$1 and user_id=$2
+              returning user_id, role, can_publish, status, created_at`,
+            [workspaceId, userIdResult.data, parsed.data.role, parsed.data.canPublish, parsed.data.status]
+          );
+          return result.rows[0] ?? null;
+        }
+      );
+      if (!member) return reply.code(404).send({ status: "not_found" });
+      return { status: "ok", member };
     } catch (error) {
       const mapped = errorStatus(error);
       return reply.code(mapped.code).send({ status: mapped.status });

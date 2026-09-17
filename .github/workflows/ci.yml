@@ -287,6 +287,25 @@ jobs:
         run: |
           psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/055_commercial_entitlements.sql
 
+      - name: Run production identity adapter integration
+        env:
+          NODE_ENV: production
+          APP_ORIGIN: https://ci.growth-os.invalid
+          CSRF_SECRET: ci-only-csrf-secret-with-more-than-32-characters
+          DATABASE_URL: ${{ env.CI_APP_URL }}
+        run: npx tsx apps/api/integration-tests/production-identity-adapter.integration.mts
+
+      - name: Run full identity lifecycle integration
+        env:
+          NODE_ENV: production
+          APP_ORIGIN: https://ci.growth-os.invalid
+          CSRF_SECRET: ci-only-csrf-secret-with-more-than-32-characters
+          DATABASE_URL: ${{ env.CI_APP_URL }}
+          RESEND_API_KEY: ci-only-email-provider-token
+          IDENTITY_EMAIL_FROM: Growth OS CI <ci@growth-os.invalid>
+          IDENTITY_EMAIL_API_URL: https://identity-email.ci.invalid/emails
+        run: npx tsx apps/api/integration-tests/identity-lifecycle.integration.mts
+
       - name: Run Growth Intelligence integration test
         env:
           DATABASE_URL: ${{ env.CI_APP_URL }}

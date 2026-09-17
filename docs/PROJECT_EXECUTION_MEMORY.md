@@ -4358,3 +4358,16 @@ A correção do PR #184, seu CI multiplataforma, o deployment exato e o percurso
 Permanecem abertos: signup/onboarding e isolamento de workspace; sync de provedor e recuperação de falhas; publicação real somente quando houver conteúdo e conta concretamente aprovados, com confirmação do próprio provedor; comparação visual competitiva; revisão final pelo Claude e freeze. Persistência de Browser Context Profile do Tinyfish permanece auxiliar e não bloqueia o produto. O fechamento de CI/merge desta atualização documental fica no corpo do PR documental que contém esta seção, evitando ciclo infinito de autorreferência.
 
 Registro complementar: [execução direta de 2026-09-16](EXECUTION_LOG_2026-09-16_DIRECT_VALIDATION_ALTERNATIVE.md).
+
+
+## 2026-09-17 — ordem individual para concluir todo o projeto
+
+**Texto exato:** "então faça o que tem que ser feito e va até o final para estar tudo pronto e so pare quando chegar ao final de tudo". Horário individual não fornecido. Base verificada ao iniciar: `main` documental `84d009e85e43dc7099bc3d5fa23bac44b3d4a355`; runtime público `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`; deployment `a39b6d40-e4b4-4627-ac6c-b2e93ba480a0`; health ready/database ok.
+
+A execução foi dividida em gates reais, sem declarar conclusão por presença de código: identidade/onboarding/isolamento; publicação → métricas → inteligência; produção real; visual; Claude final; freeze. Publicação externa só poderá usar conteúdo e conta concretamente aprovados. Tinyfish continua auxiliar, não bloqueador.
+
+Primeira auditoria direta encontrou um gap objetivo no gate de identidade: `production-identity-adapter.integration.mts` existia, mas não era executado pelo CI; o percurso exigido no design `signup → verify → signin → workspace → invitation → accept → role change → isolation` não tinha um teste integrado completo. A interface também não possui ainda a jornada de aceite de convite/administração de equipe, que será tratada depois do contrato backend.
+
+Branch `feat/identity-lifecycle-production-gate` criada do SHA verificado. Primeira entrega preparada: rotas autenticadas owner/admin para listar e atualizar memberships, preservando RLS e o trigger canônico de autorização; novo teste integrado com provedor de e-mail capturado localmente, sem envio externo; inclusão do teste de identidade de produção já existente e do novo ciclo completo no CI. Uma inspeção auxiliar do workflow falhou inicialmente com `ReferenceError: i is not defined` por erro do script de leitura; nenhuma mudança ocorreu, e a leitura foi repetida corretamente.
+
+Esta entrada registra início/preparação. CI, correções, merge, deploy e aceite serão registrados apenas depois de acontecerem. O projeto não está declarado concluído.

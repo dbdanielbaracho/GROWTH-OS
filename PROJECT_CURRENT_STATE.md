@@ -298,3 +298,10 @@ Accepted behavior: save acknowledgement persists after form reset; stable access
 The extra fresh-tab persistence check after the final state was not executed because the native Browser review layer hit its usage limit. No bypass was attempted. This tooling limit does not overturn the successful API-backed mutations and list reloads already observed. Tinyfish persistent-profile setup remains auxiliary/nonblocking; no metered Tinyfish run, Vault, plan/top-up or credential transfer occurred.
 
 Still open: signup/onboarding and workspace isolation; provider sync/failure recovery; an actual provider publication only with concretely approved content/account and provider-side confirmation; competitive visual review; final Claude review and freeze. Do not claim 100% completion. Full evidence and error boundaries: `docs/EXECUTION_LOG_2026-09-16_DIRECT_VALIDATION_ALTERNATIVE.md` and the 2026-09-17 entry in `docs/PROJECT_EXECUTION_MEMORY.md`. The exact request `"continuar"` is registered separately there under the PR #176 rule.
+
+
+## Active completion execution — 2026-09-17 — identity lifecycle gate
+
+Exact user order: `"então faça o que tem que ser feito e va até o final para estar tudo pronto e so pare quando chegar ao final de tudo"`. Baseline: main `84d009e85e43dc7099bc3d5fa23bac44b3d4a355`; serving app runtime `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`.
+
+First verified gap: the production identity integration file existed but was not wired into CI, and no integrated test covered signup through invitation acceptance, membership role update and cross-workspace rejection. Branch `feat/identity-lifecycle-production-gate` prepares that backend/CI gate. No success, merge or deployment is claimed until the exact head passes. User-facing invitation/team administration, closed-loop provider execution, visual review, final Claude review and freeze remain subsequent gates.
