@@ -287,7 +287,10 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
       const workspaceIdResult = z.string().uuid().safeParse((request.params as { workspaceId?: string }).workspaceId);
       if (!workspaceIdResult.success) return reply.code(400).send({ status: "invalid_request" });
       const workspaceId = workspaceIdResult.data;
-      if (view.selectedWorkspace?.id !== workspaceId) {
+      if (
+        view.selectedWorkspace?.id !== workspaceId
+        || !["owner", "admin"].includes(view.selectedWorkspace.role)
+      ) {
         return reply.code(403).send({ status: "forbidden" });
       }
       const token = oneTimeToken();
@@ -312,10 +315,12 @@ export function registerIdentityRoutes(app: FastifyInstance): void {
       );
       if (!invitationId) return reply.code(500).send({ status: "internal_error" });
 
+      const invitationUrl = new URL("/accept-invitation", env.APP_ORIGIN);
+      invitationUrl.searchParams.set("token", token.raw);
       await sendIdentityEmail({
         to: parsed.data.email,
         subject: "You were invited to Growth OS",
-        html: `<p>You were invited to Growth OS.</p><p>Use this token in the invitation acceptance screen:</p><p><code>${token.raw}</code></p>`
+        html: `<p>You were invited to Growth OS.</p><p><a href="${invitationUrl.toString()}">Accept invitation</a></p><p>If the link does not open, use this one-time token:</p><p><code>${token.raw}</code></p>`
       });
 
       return reply.code(202).send({ status: "invitation_sent" });
