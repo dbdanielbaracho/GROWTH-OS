@@ -448,3 +448,22 @@ Head `39c42f082bd3ef4ea6b62b9a098d308710a82185`; CI run `35282063448`; job `1054
 ### PR #192 deployment blocker and PR #193 correction — 2026-09-17
 
 PR #192 final head `cb4b7e4b5da8734f384c1b1b89b0d8e7e12c28a6` passed CI run `35282443910` / job `105407239393` and merged as `d60994dee2451df7434f25d5c7745ea186c475c1`. The first Railway migrator `349afedd-7468-4474-bca2-f00a8d98307e` then logged PostgreSQL `42883`: its 065 presence check cast a not-yet-existing helper to `regprocedure`, so migration 065 was not applied despite the external deployment status. PR #193 / branch `fix/migration-065-presence-check` short-circuits missing objects before definition/privilege inspection. CI, merge, corrected deploy and health are pending and not claimed.
+
+
+### PR #193 production acceptance — 2026-09-17
+
+PR #193 final head `8d4563e24aebcc23038b52d7f68f34a2c238143d` was merged as `31189abbf75545383a852ecdf55da275f1350234`. Main CI run `35287151522` / job `105421916494` completed `success`. Railway migrator `8adc8733-eb71-4f33-b969-648941f7d5fd` explicitly logged `Applied migration: 065_content_review_submission.sql` and production reconciliation plus queue/reconciliation/cancellation smokes passed. Worker `f92da9d7-c0ae-45ec-a08e-18ac5ff3e79b` and app `b551520b-306e-464a-882c-9a0e3c60a31a` are SUCCESS. App startup verified exact SHA/deployment identity. Fresh public `/health/ready` returned ready/database ok and `/v1/deployment` returned the same SHA and deployment ID. The migration-065 production blocker is closed.
+
+### Latest continuation — 2026-09-17 — controlled full-loop gate
+
+Exact request: `"continuar"`. Starting accepted main: `31189abbf75545383a852ecdf55da275f1350234`.
+
+PR #194 / branch `test/full-growth-loop-acceptance` adds one controlled browser acceptance journey chaining evidence-linked recommendation → draft → explicit review/approval → connected-account publication intent → execution result → provider metric observation → experiment outcome → learned recommendation. It records exact mutations and rejects unexpected API traffic; provider behavior remains test-only and is not factual external publication evidence.
+
+Initial CI run `35287612457` / job `105423326193` exposed real non-empty-Analytics accessibility defects: ARIA rows lacked cell/header roles and muted note contrast was 4.28:1. The product was corrected rather than weakening Axe: headers use `columnheader`, data cells use `cell`, and muted analytics text was raised to `#82867e`.
+
+Corrected technical head `c3ac8dc468193a4341022083ce0a20bcbc74359b` passed CI run `35287810454` / job `105423933138` with Browser product gate, Axe/WCAG, migrations/SQL, identity, Growth Intelligence, same-origin shell and final tests all successful.
+
+Detailed execution evidence: `docs/EXECUTION_LOG_2026-09-17_FULL_GROWTH_LOOP_ACCEPTANCE.md`.
+
+**Boundary:** no real external provider post is claimed. This documentation advances the PR head and therefore requires fresh full CI before exact-head merge.
