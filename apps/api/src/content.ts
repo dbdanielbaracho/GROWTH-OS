@@ -61,6 +61,13 @@ export const ContentDecisionSchema = z.object({
 
 export type ContentDecisionInput = z.infer<typeof ContentDecisionSchema>;
 
+export const SubmitContentReviewSchema = z.object({
+  contentVersionId: z.string().uuid(),
+  note: z.string().trim().max(1_000).optional()
+});
+
+export type SubmitContentReviewInput = z.infer<typeof SubmitContentReviewSchema>;
+
 export class ContentVersionNotFoundError extends Error {}
 
 async function decideContent(
@@ -111,6 +118,36 @@ export async function requestContentChanges(
   input: ContentDecisionInput
 ) {
   return decideContent(client, principal, input, "request_changes");
+}
+
+export async function submitContentForReview(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  input: SubmitContentReviewInput
+) {
+  const versionResult = await client.query(
+    `select content_item_id
+       from growth.content_versions
+      where workspace_id = $1
+        and id = $2`,
+    [principal.workspaceId, input.contentVersionId]
+  );
+  if (!versionResult.rowCount) throw new ContentVersionNotFoundError("content_version_not_found");
+
+  const submissionResult = await client.query(
+    "select * from growth.content_submit_for_review($1, $2, $3)",
+    [principal.workspaceId, input.contentVersionId, input.note ?? null]
+  );
+  const itemResult = await client.query(
+    `select id, workspace_id, objective, market, language, platform_target, source_type,
+            status, created_by, created_at
+       from growth.content_items
+      where workspace_id = $1
+        and id = $2`,
+    [principal.workspaceId, versionResult.rows[0].content_item_id]
+  );
+
+  return { item: itemResult.rows[0], submission: submissionResult.rows[0] };
 }
 
 export function contentChecksum(body: string, structure: Record<string, unknown>): string {
