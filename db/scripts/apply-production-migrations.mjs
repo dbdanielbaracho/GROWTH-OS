@@ -555,35 +555,33 @@ const steps = [
   {
     file: '065_content_review_submission.sql',
     present: async () => {
+      const submissionSignature = 'growth.content_submit_for_review(uuid,uuid,text)';
+      const versionSignature = 'growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb)';
+      if (!(await tableExists('growth.content_review_submissions'))) return false;
+      if (!(await functionExists(submissionSignature))) return false;
+      if (!(await functionExists(versionSignature))) return false;
+
       const result = await client.query(`
         select
-          to_regclass('growth.content_review_submissions') is not null
-          and to_regprocedure('growth.content_submit_for_review(uuid,uuid,text)') is not null
-          and has_function_privilege(
+          has_function_privilege(
             'app_runtime',
-            'growth.content_submit_for_review(uuid,uuid,text)',
+            $1::regprocedure,
             'EXECUTE'
           )
           and position(
             'content_review_submissions'
-            in lower(pg_get_functiondef(
-              'growth.content_submit_for_review(uuid,uuid,text)'::regprocedure
-            ))
+            in lower(pg_get_functiondef($1::regprocedure))
           ) > 0
           and position(
             'set status = ''draft'''
-            in lower(pg_get_functiondef(
-              'growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb)'::regprocedure
-            ))
+            in lower(pg_get_functiondef($2::regprocedure))
           ) > 0
           and position(
             'ready_for_review'
-            in lower(pg_get_functiondef(
-              'growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb)'::regprocedure
-            ))
+            in lower(pg_get_functiondef($2::regprocedure))
           ) = 0
           as present
-      `);
+      `, [submissionSignature, versionSignature]);
       return result.rows[0].present;
     },
   },
