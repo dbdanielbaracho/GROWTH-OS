@@ -4646,3 +4646,12 @@ Head `4db4acbe2481069b338d0ccb96c751347de7473c`; CI run `35250067721`; job `1052
 Passaram: integridade, hardening, typecheck, build, onze jornadas Chromium com Axe/WCAG, todas as migrations/gates SQL, identidade, Growth Intelligence, shell same-origin e testes finais. A jornada nova armazenou `action_code=draft_content`, abriu Content Authoring, preencheu objetivo/mercado/plataforma, manteve o corpo vazio e comprovou que nenhum draft foi salvo automaticamente.
 
 **Estado:** implementação tecnicamente aceita. O registro cria novo head e exige CI completa antes do merge exato. Merge e produção ainda não são reivindicados.
+
+
+## Continuação registrada — 2026-09-17 — conclusão do handoff e próxima auditoria
+
+**Pedido exato do usuário:** `"continuar"`.
+
+**Ponto de retomada:** PR #191 no head documental `b4e5860880976ad151ebbdf1296d142d9a9957d8`; CI run `35250519807`, job `105301442167`, conclusão `success`. Onze jornadas Chromium/Axe, migrations, gates SQL, identidade, inteligência, shell e testes finais passaram novamente.
+
+**Próxima ação autorizada:** mesclar somente esse SHA aceito, validar CI de `main` e Railway, registrar o fechamento de produção e reauditar as transições restantes do ciclo completo. Nenhum merge ou deploy é reivindicado nesta entrada.
