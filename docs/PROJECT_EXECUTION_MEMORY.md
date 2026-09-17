@@ -4406,3 +4406,10 @@ A correção foi reduzida ao contrato realmente necessário para identidade e j�
 ### PR #186 — quinta execução do CI e assertions SQL fail-closed
 
 Head `fe4d7031930221aebbb3d9837b3d75d05534b42a`; run `35175786305`; job `105057071887`. O Test Integrity Gate rejeitou quatro usos de `\\quit 1` no novo gate 064 como `psql-quit-status-is-ignored`. Nenhum gate posterior executou. A proteção não foi desativada. As quatro verificações foram reescritas como valores booleanos derivados das consultas reais, armazenados em configurações locais da transação e validados por um bloco PL/pgSQL que lança exceção. Isso mantém falha real via `ON_ERROR_STOP` e elimina o padrão de falso-verde.
+
+
+### PR #186 — aceite técnico do ciclo de identidade
+
+Head `df01c945b9d093a443f0ddf11c43612d00695348`; CI run `35175922229`; job `105057487061`; conclusão `success`. Passaram: Test Integrity Gate, release hardening, typecheck, build, todas as migrations, gates SQL existentes, novo gate 063 de gatilhos de autoridade, novo gate 064 de privilégios/isolamento, adaptador de identidade de produção, ciclo completo de identidade, Growth Intelligence, shell same-origin e testes finais.
+
+O ciclo integrado aceito cobre: signup, captura local do e-mail de verificação sem envio externo, verificação, signin, seleção/criação de workspace, convite, aceite único, rejeição de replay, listagem autorizada de membros, rejeição para membro comum, alteração de papel por owner/admin, rejeição de workspace forjado e isolamento entre tenants. O envio real de e-mail não é reivindicado; somente o contrato do provedor e a composição da mensagem são testados em ambiente controlado. Merge, migration de produção e deploy ainda não são reivindicados nesta entrada.

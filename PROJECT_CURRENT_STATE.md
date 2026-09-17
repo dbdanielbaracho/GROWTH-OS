@@ -325,3 +325,8 @@ CI run `35175571036` proved that replaying the full historical runtime-grant fil
 ### SQL assertion correction — 2026-09-17
 
 CI run `35175786305` stopped at the Test Integrity Gate because gate 064 used four `\\quit 1` branches whose status could be ignored. They are replaced by computed transaction-local booleans and one PL/pgSQL exception assertion. No gate was weakened; fresh CI is pending.
+
+
+### Identity lifecycle CI accepted — 2026-09-17
+
+PR #186 head `df01c945b9d093a443f0ddf11c43612d00695348`; CI run `35175922229`; job `105057487061`; SUCCESS. Integrity, hardening, build, all migrations/SQL gates, production identity adapter, full signup-to-role-change lifecycle, tenant isolation, Growth Intelligence, same-origin shell and final tests passed. Merge and production migration/deploy are not yet claimed.
