@@ -38,6 +38,62 @@ ALTER TABLE growth.content_review_submissions OWNER TO growth_migrator;
 REVOKE ALL ON TABLE growth.content_review_submissions FROM PUBLIC;
 REVOKE ALL ON TABLE growth.content_review_submissions FROM app_runtime;
 
+-- Saving a new version is editing, not an approval request. Keep the item as
+-- a draft so every transition into review is explicit and audit-backed.
+CREATE OR REPLACE FUNCTION growth.content_new_version(
+  p_workspace_id uuid, p_content_item_id uuid, p_body text, p_checksum text,
+  p_structure jsonb DEFAULT '{}'::jsonb, p_ai_provenance jsonb DEFAULT NULL
+)
+RETURNS growth.content_versions
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, growth
+AS $content_new_version$
+DECLARE
+  v_next_version_no integer;
+  v_row growth.content_versions;
+BEGIN
+  IF growth.current_workspace_id() IS DISTINCT FROM p_workspace_id
+     OR NOT growth.tenant_context_valid(p_workspace_id)
+  THEN
+    RAISE EXCEPTION 'content version workspace context mismatch';
+  END IF;
+
+  PERFORM 1
+    FROM growth.content_items
+   WHERE workspace_id = p_workspace_id
+     AND id = p_content_item_id
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'content_item not found or not visible in this tenant context';
+  END IF;
+
+  SELECT COALESCE(MAX(version_no), 0) + 1
+    INTO v_next_version_no
+    FROM growth.content_versions
+   WHERE workspace_id = p_workspace_id
+     AND content_item_id = p_content_item_id;
+
+  INSERT INTO growth.content_versions(
+    id, workspace_id, content_item_id, version_no, body,
+    structure_json, ai_provenance, checksum
+  )
+  VALUES (
+    gen_random_uuid(), p_workspace_id, p_content_item_id, v_next_version_no,
+    p_body, p_structure, p_ai_provenance, p_checksum
+  )
+  RETURNING * INTO v_row;
+
+  UPDATE growth.content_items
+     SET status = 'draft'
+   WHERE workspace_id = p_workspace_id
+     AND id = p_content_item_id;
+
+  RETURN v_row;
+END;
+$content_new_version$;
+
 CREATE OR REPLACE FUNCTION growth.content_submit_for_review(
   p_workspace_id uuid,
   p_content_version_id uuid,
