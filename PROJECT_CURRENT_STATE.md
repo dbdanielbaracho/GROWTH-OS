@@ -320,3 +320,8 @@ PR #186 head `85727cdd686c92ca8ad49bd6aa0fae140cd78616`, CI run `35175366020`: m
 ### Minimal identity runtime reconciliation — 2026-09-17
 
 CI run `35175571036` proved that replaying the full historical runtime-grant file would violate the later Growth Intelligence gate by restoring direct `insights` reads. That broad CI change is removed. Migration 062 and gate 064 instead reconcile only the canonical identity boundary: workspace SELECT plus RLS-protected membership CRUD, physical owner discovery and forged-workspace isolation. Fresh CI is pending.
+
+
+### SQL assertion correction — 2026-09-17
+
+CI run `35175786305` stopped at the Test Integrity Gate because gate 064 used four `\\quit 1` branches whose status could be ignored. They are replaced by computed transaction-local booleans and one PL/pgSQL exception assertion. No gate was weakened; fresh CI is pending.

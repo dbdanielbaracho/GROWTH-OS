@@ -40,45 +40,45 @@ SELECT set_config('app.workspace_id', '', false);
 
 SET ROLE app_runtime;
 
-SELECT count(*) = 2 AS owner_memberships_visible
+SELECT set_config(
+  'test.owner_memberships_visible',
+  (count(*) = 2)::text,
+  true
+)
 FROM growth.memberships
 WHERE user_id = 'a0000000-0000-4000-8000-000000000001'
-  AND status = 'active'
-\gset
+  AND status = 'active';
 
-SELECT count(*) = 2 AS owner_workspaces_visible
+SELECT set_config(
+  'test.owner_workspaces_visible',
+  (count(*) = 2)::text,
+  true
+)
 FROM growth.workspaces
-WHERE status = 'active'
-\gset
+WHERE status = 'active';
 
 RESET ROLE;
-
-\if :owner_memberships_visible
-\else
-  \echo 'TEST FAIL: authenticated owner cannot discover active memberships'
-  \quit 1
-\endif
-
-\if :owner_workspaces_visible
-\else
-  \echo 'TEST FAIL: authenticated owner cannot discover active workspaces'
-  \quit 1
-\endif
 
 SELECT set_config('app.user_id', 'a0000000-0000-4000-8000-000000000002', false);
 SELECT set_config('app.workspace_id', 'b0000000-0000-4000-8000-000000000001', false);
 
 SET ROLE app_runtime;
 
-SELECT count(*) = 0 AS forged_memberships_hidden
+SELECT set_config(
+  'test.forged_memberships_hidden',
+  (count(*) = 0)::text,
+  true
+)
 FROM growth.memberships
-WHERE workspace_id = 'b0000000-0000-4000-8000-000000000001'
-\gset
+WHERE workspace_id = 'b0000000-0000-4000-8000-000000000001';
 
-SELECT count(*) = 0 AS forged_workspace_hidden
+SELECT set_config(
+  'test.forged_workspace_hidden',
+  (count(*) = 0)::text,
+  true
+)
 FROM growth.workspaces
-WHERE id = 'b0000000-0000-4000-8000-000000000001'
-\gset
+WHERE id = 'b0000000-0000-4000-8000-000000000001';
 
 UPDATE growth.memberships
 SET role = 'viewer'
@@ -87,20 +87,16 @@ WHERE workspace_id = 'b0000000-0000-4000-8000-000000000001'
 
 RESET ROLE;
 
-\if :forged_memberships_hidden
-\else
-  \echo 'TEST FAIL: forged workspace exposed membership rows'
-  \quit 1
-\endif
-
-\if :forged_workspace_hidden
-\else
-  \echo 'TEST FAIL: forged workspace exposed the workspace row'
-  \quit 1
-\endif
-
 DO $$
 BEGIN
+  IF NOT current_setting('test.owner_memberships_visible')::boolean
+     OR NOT current_setting('test.owner_workspaces_visible')::boolean
+     OR NOT current_setting('test.forged_memberships_hidden')::boolean
+     OR NOT current_setting('test.forged_workspace_hidden')::boolean
+  THEN
+    RAISE EXCEPTION 'TEST FAIL: identity runtime visibility or isolation assertion failed';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1
     FROM growth.memberships
