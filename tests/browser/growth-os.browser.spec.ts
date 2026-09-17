@@ -618,6 +618,8 @@ test("content authoring preserves save acknowledgements through review and appro
   expect(status).toBe("approved");
   expect(writes).toHaveLength(7);
   expect(unhandled).toEqual([]);
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
 });
 
 
