@@ -450,6 +450,31 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '061_authority_projection_trigger_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          coalesce((
+            select bool_and(
+              function_row.prosecdef
+              and pg_get_userbyid(function_row.proowner) = 'growth_migrator'
+              and function_row.proconfig = array['search_path=pg_catalog, growth']::text[]
+            )
+            from (
+              values
+                ('growth.check_managed_account_projection_consistency()'::regprocedure),
+                ('growth.check_authority_history_projection_consistency()'::regprocedure)
+            ) as expected(function_oid)
+            join pg_proc function_row on function_row.oid = expected.function_oid
+          ), false)
+          and has_table_privilege('growth_migrator', 'growth.managed_accounts', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.authority_history', 'SELECT')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 ];
 
 try {

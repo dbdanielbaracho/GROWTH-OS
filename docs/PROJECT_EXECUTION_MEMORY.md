@@ -4376,3 +4376,12 @@ Esta entrada registra início/preparação. CI, correções, merge, deploy e ace
 ### PR #186 — primeira execução do CI
 
 Head `38ef6b06e01acf7205eff86ecc21601f22d3adac`; run `35174898967`; job `105054309065`. O Test Integrity Gate interrompeu a execução antes de typecheck/build por um padrão classificado como `self-comparison-tautology` em `identity-lifecycle.integration.mts:65` (`item.subject === subject`). A comparação pretendia confrontar o assunto capturado com o assunto esperado, mas os nomes eram ambíguos para o detector. Correção: parâmetros renomeados para `expectedSubject` e `expectedRecipient`. O gate não foi desativado nem relaxado. Nenhuma implantação ocorreu.
+
+
+### PR #186 — segunda execução do CI e correção de privilégio adormecido
+
+Head `d83b7e9e4d8a81df811982c5570123611e96824f`; run `35175000720`; job `105054638361`. Test Integrity Gate, release hardening, typecheck, build, todas as migrations e todos os gates SQL concluíram. A execução parou somente no teste de identidade de produção, recém-conectado ao CI, ao confirmar uma transação de criação de workspace. O PostgreSQL retornou `permission denied for table authority_history` dentro de `check_managed_account_projection_consistency()` no `COMMIT`.
+
+Causa confirmada: `identity_create_workspace(...)` e `ensure_direct_managed_account(...)` usam limites `SECURITY DEFINER`, porém os dois constraint triggers de projeção são adiados. No encerramento da transação eles voltam a executar sob o papel `app_runtime`, que corretamente não possui SELECT direto em `growth.authority_history`. Portanto o teste revelou um defeito real de produção até então não exercitado; ampliar o acesso direto da aplicação seria incorreto.
+
+Correção preparada na migration `061_authority_projection_trigger_privileges.sql`: somente os dois gatilhos internos de consistência passam a `SECURITY DEFINER`, sob `growth_migrator`, com `search_path` fixo, zero EXECUTE público/runtime e SELECT mínimo do proprietário sobre `managed_accounts` e `authority_history`. O gate `063_authority_projection_trigger_privileges.sql` força os gatilhos adiados através de uma criação de workspace como `app_runtime`, confirma o par managed-account/authority-history e prova que `app_runtime` continua sem SELECT direto em `authority_history`. O reconciliador de migrations de produção e o CI foram atualizados. Nenhuma implantação ocorreu; novo CI é obrigatório antes de merge.

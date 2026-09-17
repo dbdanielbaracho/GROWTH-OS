@@ -305,3 +305,8 @@ Still open: signup/onboarding and workspace isolation; provider sync/failure rec
 Exact user order: `"então faça o que tem que ser feito e va até o final para estar tudo pronto e so pare quando chegar ao final de tudo"`. Baseline: main `84d009e85e43dc7099bc3d5fa23bac44b3d4a355`; serving app runtime `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`.
 
 First verified gap: the production identity integration file existed but was not wired into CI, and no integrated test covered signup through invitation acceptance, membership role update and cross-workspace rejection. Branch `feat/identity-lifecycle-production-gate` prepares that backend/CI gate. No success, merge or deployment is claimed until the exact head passes. User-facing invitation/team administration, closed-loop provider execution, visual review, final Claude review and freeze remain subsequent gates.
+
+
+### Active CI correction — 2026-09-17
+
+PR #186 head `d83b7e9e4d8a81df811982c5570123611e96824f` passed integrity, hardening, typecheck, build, migrations and SQL gates, then exposed a real deferred-trigger privilege defect during production identity workspace creation (CI run `35175000720`, job `105054638361`). Migration 061 and SQL gate 063 prepare the least-privilege correction: the two internal authority-projection constraint triggers execute as `growth_migrator` with fixed search path while `app_runtime` retains no direct `authority_history` read. This is pending fresh CI; no merge or deployment is claimed.
