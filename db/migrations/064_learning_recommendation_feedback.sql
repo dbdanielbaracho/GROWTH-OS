@@ -321,7 +321,7 @@ LANGUAGE plpgsql
 VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, growth
-AS $
+AS $recommendation_feedback$
 DECLARE
   v_status text;
   v_opportunity_id uuid;
@@ -390,7 +390,7 @@ BEGIN
   recommendation_status := v_status;
   RETURN NEXT;
 END;
-$;
+$recommendation_feedback$;
 
 ALTER FUNCTION growth.opportunity_learning_context(uuid,uuid) OWNER TO growth_migrator;
 ALTER FUNCTION growth.create_recommendation(uuid,uuid,text) OWNER TO growth_migrator;
