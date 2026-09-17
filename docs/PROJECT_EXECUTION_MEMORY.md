@@ -4305,3 +4305,56 @@ Pendências reais preservadas: escrita/onboarding/isolamento/publicação de pro
 Head e35532dbe35610d29fde413d91344fd2c7eb5475; CI 35050609013 failure no Test. Logs do job 104649940424 recuperados pelo método oficial GitHub: os 15 testes anteriores passaram; os três casos novos falharam após Edit por getByLabel Draft text exact não encontrar o campo preenchido. V1/aviso de sucesso já havia passado. DOM da produção confirmou textarea presente e rótulo wrapping com texto do corpo incluído; não era perda do rascunho. Acrescentados span IDs/aria-labelledby para nomes estáveis de Draft text e Platform, mantendo a assertion exata do teste (não enfraquecida). Campo Platform exact também passa a ser verificado depois de Edit.
 
 Uma chamada diagnóstica que também clicaria New draft foi rejeitada por revisão automática: risco de descartar conteúdo não salvo do editor aberto, sem autorização de descarte. O clique não ocorreu e não foi contornado por reload/limpeza equivalente. Editor preservado; leituras diagnósticas separadas somente leitura. Teste de produção será feito em nova aba limpa do mesmo navegador autorizado, mantendo a aba do editor intacta. Não é troca de perfil/browser, exportação de cookie nem workaround de Tinyfish. A correção/novo head requer nova CI antes de merge.
+
+
+## 2026-09-17 — pedido individual de continuação e fechamento do PR #184
+
+**Texto exato do pedido:** "continuar". Horário individual não fornecido. Esta é uma ocorrência separada das continuações anteriores, preservada conforme a regra permanente introduzida pelo PR #176.
+
+### Ponto verificado de retomada
+
+- `main`: `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`, merge do [PR #184](https://github.com/dbdanielbaracho/GROWTH-OS/pull/184).
+- Runtime público do app: o mesmo SHA `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`.
+- Deployment do app: `a39b6d40-e4b4-4627-ac6c-b2e93ba480a0`, SUCCESS.
+- CI final do PR #184: run `35050952868`, SUCCESS.
+- CI de `main`: run `35051128379`, SUCCESS, incluindo integridade, hardening, typecheck, build, migrations isoladas, gates SQL, integração, shell same-origin e testes.
+- `/v1/deployment` correspondia ao SHA/deployment acima; `/health/ready` respondeu ready com database ok.
+- Migrator e worker não foram reimplantados por mudanças fora de seus Watch Paths; eventos da mudança do app ficaram SKIPPED nesses serviços.
+
+### Fechamento da implementação e do gate automatizado
+
+O PR #184 corrigiu a confirmação de salvamento: `startNewDraft()` passou a ocorrer antes de `setMessage(...)`, evitando que o reset apagasse imediatamente o aviso de versão/checksum. Também introduziu nomes acessíveis estáveis para Platform e Draft text e um percurso Playwright controlado: criar v1, salvar v2, solicitar alterações, salvar v3, aprovar, preservar corpo/versão quando uma tentativa posterior falha e não publicar automaticamente.
+
+Primeiro head `e35532dbe35610d29fde413d91344fd2c7eb5475`: CI `35050609013` falhou apenas nos três novos casos de navegador; os 15 casos anteriores passaram. Logs oficiais do job `104649940424` mostraram que o seletor exato Draft text não localizava o textarea depois de Edit porque o label envolvente herdava o texto do corpo. O DOM de produção confirmou que o campo existia. A correção usou `span`/IDs e `aria-labelledby` para Draft text e Platform, sem relaxar as assertions. Head final `c920a4c345eec463f6cd8ec8eb6fc736f7f6d5cb`: CI `35050952868` passou; os 18 casos de navegador previstos passaram em Chromium, Firefox e WebKit. O merge gerou `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`, cuja CI de main também passou.
+
+### Validação editorial autenticada em produção
+
+Foi usada uma aba nova e limpa do navegador nativo já autorizado. A aba original, contendo rascunho do usuário, permaneceu aberta e não foi recarregada, resetada nem editada. Não se copiou cookie, senha, token ou credencial.
+
+Em um rascunho técnico controlado, explicitamente marcado para não publicar:
+
+1. Antes do teste, a interface mostrava 1 rascunho salvo e 0 itens em Publishing status.
+2. A v1 foi criada para BR / pt-BR / Instagram. O aviso persistiu após limpeza do formulário: `Draft saved · version 1 · checksum b08664b7d939…`.
+3. A v2 foi salva com checksum `9755a37aa199…`; Changes requested devolveu o item para draft e removeu controles de aprovação.
+4. A v3 foi salva com checksum `d6828f6dc0b0…`; a aprovação interna exibiu que publicar permanecia uma etapa controlada separada.
+5. O seletor de conta apresentou Choose account e `dbdanielbaracho`. Prepare publish ficou habilitado somente após seleção explícita e voltou a desabilitar ao limpar a conta.
+6. Nenhum Prepare/Execute publish foi acionado. Publishing status permaneceu 0; nenhum publication intent e nenhum post no provedor foram criados.
+7. A v4 foi salva com checksum `248491fcc290…`; Changes requested devolveu o item ao estado final draft, sem controles de aprovação.
+8. Estado final observado: 2 rascunhos salvos no total, 0 em Publishing status, duas linhas; o rascunho original do usuário permaneceu v1 e intacto.
+
+Cada mutação aguardou resposta da API e a interface recarregou a lista pelo backend. Portanto, o percurso observado foi do sistema real e não apenas estado visual local. A confirmação adicional em outra nova aba seria redundância de persistência, não condição do percurso já observado.
+
+### Tentativas impedidas, erro diagnóstico e limite explícito
+
+- Uma ação que clicaria New draft na aba original foi rejeitada pela revisão automática devido ao risco de descartar conteúdo não salvo. O clique não ocorreu; não houve reload/reset equivalente. A alternativa segura foi uma nova aba autenticada.
+- Uma leitura diagnóstica somente leitura após Edit usou `instanceof HTMLTextAreaElement`; o sandbox lançou `TypeError: Right-hand side of 'instanceof' is not an object`. Nenhum preenchimento/mutação estava incluído nessa etapa. A leitura foi repetida com `typeof el.value` e funcionou.
+- Depois do estado final v4/draft, a tentativa de abrir uma nova aba para uma verificação extra de persistência não foi executada: a revisão automática do navegador informou limite de uso e tentativa posterior ao reset. Não houve contorno do limite. Isso é uma restrição da ferramenta, não evidência de falha do Growth OS e não invalida as respostas de API/listagens já observadas.
+- Nenhuma automação metered Tinyfish, Vault, plano, assinatura ou top-up foi usada. Nenhum terceiro foi contatado. Claude não foi executado; continua reservado para a revisão final do projeto.
+
+### Resultado e próxima pendência
+
+A correção do PR #184, seu CI multiplataforma, o deployment exato e o percurso editorial controlado real estão aceitos. O fluxo terminou em draft v4 e zero publicações. Isso fecha parte do gate de escrita/versão/revisão/aprovação/seleção de conta, mas **não** declara o projeto 100% concluído.
+
+Permanecem abertos: signup/onboarding e isolamento de workspace; sync de provedor e recuperação de falhas; publicação real somente quando houver conteúdo e conta concretamente aprovados, com confirmação do próprio provedor; comparação visual competitiva; revisão final pelo Claude e freeze. Persistência de Browser Context Profile do Tinyfish permanece auxiliar e não bloqueia o produto. O fechamento de CI/merge desta atualização documental fica no corpo do PR documental que contém esta seção, evitando ciclo infinito de autorreferência.
+
+Registro complementar: [execução direta de 2026-09-16](EXECUTION_LOG_2026-09-16_DIRECT_VALIDATION_ALTERNATIVE.md).
