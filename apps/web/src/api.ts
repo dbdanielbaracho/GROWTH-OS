@@ -858,12 +858,31 @@ export async function fetchMetricQualityAnomalies(
 }
 
 
+export type RecommendationLearningContext = {
+  rule_version: "opportunity.learning.v1";
+  completed_experiment_count: number;
+  winner_count: number;
+  recommendation_feedback: {
+    accepted: number;
+    completed: number;
+    dismissed: number;
+    irrelevant: number;
+  };
+  latest_winner: null | {
+    experiment_id: string;
+    variant_id: string;
+    label: string;
+    evidence_ref: string;
+    recorded_at: string;
+  };
+};
+
 export type Recommendation = {
   id: string;
   opportunity_id: string;
   action_code: "draft_content" | "review_evidence" | "plan_experiment";
   status: "proposed" | "accepted" | "dismissed" | "completed";
-  rationale: Record<string, unknown>;
+  rationale: Record<string, unknown> & { learning?: RecommendationLearningContext };
   feedback_count: number;
   created_at: string;
   updated_at: string;
