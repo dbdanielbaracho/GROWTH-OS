@@ -4604,3 +4604,14 @@ Após aceitar o PR #189 em produção, a inspeção de `growth.create_recommenda
 Head `d86facdb2ed2ae6ef7416a08b8d2f3c108997f0b`; CI run `35247914858`; job `105292715858`; conclusão `failure`. Integridade, hardening, typecheck, build e a jornada Chromium/Axe passaram. A aplicação das migrations parou antes dos gates SQL porque a função `record_recommendation_feedback` foi gravada com delimitador PL/pgSQL simples `$` em vez de um par válido.
 
 **Correção:** a função passou a usar o delimitador nomeado `$recommendation_feedback$`, eliminando ambiguidade de serialização. Nenhum contrato, privilégio ou gate foi reduzido. Uma CI completa nova é obrigatória; merge e produção não são reivindicados.
+
+
+### PR #190 — aceite técnico da realimentação aprender → recomendar
+
+Head `4f22226d22453bb9db4e5f89528385f2b252102a`; CI run `35248242340`; job `105293807409`; conclusão `success`.
+
+Passaram integralmente: integridade, hardening, typecheck, build, dez jornadas Chromium com Axe/WCAG, todas as migrations e gates SQL — incluindo o novo gate 066 —, identidade, Growth Intelligence, shell same-origin e testes finais. A jornada comprovou que, após registrar vencedor e evidência, a recomendação é recarregada imediatamente, exibe o vencedor/evidence ref e conserva esse aprendizado após reload. O banco comprovou tenant guard, lineage, atualização por feedback e least privilege.
+
+**Limite preservado:** aprendizado e recomendação são derivados apenas de dados persistidos; nenhuma conclusão, execução ou publicação é automática.
+
+**Estado:** implementação tecnicamente aceita. Este registro cria novo head e requer CI completa antes do merge exato. Merge, migration e produção ainda não são reivindicados.
