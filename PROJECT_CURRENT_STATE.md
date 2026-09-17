@@ -419,3 +419,8 @@ PR #190 final head `8a748e9cd478f4d9ba21aa1ae6d53e6ba3c5c6d5` passed CI run `352
 ### Active recommendation-to-content handoff — 2026-09-17
 
 Audit found that **Start a content draft** stored a recommendation but did not open Content Authoring, despite an existing safe `growth-os:create-draft` listener. Branch `feat/recommendation-to-content-handoff` now routes draft/evidence/experiment actions to their product surfaces. The draft handoff preloads objective, market and platform while keeping body empty and performing no automatic save or publication. Chromium/Axe proof is prepared; CI, merge and production are not yet claimed.
+
+
+### PR #191 technical acceptance — 2026-09-17
+
+Head `4db4acbe2481069b338d0ccb96c751347de7473c`; CI run `35250067721`; job `105299954362`; SUCCESS. Eleven Chromium/Axe journeys, all database/identity/intelligence/shell/final gates passed. The stored draft recommendation opened Content Authoring with evidence-linked context while preserving an empty body and making no automatic content write. The documentation head requires full CI before exact-head merge.
