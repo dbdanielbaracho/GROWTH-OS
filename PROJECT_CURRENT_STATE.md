@@ -391,3 +391,12 @@ Head `4f8a9224b2746796b0f500654c6c381cc31ce71e`, CI run `35245085540`, job `1052
 ### PR #189 technical acceptance — 2026-09-17
 
 Head `9cbf28ac050d168f0c26707dfac7553397d0fd54`; CI run `35245429725`; job `105284283836`; SUCCESS. Ten Chromium/Axe journeys, migration and all SQL gates including outcome learning 065, identity/intelligence integrations, same-origin shell and final tests passed. The product recovered persisted experiments/variants, recorded an evidence-backed winner, completed the plan and preserved the outcome after reload. This does not auto-publish variants or claim a real provider publication. The resulting documentation head requires full CI before exact-head merge.
+
+
+### PR #189 production acceptance — 2026-09-17
+
+PR #189 final head `51b7497e6a0c55f515dfe8a7abebd4a10192efa2` passed CI run `35245940947` / job `105286037095` and merged as `283e4b130cb38126a3fae966a85d67a8a358b73e`. Main CI run `35246405779` / job `105287612510` succeeded. Railway migrator `96e74692-3eb3-4f8f-ad90-97b38763bcae` applied migration 063; worker `53777999-aa92-47fe-a1b7-166d5951207f` and app `3573fe6e-b129-4608-8d6a-5eb1a476ba76` are SUCCESS on the exact merge SHA. Public `/health/ready` returned HTTP 200 with ready/database ok. Evidence-backed experiment outcomes now persist across reload; no automatic or real provider publication is claimed.
+
+### Active learning-to-recommendation feedback — 2026-09-17
+
+Audit after PR #189 found that experiment learning was stored but `create_recommendation` still used only opportunity evidence count. Branch `feat/evidence-backed-learning-recommendations` prepares migration 064, SQL gate 066, a tenant-bound learning snapshot, automatic refresh of existing recommendation rationales after measured feedback, and a UI proof that the evidence-backed winner appears immediately and after reload. The flow does not generate conclusions or execute/publish actions autonomously. CI, merge and production are not yet claimed.
