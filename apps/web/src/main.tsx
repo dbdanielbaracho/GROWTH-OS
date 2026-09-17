@@ -1242,7 +1242,7 @@ function RootApp() {
       setState("verify");
       return;
     }
-    if (hasDevelopmentIdentity()) {
+    if (!invitationToken && hasDevelopmentIdentity()) {
       setState("dev");
       return;
     }
