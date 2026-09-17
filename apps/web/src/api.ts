@@ -519,6 +519,19 @@ export type ContentDecisionResponse = {
   approval: Record<string, unknown>;
 };
 
+export type ContentReviewSubmissionResponse = {
+  status: "ok";
+  item: ContentCreateResponse["item"];
+  submission: {
+    id: string;
+    workspace_id: string;
+    content_version_id: string;
+    actor_user_id: string;
+    note: string | null;
+    submitted_at: string;
+  };
+};
+
 export async function createContent(input: {
   objective?: string;
   market: string;
@@ -554,6 +567,16 @@ export async function appendContentVersion(input: {
       aiProvenance: input.aiProvenance
     }
   });
+}
+
+export async function submitContentForReview(
+  contentVersionId: string,
+  note?: string
+): Promise<ContentReviewSubmissionResponse> {
+  return requestJson<ContentReviewSubmissionResponse>(
+    `/v1/content/versions/${encodeURIComponent(contentVersionId)}/submit-review`,
+    { method: "POST", body: { note } }
+  );
 }
 
 export async function approveContentVersion(
