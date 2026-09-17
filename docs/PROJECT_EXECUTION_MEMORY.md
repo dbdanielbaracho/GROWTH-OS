@@ -4562,3 +4562,14 @@ Estado: implementação tecnicamente aceita. Este registro documental cria um no
 Head `4f8a9224b2746796b0f500654c6c381cc31ce71e`; CI run `35245085540`; job `105283119064`; conclusão `failure`. Integridade, hardening, typecheck e build passaram, e a jornada nova comprovou a gravação de vencedor com evidência e a persistência após recarregar a página. O Axe bloqueou três textos auxiliares do resumo de experimento no painel claro: `#989b94` sobre `#faf5ea` produziu contraste de 2,59:1, abaixo dos 4,5:1 exigidos.
 
 **Correção:** os textos de resumo, regra de decisão e resultado de variante receberam cor escopada `#5b6059`, preservando o tema escuro global e todos os gates funcionais. Nenhuma exigência foi relaxada. O head corrigido exige uma nova CI completa; merge e produção continuam não reivindicados.
+
+
+### PR #189 — aceite técnico do ciclo medir → aprender persistido
+
+Head `9cbf28ac050d168f0c26707dfac7553397d0fd54`; CI run `35245429725`; job `105284283836`; conclusão `success`.
+
+Passaram integralmente: integridade, hardening, typecheck, build, dez jornadas Chromium com Axe/WCAG, todas as migrations e gates SQL — incluindo o novo gate 065 de aprendizagem de experimento —, identidade, Growth Intelligence, shell same-origin e testes finais. A jornada nova comprovou: recuperação do experimento e variantes persistidos, registro de vencedor com referência de evidência, transição do plano para `completed` e preservação do resultado depois de recarregar a página.
+
+**Limite preservado:** o experimento mede e aprende; não publica variante automaticamente e não reivindica publicação real de provedor.
+
+**Estado:** implementação tecnicamente aceita. Este registro documental gera um novo head, que também deve passar a suíte completa antes do merge exato. Merge, migration e produção ainda não são reivindicados.
