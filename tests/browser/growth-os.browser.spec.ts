@@ -817,6 +817,317 @@ test("stored experiment outcomes survive reload and close the learning step", as
 });
 
 
+
+test("controlled full Growth OS loop carries evidence through publish, measure, learn and recommend", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  const draftId = "b0000000-0000-4000-8000-000000000110";
+  const versionId = "b0000000-0000-4000-8000-000000000111";
+  const instagramAccount = "d0000000-0000-4000-8000-000000000110";
+  const publicationIntentId = "f0000000-0000-4000-8000-000000000110";
+  const experimentId = "f0000000-0000-4000-8000-000000000120";
+  const variantId = "f0000000-0000-4000-8000-000000000121";
+  const metricEvidence = "controlled-provider-metrics://provider-post-full-loop-001";
+
+  let recommendationCreated = false;
+  let draftCreated = false;
+  let draftStatus = "draft";
+  let draftBody = "";
+  const writes: { path: string; payload: Record<string, unknown> }[] = [];
+  let metrics: unknown[] = [];
+
+  const draft = () => ({
+    id: draftId,
+    objective: "Evidence-linked Instagram opportunity from Opportunity Radar",
+    market: "US",
+    language: "en-US",
+    platform_target: "Instagram",
+    source_type: "manual",
+    status: draftStatus,
+    current_version_id: versionId,
+    version_no: 1,
+    body: draftBody,
+    created_at: "2026-09-15T01:00:00.000Z"
+  });
+
+  const publicationIntent = {
+    id: publicationIntentId,
+    social_account_id: instagramAccount,
+    content_version_id: versionId,
+    status: "ready",
+    scheduled_for: null,
+    current_attempt_no: null as number | null,
+    retry_count: 0,
+    last_error_class: null,
+    provider_content_id: null as string | null,
+    provider_permalink: null as string | null,
+    created_at: "2026-09-15T01:06:00.000Z",
+    updated_at: "2026-09-15T01:06:00.000Z",
+    cancelled_at: null
+  };
+  let publicationCreated = false;
+
+  const experiment = {
+    id: experimentId,
+    opportunity_id: opportunity.id,
+    name: "Full-loop measured outcome",
+    hypothesis: "Provider-observed engagement supports retaining the tested structure.",
+    decision_rule: "Select a winner only from stored provider metric evidence.",
+    status: "running",
+    variant_count: 1,
+    created_at: "2026-09-15T01:07:00.000Z",
+    updated_at: "2026-09-15T01:07:00.000Z"
+  };
+  const variant = {
+    id: variantId,
+    experiment_id: experimentId,
+    label: "Provider-measured variant",
+    lineage: { source_opportunity_id: opportunity.id, autonomous_publishing: false },
+    status: "active",
+    created_at: "2026-09-15T01:07:00.000Z",
+    latest_outcome: null as string | null,
+    latest_evidence_ref: null as string | null,
+    feedback_created_at: null as string | null
+  };
+  const recommendation = {
+    id: "f0000000-0000-4000-8000-000000000122",
+    opportunity_id: opportunity.id,
+    action_code: "draft_content",
+    status: "proposed",
+    rationale: {
+      source: "opportunity_radar",
+      rule_version: "recommendation.action.v2",
+      evidence_count: 1,
+      autonomous_execution: false,
+      learning: {
+        rule_version: "opportunity.learning.v1",
+        completed_experiment_count: 0,
+        winner_count: 0,
+        recommendation_feedback: { accepted: 0, completed: 0, dismissed: 0, irrelevant: 0 },
+        latest_winner: null as null | {
+          experiment_id: string;
+          variant_id: string;
+          label: string;
+          evidence_ref: string;
+          recorded_at: string;
+        }
+      }
+    },
+    feedback_count: 0,
+    created_at: "2026-09-15T01:00:00.000Z",
+    updated_at: "2026-09-15T01:00:00.000Z"
+  };
+
+  await page.route(new RegExp("/v1/recommendations\\?"), async (route, request) => {
+    if (request.method() !== "GET") return route.fallback();
+    return json(route, 200, {
+      status: "ok",
+      recommendations: recommendationCreated ? [recommendation] : []
+    });
+  });
+  await page.route("**/v1/opportunities/" + opportunity.id + "/recommendations", async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    const payload = request.postDataJSON() as Record<string, unknown>;
+    writes.push({ path: new URL(request.url()).pathname, payload });
+    recommendationCreated = true;
+    return json(route, 200, { status: "created", recommendation });
+  });
+
+  await page.route("**/v1/content", async (route, request) => {
+    if (request.method() === "GET") {
+      return json(route, 200, { status: "ok", content: draftCreated ? [draft()] : [] });
+    }
+    if (request.method() !== "POST") return route.fallback();
+    const payload = request.postDataJSON() as Record<string, unknown>;
+    writes.push({ path: "/v1/content", payload });
+    draftBody = String(payload.body);
+    draftCreated = true;
+    draftStatus = "draft";
+    return json(route, 200, {
+      status: "ok",
+      item: draft(),
+      version: { id: versionId, version_no: 1, checksum: "c".repeat(64) }
+    });
+  });
+  await page.route("**/v1/content/versions/" + versionId + "/submit-review", async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    writes.push({ path: new URL(request.url()).pathname, payload: request.postDataJSON() });
+    if (draftStatus !== "draft") return json(route, 409, { status: "invalid_content_transition" });
+    draftStatus = "ready_for_review";
+    return json(route, 200, {
+      status: "ok",
+      item: draft(),
+      submission: { id: "b0000000-0000-4000-8000-000000000112", content_version_id: versionId, note: null }
+    });
+  });
+  await page.route("**/v1/content/versions/" + versionId + "/approve", async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    writes.push({ path: new URL(request.url()).pathname, payload: request.postDataJSON() });
+    if (draftStatus !== "ready_for_review") return json(route, 409, { status: "invalid_content_transition" });
+    draftStatus = "approved";
+    return json(route, 200, { status: "ok", item: draft(), approval: { decision: "approve" } });
+  });
+
+  await page.route("**/v1/integrations/instagram/status", (route) => json(route, 200, {
+    status: "ok",
+    configured: true,
+    integrations: [{
+      connection_state: "connected",
+      social_account_id: instagramAccount,
+      handle: "controlled-full-loop-instagram"
+    }]
+  }));
+
+  await page.route("**/v1/publication-intents", async (route, request) => {
+    if (request.method() === "GET") {
+      return json(route, 200, {
+        status: "ok",
+        publicationIntents: publicationCreated ? [publicationIntent] : []
+      });
+    }
+    if (request.method() !== "POST") return route.fallback();
+    const payload = request.postDataJSON() as Record<string, unknown>;
+    writes.push({ path: "/v1/publication-intents", payload });
+    publicationCreated = true;
+    return json(route, 200, { status: "created", publicationIntent });
+  });
+  await page.route("**/v1/publication-intents/" + publicationIntentId + "/execute", async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    writes.push({ path: new URL(request.url()).pathname, payload: {} });
+    publicationIntent.status = "confirmed";
+    publicationIntent.current_attempt_no = 1;
+    publicationIntent.provider_content_id = "provider-post-full-loop-001";
+    publicationIntent.provider_permalink = "https://provider.example.invalid/posts/provider-post-full-loop-001";
+    publicationIntent.updated_at = "2026-09-15T01:08:00.000Z";
+    metrics = [{
+      social_account_id: instagramAccount,
+      platform: "instagram",
+      provider_account_id: "controlled-full-loop-instagram",
+      handle: "controlled-full-loop-instagram",
+      metric_name: "like_count",
+      observation_count: 1,
+      total_value: 24,
+      latest_observed_at: "2026-09-15T01:09:00.000Z",
+      latest_effective_at: "2026-09-15T01:09:00.000Z",
+      complete_observations: 1,
+      fresh_observations: 1
+    }];
+    return json(route, 200, { status: "processed", publicationIntent });
+  });
+  await page.route("**/v1/analytics/metrics**", async (route, request) => {
+    if (request.method() !== "GET") return route.fallback();
+    return json(route, 200, {
+      status: "ok",
+      from: "2026-09-08T00:00:00.000Z",
+      to: "2026-09-15T02:00:00.000Z",
+      metrics
+    });
+  });
+
+  await page.route("**/v1/experiments", async (route, request) => {
+    if (request.method() !== "GET") return route.fallback();
+    return json(route, 200, { status: "ok", experiments: [experiment] });
+  });
+  await page.route("**/v1/experiments/" + experimentId + "/variants", async (route, request) => {
+    if (request.method() !== "GET") return route.fallback();
+    return json(route, 200, { status: "ok", variants: [variant] });
+  });
+  await page.route("**/v1/experiments/" + experimentId + "/feedback", async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    const payload = request.postDataJSON() as Record<string, unknown>;
+    writes.push({ path: new URL(request.url()).pathname, payload });
+    experiment.status = "completed";
+    variant.status = "winner";
+    variant.latest_outcome = "winner";
+    variant.latest_evidence_ref = String(payload.evidence_ref);
+    variant.feedback_created_at = "2026-09-15T01:10:00.000Z";
+    recommendation.updated_at = "2026-09-15T01:10:00.000Z";
+    recommendation.rationale.learning.completed_experiment_count = 1;
+    recommendation.rationale.learning.winner_count = 1;
+    recommendation.rationale.learning.latest_winner = {
+      experiment_id: experimentId,
+      variant_id: variantId,
+      label: variant.label,
+      evidence_ref: String(payload.evidence_ref),
+      recorded_at: "2026-09-15T01:10:00.000Z"
+    };
+    return json(route, 200, { status: "recorded", feedback: { outcome: "winner" } });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start a content draft", exact: true }).click();
+  const authoring = page.locator("#content-authoring-root");
+  await expect(authoring.getByLabel("Objective optional", { exact: true })).toHaveValue(
+    "Evidence-linked Instagram opportunity from Opportunity Radar"
+  );
+  await authoring.getByLabel("Draft text", { exact: true }).fill("Controlled full-loop content body.");
+  await authoring.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(authoring.getByRole("status")).toContainText("Draft saved · version 1");
+
+  await authoring.getByRole("button", { name: "Submit for review", exact: true }).click();
+  await expect(authoring.getByRole("button", { name: "Approve", exact: true })).toBeVisible();
+  await authoring.getByRole("button", { name: "Approve", exact: true }).click();
+  await expect(authoring.getByRole("status")).toHaveText(
+    "Version approved. Publishing remains a separate controlled step."
+  );
+
+  const account = authoring.getByRole("combobox", { name: "Publication account", exact: true });
+  await account.selectOption(instagramAccount);
+  await authoring.getByRole("button", { name: "Prepare publish", exact: true }).click();
+  await expect(authoring.getByRole("status")).toHaveText(
+    "Publication intent created. Execute it from Publishing status when ready."
+  );
+  await authoring.getByRole("button", { name: "Execute", exact: true }).click();
+  await expect(authoring.getByRole("status")).toHaveText(
+    "Publication attempt processed. Review the resulting status and provider id."
+  );
+  await expect(authoring.getByText("Provider content id recorded.", { exact: true })).toBeVisible();
+
+  await page.reload();
+  await page.getByRole("button", { name: "Analytics Real observations", exact: true }).click();
+  const metricTable = page.getByRole("table", { name: "Metric summary" });
+  await expect(metricTable.getByText("like_count", { exact: true })).toBeVisible();
+  await expect(page.getByText("Complete 1 · Fresh 1", { exact: true })).toBeVisible();
+
+  await expect(page.getByRole("heading", { name: "Plan, measure and learn" })).toBeVisible();
+  await page.getByLabel("Outcome evidence", { exact: true }).fill(metricEvidence);
+  await page.getByLabel("Learning note", { exact: false }).fill(
+    "Retain the structure because the provider metric evidence supports it."
+  );
+  await page.getByRole("button", { name: "Record outcome", exact: true }).click();
+
+  await expect(page.getByLabel("Measured learning applied")).toContainText(
+    "Winner: Provider-measured variant"
+  );
+  await expect(page.getByLabel("Measured learning applied")).toContainText(
+    "Evidence: " + metricEvidence
+  );
+
+  expect(writes.map((write) => write.path)).toEqual([
+    "/v1/opportunities/" + opportunity.id + "/recommendations",
+    "/v1/content",
+    "/v1/content/versions/" + versionId + "/submit-review",
+    "/v1/content/versions/" + versionId + "/approve",
+    "/v1/publication-intents",
+    "/v1/publication-intents/" + publicationIntentId + "/execute",
+    "/v1/experiments/" + experimentId + "/feedback"
+  ]);
+  expect(writes[0]?.payload).toEqual({ action_code: "draft_content" });
+  expect(writes[4]?.payload).toMatchObject({
+    socialAccountId: instagramAccount,
+    contentVersionId: versionId
+  });
+  expect(writes[6]?.payload).toEqual({
+    variant_id: variantId,
+    outcome: "winner",
+    evidence_ref: metricEvidence,
+    note: "Retain the structure because the provider metric evidence supports it."
+  });
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  expect(unhandled).toEqual([]);
+});
+
 test("team owners can invite and update members from the product surface", async ({ page }) => {
   const unhandled = await mockApi(page, "authenticated");
   const memberId = "a0000000-0000-4000-8000-000000000002";
