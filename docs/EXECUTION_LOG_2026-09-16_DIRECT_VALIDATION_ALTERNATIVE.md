@@ -88,3 +88,39 @@ Resposta fornecida: convite oficial https://discord.gg/tinyfish. Não foi enviad
 Head e35532dbe35610d29fde413d91344fd2c7eb5475; CI 35050609013 failure no Test. Logs do job 104649940424 recuperados pelo método oficial GitHub: os 15 testes anteriores passaram; os três casos novos falharam após Edit por getByLabel Draft text exact não encontrar o campo preenchido. V1/aviso de sucesso já havia passado. DOM da produção confirmou textarea presente e rótulo wrapping com texto do corpo incluído; não era perda do rascunho. Acrescentados span IDs/aria-labelledby para nomes estáveis de Draft text e Platform, mantendo a assertion exata do teste (não enfraquecida). Campo Platform exact também passa a ser verificado depois de Edit.
 
 Uma chamada diagnóstica que também clicaria New draft foi rejeitada por revisão automática: risco de descartar conteúdo não salvo do editor aberto, sem autorização de descarte. O clique não ocorreu e não foi contornado por reload/limpeza equivalente. Editor preservado; leituras diagnósticas separadas somente leitura. Teste de produção será feito em nova aba limpa do mesmo navegador autorizado, mantendo a aba do editor intacta. Não é troca de perfil/browser, exportação de cookie nem workaround de Tinyfish. A correção/novo head requer nova CI antes de merge.
+
+
+## 2026-09-17 — continuação separada e encerramento verificável do PR #184
+
+**Pedido exato:** "continuar". Esta ocorrência foi retomada de `main` e runtime `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`, app deployment `a39b6d40-e4b4-4627-ac6c-b2e93ba480a0` SUCCESS. O registro separado cumpre a regra permanente do PR #176.
+
+### CI, merge e deployment
+
+O primeiro head do PR #184, `e35532dbe35610d29fde413d91344fd2c7eb5475`, teve failure no run `35050609013` somente nos três novos casos de navegador. Os 15 anteriores passaram. Logs oficiais do job `104649940424` identificaram uma ambiguidade semântica do label envolvente após Edit: o textarea existia, porém o nome acessível incluía o corpo do rascunho. A correção adicionou IDs/`aria-labelledby` estáveis para Draft text e Platform e manteve as assertions exatas.
+
+No head final `c920a4c345eec463f6cd8ec8eb6fc736f7f6d5cb`, o run `35050952868` passou integralmente, incluindo o percurso editorial nos três engines. PR #184 mergeado como `7321ed6938a5c59b3915f759f0ee22dd364ad7b5`. O run de main `35051128379` passou integridade, hardening, typecheck, build, migrations isoladas, gates SQL, integração, shell e testes. Railway implantou exatamente esse SHA no app como `a39b6d40-e4b4-4627-ac6c-b2e93ba480a0` SUCCESS. `/v1/deployment` e `/health/ready` confirmaram SHA/deployment e database ok. Migrator e worker ficaram SKIPPED por Watch Paths; nenhuma mudança de schema/backend exigia execução deles.
+
+### Percurso editorial real e controlado
+
+Em aba nova autenticada, sem tocar a aba que continha o rascunho original do usuário:
+
+- início: 1 Saved drafts; 0 Publishing status;
+- v1 BR/pt-BR/Instagram: aviso persistente `Draft saved · version 1 · checksum b08664b7d939…`;
+- v2 checksum `9755a37aa199…`, depois Changes requested e retorno a draft;
+- v3 checksum `d6828f6dc0b0…`, depois aprovação interna sem publicação automática;
+- seletor exibiu Choose account e `dbdanielbaracho`; Prepare publish só habilitou com seleção explícita e desabilitou novamente ao limpar;
+- Prepare/Execute publish não foi acionado; zero intents e zero posts;
+- v4 checksum `248491fcc290…`, depois Changes requested e retorno final a draft;
+- final: 2 Saved drafts; 0 Publishing status; duas linhas; rascunho original permaneceu v1 e intacto.
+
+As mutações aguardaram retorno da API e foram seguidas de recarga da lista pelo backend. O conteúdo particular do rascunho original não é reproduzido neste registro.
+
+### Limites e tentativas não executadas
+
+A revisão automática recusou um clique em New draft na aba original por risco de descarte; a ação não aconteceu. A aba foi preservada e o teste migrou para uma nova aba limpa. Uma leitura diagnóstica após Edit falhou com `TypeError` ao usar `instanceof HTMLTextAreaElement` no sandbox; ela não preenchia nem alterava campos e foi corrigida com `typeof el.value`.
+
+Após o estado final, uma nova aba adicional para confirmação redundante não foi aberta porque a camada de revisão do Browser atingiu o limite de uso. Ação não executada, sem bypass, sem compra de plano/créditos. Trata-se de limite da ferramenta, não erro do produto. Não houve nova run Tinyfish metered, Vault, transferência de cookie/credencial ou contato com terceiros. Claude não foi usado.
+
+### Encerramento deste ciclo
+
+Aceitos: correção visual/semântica, CI final, merge, deployment exato e escrita editorial controlada até draft v4, incluindo mudanças/aprovação e gate explícito de conta. Nenhuma publicação foi feita. Pendências continuam: signup/onboarding/isolamento, sync e falhas de provedor, publicação real com autorização/conteúdo/conta e confirmação externa, comparação visual final, Claude final e freeze. O PR documental desta continuação registra seu próprio CI/merge no corpo para não criar autorreferência infinita.

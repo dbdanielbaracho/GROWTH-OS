@@ -281,3 +281,20 @@ Complete request/action/correction/evidence record: `docs/EXECUTION_LOG_2026-09-
 Exact user request: "nao tem outra alternativa ao invez de ficar nisto". Main verified `99c9f1bcc617afd6d96fb973b9c9e0ccc38bc9e6`; serving runtime d2794e8…/deployment c9f9b133… healthy. Existing authorized native Growth OS session is still valid. Continue independently with direct Growth OS browser validation and the canonical Playwright CI gate. Tinyfish profile persistence is an auxiliary external limitation, not a blocker for product work; no native-browser workaround for Tinyfish administration/bot blocking and no cookie transfer.
 
 Prepared fix: content success acknowledgement was cleared by startNewDraft after saving. Set success message after form reset. Add controlled UI create/version/changes/approval/error-recovery regression while keeping all previous gates. Detailed work and preceding screenshot guidance consolidated: `docs/EXECUTION_LOG_2026-09-16_DIRECT_VALIDATION_ALTERNATIVE.md` and central memory. CI/merge/exact production proof pending; current accepted runtime remains d2794e8… until that evidence. No production draft/version/approval/intent/provider write performed. Remaining real write/provider/identity/isolation and final visual/Claude/freeze gates remain open.
+
+
+## Current accepted checkpoint — 2026-09-17 — PR #184 runtime and controlled editorial write path
+
+This section supersedes the earlier “Current execution route” while preserving prior sections as history.
+
+- Canonical application source and serving runtime: `7321ed6938a5c59b3915f759f0ee22dd364ad7b5` (PR #184).
+- Railway app deployment: `a39b6d40-e4b4-4627-ac6c-b2e93ba480a0`, SUCCESS.
+- Final PR CI: `35050952868`, SUCCESS. Main CI: `35051128379`, SUCCESS.
+- Public `/v1/deployment` matched that SHA/deployment; `/health/ready` was ready with database ok.
+- Migrator/worker were correctly SKIPPED by Watch Paths for the app-only change.
+
+Accepted behavior: save acknowledgement persists after form reset; stable accessible labels are covered; the controlled Playwright editorial journey passed in Chromium, Firefox and WebKit. A real authenticated production journey created a non-publish technical draft, saved through v4, requested changes twice, approved v3 internally, verified explicit publication-account gating and ended in draft v4. Publishing status stayed zero; no publication intent or provider post was created. The user's pre-existing draft remained intact.
+
+The extra fresh-tab persistence check after the final state was not executed because the native Browser review layer hit its usage limit. No bypass was attempted. This tooling limit does not overturn the successful API-backed mutations and list reloads already observed. Tinyfish persistent-profile setup remains auxiliary/nonblocking; no metered Tinyfish run, Vault, plan/top-up or credential transfer occurred.
+
+Still open: signup/onboarding and workspace isolation; provider sync/failure recovery; an actual provider publication only with concretely approved content/account and provider-side confirmation; competitive visual review; final Claude review and freeze. Do not claim 100% completion. Full evidence and error boundaries: `docs/EXECUTION_LOG_2026-09-16_DIRECT_VALIDATION_ALTERNATIVE.md` and the 2026-09-17 entry in `docs/PROJECT_EXECUTION_MEMORY.md`. The exact request `"continuar"` is registered separately there under the PR #176 rule.
