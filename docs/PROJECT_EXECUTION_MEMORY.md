@@ -4700,3 +4700,24 @@ No primeiro deploy Railway, o migrator `349afedd-7468-4474-bca2-f00a8d98307e` in
 **Correção candidata:** PR [#193](https://github.com/dbdanielbaracho/GROWTH-OS/pull/193), branch `fix/migration-065-presence-check`, head técnico inicial `d403427165588252d244b58494c46c3a061c53f4`. O reconciliador agora verifica existência de tabela e funções com helpers seguros e retorna `false` antes de qualquer cast/inspeção de definição. Os mesmos checks de privilégio e conteúdo permanecem depois da presença confirmada.
 
 **Estado:** CI, merge, novo deploy e aplicação da migration ainda não são reivindicados. A aceitação de produção exige log explícito `Applied migration: 065_content_review_submission.sql`, serviços no merge exato e healthcheck público.
+
+
+## Continuação exata — `"continuar"` — 2026-09-17 — PR #193 fechado e PR #194 full-loop
+
+**Ponto inicial:** `main` em `d60994dee2451df7434f25d5c7745ea186c475c1`, com PR #193 aberto para corrigir o reconciliador de produção da migration 065.
+
+**PR #193 executado até produção:** head final `8d4563e24aebcc23038b52d7f68f34a2c238143d` passou CI e foi mesclado como `31189abbf75545383a852ecdf55da275f1350234`. Main CI `35287151522` / job `105421916494`: `success`. Railway: migrator `8adc8733-eb71-4f33-b969-648941f7d5fd` SUCCESS com linha explícita `Applied migration: 065_content_review_submission.sql`; worker `f92da9d7-c0ae-45ec-a08e-18ac5ff3e79b` SUCCESS; app `b551520b-306e-464a-882c-9a0e3c60a31a` SUCCESS. Startup conferiu SHA/deployment. Host público retornou health ready/database ok e `/v1/deployment` no mesmo SHA/deployment. Bloqueio 42883 fechado.
+
+**Próxima lacuna auditada:** os elos recomendação → autoria → revisão/aprovação → intenção → execução → métricas → experimento → aprendizagem existiam e tinham testes separados, mas não havia uma única jornada controlada demonstrando o encadeamento.
+
+**PR #194:** branch `test/full-growth-loop-acceptance`. Nova jornada Chromium/Axe registra a ordem exata das mutações e rejeita chamadas não tratadas. Nenhuma publicação externa é executada pelo fixture.
+
+**Primeira CI:** run `35287612457`, job `105423326193`. O gate chegou a Analytics com linha não vazia e encontrou dois defeitos reais: `aria-required-children` crítico por spans sem papéis de célula/cabeçalho e contraste 4.28:1 em `.analytics-note`. O gate não foi relaxado.
+
+**Correção:** headers `role="columnheader"`; células `role="cell"`; muted analytics `#82867e`.
+
+**Aceite técnico antes do registro documental:** head `c3ac8dc468193a4341022083ce0a20bcbc74359b`, CI run `35287810454`, job `105423933138`, conclusão `success`. Browser product gate, Axe/WCAG, migrations/SQL, identidade, Growth Intelligence, same-origin e teste final passaram.
+
+**Limites:** o full-loop é prova controlada de produto, não prova de postagem real. Postagem real continua exigindo conteúdo e conta explicitamente aprovados e confirmação do provedor. Competitive visual/freeze e revisão adversarial final permanecem gates separados.
+
+**Próximo passo obrigatório:** este registro/documentação cria novo head do PR #194; rodar CI completa no head final, mesclar apenas o SHA aprovado, validar main CI e produção no merge exato.
