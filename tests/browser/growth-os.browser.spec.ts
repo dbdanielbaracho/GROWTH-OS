@@ -535,3 +535,95 @@ test("content authoring preserves save acknowledgements through review and appro
   expect(writes).toHaveLength(6);
   expect(unhandled).toEqual([]);
 });
+
+
+test("team owners can invite and update members from the product surface", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  const memberId = "a0000000-0000-4000-8000-000000000002";
+  const invitations: Record<string, unknown>[] = [];
+  const updates: Record<string, unknown>[] = [];
+  let member = {
+    user_id: memberId,
+    role: "editor",
+    can_publish: false,
+    status: "active",
+    created_at: "2026-09-15T01:00:00.000Z"
+  };
+
+  await page.route(`**/v1/workspaces/${workspace.id}/members`, async (route, request) => {
+    if (request.method() !== "GET") return route.fallback();
+    return json(route, 200, {
+      status: "ok",
+      members: [{
+        user_id: session.session.user_id,
+        role: "owner",
+        can_publish: true,
+        status: "active",
+        created_at: "2026-09-15T00:00:00.000Z"
+      }, member]
+    });
+  });
+  await page.route(`**/v1/workspaces/${workspace.id}/invitations`, async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    invitations.push(request.postDataJSON());
+    return json(route, 202, { status: "invitation_sent" });
+  });
+  await page.route(`**/v1/workspaces/${workspace.id}/members/${memberId}`, async (route, request) => {
+    if (request.method() !== "PATCH") return route.fallback();
+    const payload = request.postDataJSON();
+    updates.push(payload);
+    member = { ...member, ...{
+      role: payload.role,
+      can_publish: payload.canPublish,
+      status: payload.status
+    }};
+    return json(route, 200, { status: "ok", member });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Manage team" }).click();
+  const dialog = page.getByRole("dialog", { name: "Team and invitations" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Email", { exact: true }).fill("teammate@example.invalid");
+  await dialog.getByLabel("Role", { exact: true }).selectOption("viewer");
+  await dialog.getByLabel("Allow controlled publishing").check();
+  await dialog.getByRole("button", { name: "Send invitation" }).click();
+  await expect(dialog.getByRole("status")).toHaveText("Invitation sent to teammate@example.invalid.");
+  expect(invitations).toEqual([{
+    email: "teammate@example.invalid",
+    role: "viewer",
+    canPublish: true
+  }]);
+
+  await dialog.getByLabel("Role for Member a0000000").selectOption("viewer");
+  await dialog.getByLabel("Publishing permission for Member a0000000").check();
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(dialog.getByRole("status")).toHaveText("Member a0000000 updated.");
+  expect(updates).toEqual([{ role: "viewer", canPublish: true, status: "active" }]);
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  await dialog.getByRole("button", { name: "Close team management" }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(unhandled).toEqual([]);
+});
+
+test("a signed-in invited user can accept a one-time workspace link", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  const accepted: Record<string, unknown>[] = [];
+  await page.route("**/v1/auth/invitations/accept", async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    accepted.push(request.postDataJSON());
+    return json(route, 200, { status: "accepted", workspace_id: workspace.id });
+  });
+
+  const token = "controlled-browser-invitation-token-1234567890";
+  await page.goto(`/accept-invitation?token=${token}`);
+  await expect(page.getByRole("heading", { name: "Join the workspace securely." })).toBeVisible();
+  await expect(page.getByText("invitation token hidden")).toBeVisible();
+  await page.getByRole("button", { name: "Accept invitation" }).click();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByRole("heading", { name: "See what is beginning to move." })).toBeVisible();
+  expect(accepted).toEqual([{ token }]);
+  expect(unhandled).toEqual([]);
+});
