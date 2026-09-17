@@ -386,3 +386,8 @@ Branch `feat/experiment-outcome-learning-loop` prepares migration 063, a least-p
 ### PR #189 active CI correction — 2026-09-17
 
 Head `4f8a9224b2746796b0f500654c6c381cc31ce71e`, CI run `35245085540`, job `105283119064`: the functional experiment journey recorded an evidence-backed winner and recovered it after reload, but Axe blocked three supporting texts at 2.59:1 contrast on the light experiment panel. Their scoped color was corrected from inherited `#989b94` to `#5b6059`; no functional or accessibility gate was removed. Fresh full CI is required before acceptance.
+
+
+### PR #189 technical acceptance — 2026-09-17
+
+Head `9cbf28ac050d168f0c26707dfac7553397d0fd54`; CI run `35245429725`; job `105284283836`; SUCCESS. Ten Chromium/Axe journeys, migration and all SQL gates including outcome learning 065, identity/intelligence integrations, same-origin shell and final tests passed. The product recovered persisted experiments/variants, recorded an evidence-backed winner, completed the plan and preserved the outcome after reload. This does not auto-publish variants or claim a real provider publication. The resulting documentation head requires full CI before exact-head merge.
