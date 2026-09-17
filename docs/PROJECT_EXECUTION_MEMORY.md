@@ -4597,3 +4597,10 @@ Após aceitar o PR #189 em produção, a inspeção de `growth.create_recommenda
 **Limites:** nenhum modelo inventa conclusões, nenhuma ação é executada automaticamente e nenhuma variante é publicada. O contexto deriva apenas de linhas persistidas e permanece submetido à decisão humana.
 
 **Provas preparadas:** gate SQL 066 para lineage, tenant, consumo do aprendizado e least privilege; extensão da jornada Chromium para comprovar atualização imediata e persistência após reload; migration registrada no reconciliador de produção. CI, PR, merge e produção ainda não são reivindicados nesta entrada.
+
+
+### PR #190 — primeira CI bloqueada por delimitador da migration 064
+
+Head `d86facdb2ed2ae6ef7416a08b8d2f3c108997f0b`; CI run `35247914858`; job `105292715858`; conclusão `failure`. Integridade, hardening, typecheck, build e a jornada Chromium/Axe passaram. A aplicação das migrations parou antes dos gates SQL porque a função `record_recommendation_feedback` foi gravada com delimitador PL/pgSQL simples `$` em vez de um par válido.
+
+**Correção:** a função passou a usar o delimitador nomeado `$recommendation_feedback$`, eliminando ambiguidade de serialização. Nenhum contrato, privilégio ou gate foi reduzido. Uma CI completa nova é obrigatória; merge e produção não são reivindicados.
