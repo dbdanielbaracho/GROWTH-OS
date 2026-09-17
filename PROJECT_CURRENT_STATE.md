@@ -330,3 +330,8 @@ CI run `35175786305` stopped at the Test Integrity Gate because gate 064 used fo
 ### Identity lifecycle CI accepted — 2026-09-17
 
 PR #186 head `df01c945b9d093a443f0ddf11c43612d00695348`; CI run `35175922229`; job `105057487061`; SUCCESS. Integrity, hardening, build, all migrations/SQL gates, production identity adapter, full signup-to-role-change lifecycle, tenant isolation, Growth Intelligence, same-origin shell and final tests passed. Merge and production migration/deploy are not yet claimed.
+
+
+### Latest continuation — 2026-09-17
+
+Exact request: `"continuar"`. PR #186 documentation head `a5b7af59e174cd8e44bdcd80102846a9dfb3a390`; CI run `35176124483`, job `105058117500`, SUCCESS. Next: exact-head merge, main CI, migrations 061–062, deployment and public health/runtime proof.

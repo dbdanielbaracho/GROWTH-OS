@@ -4413,3 +4413,18 @@ Head `fe4d7031930221aebbb3d9837b3d75d05534b42a`; run `35175786305`; job `1050570
 Head `df01c945b9d093a443f0ddf11c43612d00695348`; CI run `35175922229`; job `105057487061`; conclusão `success`. Passaram: Test Integrity Gate, release hardening, typecheck, build, todas as migrations, gates SQL existentes, novo gate 063 de gatilhos de autoridade, novo gate 064 de privilégios/isolamento, adaptador de identidade de produção, ciclo completo de identidade, Growth Intelligence, shell same-origin e testes finais.
 
 O ciclo integrado aceito cobre: signup, captura local do e-mail de verificação sem envio externo, verificação, signin, seleção/criação de workspace, convite, aceite único, rejeição de replay, listagem autorizada de membros, rejeição para membro comum, alteração de papel por owner/admin, rejeição de workspace forjado e isolamento entre tenants. O envio real de e-mail não é reivindicado; somente o contrato do provedor e a composição da mensagem são testados em ambiente controlado. Merge, migration de produção e deploy ainda não são reivindicados nesta entrada.
+
+
+## Continuação registrada — 2026-09-17 — retomada após aceite técnico de identidade
+
+**Pedido exato do usuário:** `"continuar"`.
+
+**Ponto de retomada:** PR #186 no head documental `a5b7af59e174cd8e44bdcd80102846a9dfb3a390`, depois do primeiro aceite técnico completo no head `df01c945b9d093a443f0ddf11c43612d00695348`.
+
+**Ações desta continuação:** confirmação do CI documental final run `35176124483`, job `105058117500`, com conclusão `success` em todos os passos, incluindo os dois gates novos, adaptador de identidade de produção, ciclo completo de identidade, Growth Intelligence, shell e testes finais.
+
+**Resultado atual:** a implementação está tecnicamente aceita no PR; nenhuma afirmação de merge, migration ou deploy é feita antes da execução correspondente.
+
+**Bloqueios:** nenhum bloqueio interno neste ponto.
+
+**Próxima pendência:** mergear o PR #186 no head exato aceito; acompanhar CI de `main`; aplicar/reconciliar migrations 061–062 no serviço canônico; validar SHA/deployment/health públicos e registrar o fechamento.
