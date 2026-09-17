@@ -752,6 +752,25 @@ export async function cancelPublicationIntent(
   );
 }
 
+export type PublicationReconciliationInput = {
+  attemptNo: number;
+  method: "exact" | "resumable_status" | "fuzzy_recent_content" | "manual";
+  confidence: "exact" | "high" | "medium" | "low" | "none";
+  reconciliationStatus: "pending" | "matched" | "not_found" | "ambiguous" | "escalated";
+  candidateProviderContentId?: string;
+  evidenceRef?: string;
+};
+
+export async function reconcilePublicationIntent(
+  publicationIntentId: string,
+  input: PublicationReconciliationInput
+): Promise<void> {
+  await requestJson<{ status: "reconciled"; reconciliation: unknown }>(
+    `/v1/publication-intents/${encodeURIComponent(publicationIntentId)}/reconcile`,
+    { method: "POST", body: input }
+  );
+}
+
 
 export type MetricAnalyticsSummary = {
   social_account_id: string;
