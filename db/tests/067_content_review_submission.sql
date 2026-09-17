@@ -6,7 +6,9 @@ BEGIN;
 DO $content_review_submission_gate$
 DECLARE
   helper_oid oid;
+  version_helper_oid oid;
   helper_definition text;
+  version_helper_definition text;
   helper_owner text;
   helper_definer boolean;
   table_owner text;
@@ -18,11 +20,22 @@ DECLARE
   app_insert boolean;
 BEGIN
   helper_oid := to_regprocedure('growth.content_submit_for_review(uuid,uuid,text)');
-  IF helper_oid IS NULL OR to_regclass('growth.content_review_submissions') IS NULL THEN
+  version_helper_oid := to_regprocedure('growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb)');
+  IF helper_oid IS NULL OR version_helper_oid IS NULL OR to_regclass('growth.content_review_submissions') IS NULL THEN
     RAISE EXCEPTION '067 failed: content review submission contract is missing';
   END IF;
 
   SELECT lower(pg_get_functiondef(helper_oid)) INTO helper_definition;
+  SELECT lower(pg_get_functiondef(version_helper_oid)) INTO version_helper_definition;
+  IF position('current_workspace_id' IN version_helper_definition) = 0
+     OR position('tenant_context_valid' IN version_helper_definition) = 0
+     OR position('for update' IN version_helper_definition) = 0
+     OR position('set status = ''draft''' IN version_helper_definition) = 0
+     OR position('ready_for_review' IN version_helper_definition) > 0
+  THEN
+    RAISE EXCEPTION '067 failed: new versions must remain explicit draft edits';
+  END IF;
+
   IF position('current_workspace_id' IN helper_definition) = 0
      OR position('tenant_context_valid' IN helper_definition) = 0
      OR position('not exists' IN helper_definition) = 0
