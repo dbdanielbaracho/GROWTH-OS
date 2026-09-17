@@ -4509,3 +4509,10 @@ Estado: tecnicamente aceito no PR. Este registro documental exige uma CI final d
 **Estado:** implementação enviada à branch; CI ainda não foi aceito nesta entrada. PR, merge e produção não são reivindicados até evidência do head exato.
 
 **Próxima pendência:** abrir o PR #188, executar a suíte completa, corrigir qualquer falha sem reduzir gates, mesclar somente o head verde e validar CI/Railway da linhagem exata.
+
+
+### PR #188 — primeira execução da CI e contraste do estado reconciliado
+
+Head `e03496dc2d202226aa7601980eeccb7b403e1160`; CI run `35181755467`; job `105075216017`; conclusão `failure`. Integridade, hardening, typecheck e build passaram. A nova jornada funcional chegou ao estado `confirmed`, porém o Axe bloqueou três textos auxiliares antigos do painel com contraste entre 4.1:1 e 4.28:1, abaixo dos 4.5:1 exigidos.
+
+Correção: os cinco usos do token auxiliar `#777b73` no painel de conteúdo foram elevados para `#8f938a`, cobrindo rótulos e metadados nos fundos escuros do componente. A jornada, a validação dos dois campos e o gate Axe foram preservados sem relaxamento. Nova CI completa do head corrigido é obrigatória.
