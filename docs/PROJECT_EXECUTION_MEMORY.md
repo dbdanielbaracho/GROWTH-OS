@@ -4678,3 +4678,14 @@ A inspeção após o PR #191 encontrou que um primeiro conteúdo era salvo em `d
 **Provas preparadas:** gate SQL 067 verifica tenant guard, versão mais recente, lifecycle, auditoria, owner/RLS e privilégios; a jornada Chromium cobre primeiro draft → review → changes → nova versão → review → approve, payloads exatos, preservação após erro, overflow e Axe/WCAG. A migration está registrada no reconciliador de produção.
 
 **Estado nesta entrada:** head candidato `cb5d4c03c591af4349de4395d1b90cf67b9dc895`; PR aberto. CI, merge, migration e produção ainda não são reivindicados.
+
+
+### PR #192 — aceite técnico da submissão explícita para revisão
+
+Head `39c42f082bd3ef4ea6b62b9a098d308710a82185`; CI run `35282063448`; job `105406016235`; conclusão `success`.
+
+Passaram integralmente: integridade, hardening, typecheck, build, onze jornadas Chromium com Axe/WCAG, todas as migrations e gates SQL — incluindo `TEST-067 PASS` —, identidade, Growth Intelligence, shell same-origin e 33 testes finais nos três motores. A jornada de autoria comprovou que o primeiro rascunho não oferece aprovação, a submissão explícita envia payload vazio controlado, libera revisão, registra changes, mantém uma nova versão em draft, exige nova submissão e somente então permite aprovação. O erro de salvamento preserva texto e última versão reconhecida.
+
+**Limites:** nenhuma aprovação é implícita, nenhuma publicação é executada e nenhuma confirmação de provedor é simulada.
+
+**Estado:** implementação tecnicamente aceita. Este registro cria novo head e requer CI completa antes do merge exato. Merge, migration e produção ainda não são reivindicados.
