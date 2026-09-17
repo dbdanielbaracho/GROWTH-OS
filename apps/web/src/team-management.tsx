@@ -153,7 +153,7 @@ export function TeamManagement({
           </label>
           <label>
             <span>Role</span>
-            <select value={role} onChange={(event) => setRole(event.target.value as WorkspaceInvitationRole)}>
+            <select aria-label="Invitation role" value={role} onChange={(event) => setRole(event.target.value as WorkspaceInvitationRole)}>
               {workspace.role === "owner" && <option value="admin">Admin</option>}
               <option value="editor">Editor</option>
               <option value="viewer">Viewer</option>
