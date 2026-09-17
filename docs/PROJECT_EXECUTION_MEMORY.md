@@ -4689,3 +4689,14 @@ Passaram integralmente: integridade, hardening, typecheck, build, onze jornadas 
 **Limites:** nenhuma aprovação é implícita, nenhuma publicação é executada e nenhuma confirmação de provedor é simulada.
 
 **Estado:** implementação tecnicamente aceita. Este registro cria novo head e requer CI completa antes do merge exato. Merge, migration e produção ainda não são reivindicados.
+
+
+### PR #192 / #193 — bloqueio do primeiro deploy da migration 065 — 2026-09-17
+
+O PR #192 foi mesclado no SHA `d60994dee2451df7434f25d5c7745ea186c475c1` após o head final `cb4b7e4b5da8734f384c1b1b89b0d8e7e12c28a6` passar a CI run `35282443910`, job `105407239393`, com conclusão `success`.
+
+No primeiro deploy Railway, o migrator `349afedd-7468-4474-bca2-f00a8d98307e` iniciou com a migration 065 ainda ausente. O check de presença tentou converter diretamente `growth.content_submit_for_review(uuid,uuid,text)` em `regprocedure`; PostgreSQL retornou `42883` e interrompeu o processo antes de aplicar a migration. Apesar do estado externo do deployment aparecer como `SUCCESS`, os logs de execução provam o erro e **a migration 065 não é reivindicada como aplicada**. App `f8d3b754-9fb7-4c6b-8500-7a7b61e6214b` permaneceu `WAITING` nesse ponto.
+
+**Correção candidata:** PR [#193](https://github.com/dbdanielbaracho/GROWTH-OS/pull/193), branch `fix/migration-065-presence-check`, head técnico inicial `d403427165588252d244b58494c46c3a061c53f4`. O reconciliador agora verifica existência de tabela e funções com helpers seguros e retorna `false` antes de qualquer cast/inspeção de definição. Os mesmos checks de privilégio e conteúdo permanecem depois da presença confirmada.
+
+**Estado:** CI, merge, novo deploy e aplicação da migration ainda não são reivindicados. A aceitação de produção exige log explícito `Applied migration: 065_content_review_submission.sql`, serviços no merge exato e healthcheck público.
