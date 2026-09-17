@@ -143,15 +143,15 @@ function AnalyticsPanel() {
           {!loading && rows.length > 0 && (
             <div className="analytics-table" role="table" aria-label="Metric summary">
               <div className="analytics-table-row analytics-table-head" role="row">
-                <span>Account</span><span>Metric</span><span>Rows</span><span>Total</span><span>Quality</span>
+                <span role="columnheader">Account</span><span role="columnheader">Metric</span><span role="columnheader">Rows</span><span role="columnheader">Total</span><span role="columnheader">Quality</span>
               </div>
               {rows.slice(0, 20).map((row) => (
                 <div className="analytics-table-row" role="row" key={row.social_account_id + ":" + row.metric_name}>
-                  <span>{row.handle || row.provider_account_id}</span>
-                  <span>{row.metric_name}</span>
-                  <span>{row.observation_count}</span>
-                  <span>{formatNumber(row.total_value)}</span>
-                  <span>{qualityLabel(row)}</span>
+                  <span role="cell">{row.handle || row.provider_account_id}</span>
+                  <span role="cell">{row.metric_name}</span>
+                  <span role="cell">{row.observation_count}</span>
+                  <span role="cell">{formatNumber(row.total_value)}</span>
+                  <span role="cell">{qualityLabel(row)}</span>
                 </div>
               ))}
             </div>
