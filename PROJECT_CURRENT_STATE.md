@@ -343,3 +343,7 @@ PR #186 was merged at head `b08bb3feb164e529a79284f2b67f770e860440ea`; `main` me
 ### Active team and invitation surface — 2026-09-17
 
 Branch `feat/team-invitations-product-surface` now contains the typed team client, owner/admin team dialog, actionable invitation-email link, signed-in one-time acceptance screen, explicit route-level invitation authority, integration coverage, Playwright journeys and a Chromium browser gate in CI. This branch is not yet accepted or merged. After green CI: review the exact head, merge, follow main CI/Railway, and validate the production shell without creating a real invitation unless a concrete recipient is approved.
+
+### Team and invitation CI accepted — 2026-09-17
+
+PR #187 head `02f63b135560982204044554236eba563eb423a9`; CI run `35180576112`; job `105071621596`; SUCCESS. The new Chromium gate passed all eight critical journeys and Axe/WCAG checks, followed by all database, identity, intelligence, shell and unit gates. The documentation head `13d9d4631137e618fff4f014b769d7976f2b8ced` now awaits its final CI before exact-head merge.
