@@ -541,6 +541,12 @@ const steps = [
               'growth.record_experiment_feedback(uuid,uuid,uuid,text,text,text)'::regprocedure
             ))
           ) > 0
+          and position(
+            'opportunity_learning_context'
+            in lower(pg_get_functiondef(
+              'growth.record_recommendation_feedback(uuid,uuid,text,text)'::regprocedure
+            ))
+          ) > 0
           as present
       `);
       return result.rows[0].present;
