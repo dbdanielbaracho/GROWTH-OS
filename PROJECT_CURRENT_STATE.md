@@ -400,3 +400,8 @@ PR #189 final head `51b7497e6a0c55f515dfe8a7abebd4a10192efa2` passed CI run `352
 ### Active learning-to-recommendation feedback — 2026-09-17
 
 Audit after PR #189 found that experiment learning was stored but `create_recommendation` still used only opportunity evidence count. Branch `feat/evidence-backed-learning-recommendations` prepares migration 064, SQL gate 066, a tenant-bound learning snapshot, automatic refresh of existing recommendation rationales after measured feedback, and a UI proof that the evidence-backed winner appears immediately and after reload. The flow does not generate conclusions or execute/publish actions autonomously. CI, merge and production are not yet claimed.
+
+
+### PR #190 active CI correction — 2026-09-17
+
+Head `d86facdb2ed2ae6ef7416a08b8d2f3c108997f0b`, CI run `35247914858`, job `105292715858`: integrity, hardening, typecheck, build and Chromium/Axe passed. Migration application then rejected a single-dollar PL/pgSQL delimiter in `record_recommendation_feedback`. It was replaced with the unambiguous named delimiter `$recommendation_feedback$`; no gate was weakened. Fresh full CI is required.
