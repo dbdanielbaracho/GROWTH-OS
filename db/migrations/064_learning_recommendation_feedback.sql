@@ -303,16 +303,108 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION growth.record_recommendation_feedback(
+  p_workspace_id uuid,
+  p_recommendation_id uuid,
+  p_feedback text,
+  p_note text
+)
+RETURNS TABLE (
+  id uuid,
+  recommendation_id uuid,
+  feedback text,
+  note text,
+  created_at timestamptz,
+  recommendation_status text
+)
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, growth
+AS $
+DECLARE
+  v_status text;
+  v_opportunity_id uuid;
+  v_learning jsonb;
+BEGIN
+  IF growth.current_workspace_id() IS DISTINCT FROM p_workspace_id
+     OR NOT growth.tenant_context_valid(p_workspace_id)
+  THEN
+    RAISE EXCEPTION 'recommendation workspace context mismatch';
+  END IF;
+  IF p_feedback NOT IN ('accepted','dismissed','completed','irrelevant') THEN
+    RAISE EXCEPTION 'unsupported recommendation feedback';
+  END IF;
+  IF p_note IS NOT NULL AND char_length(p_note) > 1000 THEN
+    RAISE EXCEPTION 'recommendation feedback note is too long';
+  END IF;
+
+  SELECT r.opportunity_id
+    INTO v_opportunity_id
+    FROM growth.recommendations r
+   WHERE r.workspace_id = p_workspace_id
+     AND r.id = p_recommendation_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'recommendation is not available';
+  END IF;
+
+  v_status := CASE p_feedback
+    WHEN 'accepted' THEN 'accepted'
+    WHEN 'completed' THEN 'completed'
+    WHEN 'dismissed' THEN 'dismissed'
+    ELSE 'dismissed'
+  END;
+
+  INSERT INTO growth.recommendation_feedback (
+    workspace_id, recommendation_id, feedback, note
+  ) VALUES (
+    p_workspace_id, p_recommendation_id, p_feedback, nullif(trim(p_note), '')
+  )
+  RETURNING recommendation_feedback.id,
+            recommendation_feedback.recommendation_id,
+            recommendation_feedback.feedback,
+            recommendation_feedback.note,
+            recommendation_feedback.created_at
+       INTO id, recommendation_id, feedback, note, created_at;
+
+  v_learning := growth.opportunity_learning_context(p_workspace_id, v_opportunity_id);
+
+  UPDATE growth.recommendations r
+     SET status = v_status,
+         rationale = jsonb_set(
+           jsonb_set(
+             coalesce(r.rationale, '{}'::jsonb),
+             '{rule_version}',
+             to_jsonb('recommendation.action.v2'::text),
+             true
+           ),
+           '{learning}',
+           v_learning,
+           true
+         ),
+         updated_at = now()
+   WHERE r.workspace_id = p_workspace_id
+     AND r.id = p_recommendation_id;
+
+  recommendation_status := v_status;
+  RETURN NEXT;
+END;
+$;
+
 ALTER FUNCTION growth.opportunity_learning_context(uuid,uuid) OWNER TO growth_migrator;
 ALTER FUNCTION growth.create_recommendation(uuid,uuid,text) OWNER TO growth_migrator;
+ALTER FUNCTION growth.record_recommendation_feedback(uuid,uuid,text,text) OWNER TO growth_migrator;
 ALTER FUNCTION growth.record_experiment_feedback(uuid,uuid,uuid,text,text,text) OWNER TO growth_migrator;
 
 REVOKE ALL ON FUNCTION growth.opportunity_learning_context(uuid,uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION growth.opportunity_learning_context(uuid,uuid) FROM app_runtime;
 REVOKE ALL ON FUNCTION growth.create_recommendation(uuid,uuid,text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION growth.record_recommendation_feedback(uuid,uuid,text,text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION growth.record_experiment_feedback(uuid,uuid,uuid,text,text,text) FROM PUBLIC;
 
 GRANT EXECUTE ON FUNCTION growth.create_recommendation(uuid,uuid,text) TO app_runtime;
+GRANT EXECUTE ON FUNCTION growth.record_recommendation_feedback(uuid,uuid,text,text) TO app_runtime;
 GRANT EXECUTE ON FUNCTION growth.record_experiment_feedback(uuid,uuid,uuid,text,text,text) TO app_runtime;
 
 COMMIT;
