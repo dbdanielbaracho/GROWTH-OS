@@ -12,7 +12,6 @@ permissions:
 
 jobs:
   append-record:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout continuation branch
@@ -21,73 +20,15 @@ jobs:
           ref: docs/continuation-pr197-production-20260918
           fetch-depth: 0
 
-      - name: Append central memory and reconcile current checkpoint
+      - name: Append central memory
         shell: bash
         run: |
-          cat >> docs/PROJECT_EXECUTION_MEMORY.md <<'EOF'
+          printf '%s' 'CgoKIyMgQ29udGludWHDp8OjbyByZWdpc3RyYWRhIOKAlCAyMDI2LTA5LTE4IOKAlCBmZWNoYW1lbnRvIGRvIFBSICMxOTcgZSBibG9xdWVpbyBkbyByZXRlc3RlIGF1dGVudGljYWRvIFlvdVR1YmUKCioqUGVkaWRvcyBleGF0b3MgZG8gdXN1w6FyaW8gbmVzdGEgcmV0b21hZGE6KioKCi0gYCJ2ZXJpZmljYXIgYW9uZGUgcGFyb3Ugbm8gY29udGludWHDp8OjbyBkbyBwcm9qZXRvImAKLSBgImNvbnRpbnVhciBlbnTDo28gZGUgb25kZSBwYXJvdSBuw6NvIGVzcXVlY2VyIGRlIGNvbnN1bHRhciBhIGRvY3VtZW50YcOnw6NvIGRvIGdpdGh1YiBlIHZlcmlmaWNhciB0YW1iZW0gYXMgY29udmVyc2FzImAKCioqRm9udGVzIGNvbnN1bHRhZGFzIGFudGVzIGUgZHVyYW50ZSBhIGV4ZWN1w6fDo286KiogbyBkb2N1bWVudG8gY2VudHJhbCBgZG9jcy9QUk9KRUNUX0VYRUNVVElPTl9NRU1PUlkubWRgLCBgUFJPSkVDVF9DVVJSRU5UX1NUQVRFLm1kYCwgbyBiZW5jaG1hcmsgZGUgZGVzaWduIGUgbyBoaXN0w7NyaWNvIHJlY3VwZXJhZG8gZGFzIGNvbnZlcnNhcyBkbyBHcm93dGggT1MuIEFzIGZvbnRlcyBjb252ZXJnaXJhbSBubyBtZXNtbyBwb250byB0w6ljbmljbzogUFIgIzE5NiBqw6EgaGF2aWEgZmVjaGFkbyBhIHJlZ3Jlc3PDo28gZGUgZXhwZXJpbWVudG9zIGUgbyBQUiAjMTk3IGVyYSBvIGZvbGxvdy11cCBhdGl2byBwYXJhIGRpYWdub3N0aWNhci9yZWN1cGVyYXIgYSBhdXRvcml6YcOnw6NvIFlvdVR1YmUuCgoqKlBvbnRvIHZlcmlmaWNhZG8gZGUgcmV0b21hZGE6KiogUFIgIzE5NyBgZml4OiByZWNvdmVyIGV4cGlyZWQgWW91VHViZSBhdXRob3JpemF0aW9uYCwgaGVhZCBgNTlmMzIyNmY3YzBhMjNlNjQ5MzY4ZDFjZDVkNjViOTNmYjZmYzc2YWAsIG1lcmdlYWJsZSwgc2VtIGNvbWVudMOhcmlvcyBwZW5kZW50ZXMgZSBjb20gQ0kgZGUgaGVhZCAjMTI1NCAoYDM1MzAzNzczMzQwYCkgY29uY2x1w61kYSBjb20gYHN1Y2Nlc3NgLgoKKipFeGVjdcOnw6NvIGUgZXZpZMOqbmNpYToqKgoKMS4gUFIgIzE5NyBtZXNjbGFkbyBjb20gbyBoZWFkIGVzcGVyYWRvOyBtZXJnZSBjb21taXQgYGJhN2M1YmUzZDlmMzUzN2U4NjNlMWFkYjcyODIwOWI5N2IxODEyNGNgLgoyLiBDSSBkZSBgbWFpbmAgIzEyNTUgKGAzNTM2NTM2NzI3OGApIGNvbmNsdcOtZGEgY29tIGBzdWNjZXNzYCwgaW5jbHVpbmRvIG8gcGFzc28gZmluYWwgYFRlc3RgIGUgb3MgZ2F0ZXMgY2Fuw7RuaWNvcy4KMy4gUmFpbHdheSBjYW7DtG5pY28gYHN1Y2Nlc3NmdWwtZW1icmFjZWAgLyBgcHJvZHVjdGlvbmA6CiAgIC0gbWlncmF0b3IgZXZlbnQgYDQyYTdlOWYyLWI4NmMtNDUzYy04MDA1LThiYjM1ODI3NjQ2MGA6IGBTS0lQUEVEYCwgZXNwZXJhZG8gcG9ycXVlIG8gUFIgIzE5NyBuw6NvIGNvbnTDqW0gbWlncmF0aW9uczsKICAgLSB3b3JrZXIgZGVwbG95bWVudCBgN2ZhMTgzYzctMGRlYS00NDM1LTk4MGQtM2M1NzQ4Y2U5YTI3YDogYFNVQ0NFU1NgIG5vIG1lcmdlIGV4YXRvOwogICAtIGFwcCBkZXBsb3ltZW50IGBiMDIwN2ZhYi02NDAzLTQ0YTMtODA1OS00MDc2NDgxMjk4ZGJgOiBgU1VDQ0VTU2Agbm8gbWVyZ2UgZXhhdG8uCjQuIExvZ3MgZG8gYXBwIHJlZ2lzdHJhcmFtIGEgaWRlbnRpZGFkZSBSYWlsd2F5IGV4YXRhIGRvIGNvbW1pdC9kZXBsb3ltZW50LCBwcm9jZXNzbyBlbSBwb3J0YSA4MDgwIGUgYEdFVCAvaGVhbHRoL3JlYWR5YCBIVFRQIDIwMC4KNS4gVGVudGF0aXZhIGJvdW5kZWQgZGUgdmFsaWRhw6fDo28gYXV0ZW50aWNhZGEgdmlhIFRpbnlGaXNoLCBydW4gYDY0MzMyZDM2LTYyMzEtNDUyZC04YzI0LTk2MzNmMTZhMmU0OWAsIGNvbSBwZXJmaWwgcGVyc2lzdGVudGUgaGFiaWxpdGFkbyBlIHNlbSBWYXVsdDogbyBwZXJmaWwgY2hlZ291IMOgIHRlbGEgZGUgbG9naW4gZGVzYXV0ZW50aWNhZGEgZSBpbnRlcnJvbXBldSBjb3JyZXRhbWVudGUgc2VtIGluc2VyaXIgY3JlZGVuY2lhaXMuIE5lbmh1bSBzeW5jIFlvdVR1YmUgcMOzcy1QUiAjMTk3IGZvaSBleGVjdXRhZG87IHBvcnRhbnRvIG5lbmh1bSByZXN1bHRhZG8gZGUgcmVhdXRvcml6YcOnw6NvL3Byb3ZlZG9yIMOpIHJlaXZpbmRpY2Fkby4KCioqUmVzdWx0YWRvOioqIGEgY29ycmXDp8OjbyBkbyBQUiAjMTk3IGVzdMOhIGludGVncmFkYSwgY29tIENJIGRlIGBtYWluYCB2ZXJkZSBlIHJ1bnRpbWUgZGUgcHJvZHXDp8OjbyBjb25maXJtYWRvIG5vIFNIQSBleGF0byBgYmE3YzViZTNkOWYzNTM3ZTg2M2UxYWRiNzI4MjA5Yjk3YjE4MTI0Y2AuIEEgcmVncmVzc8OjbyBkZSBleHBlcmltZW50b3MgcGVybWFuZWNlIGZlY2hhZGEgcGVsbyBQUiAjMTk2OiBtaWdyYXRpb25zIDA2NuKAkzA2NyBmb3JhbSBhcGxpY2FkYXMgYW50ZXJpb3JtZW50ZSBlIG8gYEdFVCAvdjEvZXhwZXJpbWVudHNgIGF1dGVudGljYWRvIGZvaSBjb21wcm92YWRvIGVtIEhUVFAgMjAwLiBPIMO6bmljbyBnYXRlIFlvdVR1YmUgZGVzdGEgc2VxdcOqbmNpYSBxdWUgcGVybWFuZWNlIGFiZXJ0byDDqSBvIHJldGVzdGUgYXV0ZW50aWNhZG8gcmVhbCBhcMOzcyBvIFBSICMxOTcuCgoqKkxpbWl0ZXMgcHJlc2VydmFkb3M6KiogbmVuaHVtYSBjcmVkZW5jaWFsLCB0b2tlbiwgTUZBLCBjb25zZW50aW1lbnRvIEdvb2dsZSwgcHVibGljYcOnw6NvIGV4dGVybmEsIGFsdGVyYcOnw6NvIGRlIGNvbnRlw7pkbyBvdSBtaWdyYXRpb24gbm92YSBmb2kgZXhlY3V0YWRhIG5lc3RhIGNvbnRpbnVhw6fDo28uIE8gcnVuIFRpbnlGaXNoIGRlc2F1dGVudGljYWRvIG7Do28gw6kgdXNhZG8gY29tbyBwcm92YSBkbyBjb21wb3J0YW1lbnRvIHJlYWwgZG8gcHJvdmVkb3IuCgoqKlByw7N4aW1vIHBvbnRvIGV4YXRvOioqIG9idGVyL3JldXNhciB1bWEgc2Vzc8OjbyBhdXRlbnRpY2FkYSB2w6FsaWRhIGRlIHByb2R1w6fDo28gc2VtIHRyYW5zZmVyaXIgY29va2llcy9jcmVkZW5jaWFpczsgZXhlY3V0YXIgZXhhdGFtZW50ZSB1bSBzeW5jIFlvdVR1YmUgZGUgNyBkaWFzLiBTZSByZXRvcm5hciBgeW91dHViZV9yZWF1dGhvcml6YXRpb25fcmVxdWlyZWRgLCBhIHByw7N4aW1hIGV0YXBhIGRlcGVuZGVudGUgw6kgYSByZWF1dG9yaXphw6fDo28gZXhwbMOtY2l0YSBkbyB1c3XDoXJpbyBubyBHb29nbGU7IHNlIHJldG9ybmFyIG91dHJhIG9wZXJhw6fDo28vc3RhdHVzLCBkaWFnbm9zdGljYXIgc29tZW50ZSBhIGZhbGhhIGNvcnJlc3BvbmRlbnRlLiBEZXBvaXMgY29udGludWFyLCBzZW0gaW5mZXLDqm5jaWEsIG9zIGdhdGVzIGZpbmFpcyBkZSBwdWJsaWNhw6fDo28gcmVhbCBhdXRvcml6YWRhLCBjb21wYXJhw6fDo28gdmlzdWFsIHNhbWUtdGFzay9mcmVlemUsIHJldmlzw6NvIGFkdmVyc2FyaWFsIGZpbmFsIGUgUHJvZHVjdGlvbiBUcnV0aCBHYXRlIGNvbnNvbGlkYWRvLgo=' | base64 -d >> docs/PROJECT_EXECUTION_MEMORY.md
 
-
-## Continuação registrada — 2026-09-18 — fechamento do PR #197 e bloqueio do reteste autenticado YouTube
-
-**Pedidos exatos do usuário nesta retomada:**
-
-- `"verificar aonde parou no continuação do projeto"`
-- `"continuar então de onde parou não esquecer de consultar a documentação do github e verificar tambem as conversas"`
-
-**Fontes consultadas antes e durante a execução:** o documento central `docs/PROJECT_EXECUTION_MEMORY.md`, `PROJECT_CURRENT_STATE.md`, o benchmark de design e o histórico recuperado das conversas do Growth OS. As fontes convergiram no mesmo ponto técnico: PR #196 já havia fechado a regressão de experimentos e o PR #197 era o follow-up ativo para diagnosticar/recuperar a autorização YouTube.
-
-**Ponto verificado de retomada:** PR #197 `fix: recover expired YouTube authorization`, head `59f3226f7c0a23e649368d1cd5d65b93fb6fc76a`, mergeable, sem comentários pendentes e com CI de head #1254 (`35303773340`) concluída com `success`.
-
-**Execução e evidência:**
-
-1. PR #197 mesclado com o head esperado; merge commit `ba7c5be3d9f3537e863e1adb728209b97b18124c`.
-2. CI de `main` #1255 (`35365367278`) concluída com `success`, incluindo o passo final `Test` e os gates canônicos.
-3. Railway canônico `successful-embrace` / `production`:
-   - migrator event `42a7e9f2-b86c-453c-8005-8bb358276460`: `SKIPPED`, esperado porque o PR #197 não contém migrations;
-   - worker deployment `7fa183c7-0dea-4435-980d-3c5748ce9a27`: `SUCCESS` no merge exato;
-   - app deployment `b0207fab-6403-44a3-8059-4076481298db`: `SUCCESS` no merge exato.
-4. Logs do app registraram a identidade Railway exata do commit/deployment, processo em porta 8080 e `GET /health/ready` HTTP 200.
-5. Tentativa bounded de validação autenticada via TinyFish, run `64332d36-6231-452d-8c24-9633f16a2e49`, com perfil persistente habilitado e sem Vault: o perfil chegou à tela de login desautenticada e interrompeu corretamente sem inserir credenciais. Nenhum sync YouTube pós-PR #197 foi executado; portanto nenhum resultado de reautorização/provedor é reivindicado.
-
-**Resultado:** a correção do PR #197 está integrada, com CI de `main` verde e runtime de produção confirmado no SHA exato `ba7c5be3d9f3537e863e1adb728209b97b18124c`. A regressão de experimentos permanece fechada pelo PR #196: migrations 066–067 foram aplicadas anteriormente e o `GET /v1/experiments` autenticado foi comprovado em HTTP 200. O único gate YouTube desta sequência que permanece aberto é o reteste autenticado real após o PR #197.
-
-**Limites preservados:** nenhuma credencial, token, MFA, consentimento Google, publicação externa, alteração de conteúdo ou migration nova foi executada nesta continuação. O run TinyFish desautenticado não é usado como prova do comportamento real do provedor.
-
-**Próximo ponto exato:** obter/reusar uma sessão autenticada válida de produção sem transferir cookies/credenciais; executar exatamente um sync YouTube de 7 dias. Se retornar `youtube_reauthorization_required`, a próxima etapa dependente é a reautorização explícita do usuário no Google; se retornar outra operação/status, diagnosticar somente a falha correspondente. Depois continuar, sem inferência, os gates finais de publicação real autorizada, comparação visual same-task/freeze, revisão adversarial final e Production Truth Gate consolidado.
-EOF
-
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('PROJECT_CURRENT_STATE.md')
-          text = path.read_text(encoding='utf-8')
-          marker = 'Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.\n'
-          heading = '## Current accepted checkpoint — 2026-09-18 — PR #197 runtime'
-          block = '''
-
-## Current accepted checkpoint — 2026-09-18 — PR #197 runtime
-
-This section supersedes older statements labeled “current” below while preserving them as historical evidence.
-
-- Repository technical baseline and accepted application runtime: `ba7c5be3d9f3537e863e1adb728209b97b18124c` (merge of PR #197).
-- PR #197 head `59f3226f7c0a23e649368d1cd5d65b93fb6fc76a`; head CI #1254 (`35303773340`) SUCCESS.
-- Merged-main CI #1255 (`35365367278`) SUCCESS, including the canonical final Test step.
-- Railway canonical project/environment: `successful-embrace` / `production`.
-- App deployment `b0207fab-6403-44a3-8059-4076481298db`: SUCCESS on the exact merge SHA; startup verified the same commit/deployment identity and `/health/ready` returned HTTP 200.
-- Publication worker deployment `7fa183c7-0dea-4435-980d-3c5748ce9a27`: SUCCESS on the exact merge SHA.
-- Migrator event `42a7e9f2-b86c-453c-8005-8bb358276460`: SKIPPED as expected because PR #197 contains no migration change.
-- Experiment runtime regression is CLOSED by PR #196: production migrations 066–067 were applied and authenticated `GET /v1/experiments` returned HTTP 200.
-- YouTube recovery implementation is deployed by PR #197: refresh-token 400/401/403 can map to `youtube_reauthorization_required`, provider reauthorization is kept distinct from Growth OS session expiry, and the UI exposes `Reconnect YouTube`.
-- Live authenticated YouTube retest after PR #197 remains OPEN. TinyFish run `64332d36-6231-452d-8c24-9633f16a2e49` reached the signed-out Growth OS login and stopped without credentials, so no post-PR #197 provider result is claimed.
-
-Remaining final acceptance work is evidence-bounded: obtain/reuse a valid authenticated production session and run one real seven-day YouTube sync; controlled real-provider publication only with explicitly approved content/account and provider confirmation; remaining authenticated write/isolation/provider portions of the Production Truth Gate; same-task competitive visual comparison/final visual freeze; final consolidated adversarial review; then freeze only after all applicable gates pass or an external limitation is explicitly documented.
-'''
-          if heading not in text:
-              if marker not in text:
-                  raise SystemExit('Current-state insertion marker not found')
-              text = text.replace(marker, marker + block, 1)
-          path.write_text(text, encoding='utf-8')
-          PY
+      - name: Reconcile current checkpoint
+        shell: bash
+        run: |
+          python -c 'from pathlib import Path; import base64; p=Path("PROJECT_CURRENT_STATE.md"); t=p.read_text(encoding="utf-8"); m="Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.\n"; h="## Current accepted checkpoint — 2026-09-18 — PR #197 runtime"; b=base64.b64decode("CgojIyBDdXJyZW50IGFjY2VwdGVkIGNoZWNrcG9pbnQg4oCUIDIwMjYtMDktMTgg4oCUIFBSICMxOTcgcnVudGltZQoKVGhpcyBzZWN0aW9uIHN1cGVyc2VkZXMgb2xkZXIgc3RhdGVtZW50cyBsYWJlbGVkIOKAnGN1cnJlbnTigJ0gYmVsb3cgd2hpbGUgcHJlc2VydmluZyB0aGVtIGFzIGhpc3RvcmljYWwgZXZpZGVuY2UuCgotIFJlcG9zaXRvcnkgdGVjaG5pY2FsIGJhc2VsaW5lIGFuZCBhY2NlcHRlZCBhcHBsaWNhdGlvbiBydW50aW1lOiBgYmE3YzViZTNkOWYzNTM3ZTg2M2UxYWRiNzI4MjA5Yjk3YjE4MTI0Y2AgKG1lcmdlIG9mIFBSICMxOTcpLgotIFBSICMxOTcgaGVhZCBgNTlmMzIyNmY3YzBhMjNlNjQ5MzY4ZDFjZDVkNjViOTNmYjZmYzc2YWA7IGhlYWQgQ0kgIzEyNTQgKGAzNTMwMzc3MzM0MGApIFNVQ0NFU1MuCi0gTWVyZ2VkLW1haW4gQ0kgIzEyNTUgKGAzNTM2NTM2NzI3OGApIFNVQ0NFU1MsIGluY2x1ZGluZyB0aGUgY2Fub25pY2FsIGZpbmFsIFRlc3Qgc3RlcC4KLSBSYWlsd2F5IGNhbm9uaWNhbCBwcm9qZWN0L2Vudmlyb25tZW50OiBgc3VjY2Vzc2Z1bC1lbWJyYWNlYCAvIGBwcm9kdWN0aW9uYC4KLSBBcHAgZGVwbG95bWVudCBgYjAyMDdmYWItNjQwMy00NGEzLTgwNTktNDA3NjQ4MTI5OGRiYDogU1VDQ0VTUyBvbiB0aGUgZXhhY3QgbWVyZ2UgU0hBOyBzdGFydHVwIHZlcmlmaWVkIHRoZSBzYW1lIGNvbW1pdC9kZXBsb3ltZW50IGlkZW50aXR5IGFuZCBgL2hlYWx0aC9yZWFkeWAgcmV0dXJuZWQgSFRUUCAyMDAuCi0gUHVibGljYXRpb24gd29ya2VyIGRlcGxveW1lbnQgYDdmYTE4M2M3LTBkZWEtNDQzNS05ODBkLTNjNTc0OGNlOWEyN2A6IFNVQ0NFU1Mgb24gdGhlIGV4YWN0IG1lcmdlIFNIQS4KLSBNaWdyYXRvciBldmVudCBgNDJhN2U5ZjItYjg2Yy00NTNjLTgwMDUtOGJiMzU4Mjc2NDYwYDogU0tJUFBFRCBhcyBleHBlY3RlZCBiZWNhdXNlIFBSICMxOTcgY29udGFpbnMgbm8gbWlncmF0aW9uIGNoYW5nZS4KLSBFeHBlcmltZW50IHJ1bnRpbWUgcmVncmVzc2lvbiBpcyBDTE9TRUQgYnkgUFIgIzE5NjogcHJvZHVjdGlvbiBtaWdyYXRpb25zIDA2NuKAkzA2NyB3ZXJlIGFwcGxpZWQgYW5kIGF1dGhlbnRpY2F0ZWQgYEdFVCAvdjEvZXhwZXJpbWVudHNgIHJldHVybmVkIEhUVFAgMjAwLgotIFlvdVR1YmUgcmVjb3ZlcnkgaW1wbGVtZW50YXRpb24gaXMgZGVwbG95ZWQgYnkgUFIgIzE5NzogcmVmcmVzaC10b2tlbiA0MDAvNDAxLzQwMyBjYW4gbWFwIHRvIGB5b3V0dWJlX3JlYXV0aG9yaXphdGlvbl9yZXF1aXJlZGAsIHByb3ZpZGVyIHJlYXV0aG9yaXphdGlvbiBpcyBrZXB0IGRpc3RpbmN0IGZyb20gR3Jvd3RoIE9TIHNlc3Npb24gZXhwaXJ5LCBhbmQgdGhlIFVJIGV4cG9zZXMgYFJlY29ubmVjdCBZb3VUdWJlYC4KLSBMaXZlIGF1dGhlbnRpY2F0ZWQgWW91VHViZSByZXRlc3QgYWZ0ZXIgUFIgIzE5NyByZW1haW5zIE9QRU4uIFRpbnlGaXNoIHJ1biBgNjQzMzJkMzYtNjIzMS00NTJkLThjMjQtOTYzM2YxNmEyZTQ5YCByZWFjaGVkIHRoZSBzaWduZWQtb3V0IEdyb3d0aCBPUyBsb2dpbiBhbmQgc3RvcHBlZCB3aXRob3V0IGNyZWRlbnRpYWxzLCBzbyBubyBwb3N0LVBSICMxOTcgcHJvdmlkZXIgcmVzdWx0IGlzIGNsYWltZWQuCgpSZW1haW5pbmcgZmluYWwgYWNjZXB0YW5jZSB3b3JrIGlzIGV2aWRlbmNlLWJvdW5kZWQ6IG9idGFpbi9yZXVzZSBhIHZhbGlkIGF1dGhlbnRpY2F0ZWQgcHJvZHVjdGlvbiBzZXNzaW9uIGFuZCBydW4gb25lIHJlYWwgc2V2ZW4tZGF5IFlvdVR1YmUgc3luYzsgY29udHJvbGxlZCByZWFsLXByb3ZpZGVyIHB1YmxpY2F0aW9uIG9ubHkgd2l0aCBleHBsaWNpdGx5IGFwcHJvdmVkIGNvbnRlbnQvYWNjb3VudCBhbmQgcHJvdmlkZXIgY29uZmlybWF0aW9uOyByZW1haW5pbmcgYXV0aGVudGljYXRlZCB3cml0ZS9pc29sYXRpb24vcHJvdmlkZXIgcG9ydGlvbnMgb2YgdGhlIFByb2R1Y3Rpb24gVHJ1dGggR2F0ZTsgc2FtZS10YXNrIGNvbXBldGl0aXZlIHZpc3VhbCBjb21wYXJpc29uL2ZpbmFsIHZpc3VhbCBmcmVlemU7IGZpbmFsIGNvbnNvbGlkYXRlZCBhZHZlcnNhcmlhbCByZXZpZXc7IHRoZW4gZnJlZXplIG9ubHkgYWZ0ZXIgYWxsIGFwcGxpY2FibGUgZ2F0ZXMgcGFzcyBvciBhbiBleHRlcm5hbCBsaW1pdGF0aW9uIGlzIGV4cGxpY2l0bHkgZG9jdW1lbnRlZC4K").decode(); assert m in t or h in t; p.write_text(t if h in t else t.replace(m,m+b,1),encoding="utf-8")'
 
       - name: Commit documentation record
         shell: bash
