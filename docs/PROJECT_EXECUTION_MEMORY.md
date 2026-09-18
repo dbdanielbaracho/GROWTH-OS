@@ -4780,3 +4780,11 @@ Regras de registro:
 **Defeito real 2 — YouTube:** a sincronização live de sete dias foi executada e retornou HTTP 502; a UI preservou o estado conectado e apresentou retry. O runtime anterior não registrava o código não secreto de `YoutubeConnectorError`, então a branch adiciona log estruturado limitado a provider, connectorCode e httpStatus, sem token, credencial, URL ou payload. A documentação oficial vigente confirma que `engagedViews` é métrica core e que relatórios de atividade por dia suportam a combinação de métricas usada; não foi removida nenhuma métrica por suposição.
 
 **Limites preservados:** nenhuma publicação externa foi criada; nenhuma autorização para post real foi inferida; nenhum token/segredo foi lido ou gravado; o PR corretivo, CI, merge, migration 066 e revalidação de produção ainda não são reivindicados nesta entrada.
+
+### Continuação — PR #196 e falha útil do gate 068 — 2026-09-18
+
+**Pedido do usuário:** `continuar`.
+
+O commit local candidato foi publicado pela conexão autenticada do GitHub no branch `fix/experiment-runtime-owner-privileges`, PR #196, head `33fd94e2c19ea829b092ce7cb8e8cb9bae436301`. O run CI #1251 (`35294820468`) passou integridade, hardening, typecheck, build, navegador e todos os gates SQL anteriores, mas bloqueou corretamente no novo gate 068.
+
+O gate provou que `growth.list_experiments` já executa após a migration 066 e então encontrou uma segunda falha real no primeiro caminho de criação de variante: `growth.add_experiment_variant` possuía `AND status = 'draft'`, ambíguo entre a coluna e a variável de saída PL/pgSQL `status`. Nenhum merge ou deploy foi feito. A correção forward-only é a migration 067, que reinstala a mesma função/boundary com alias explícito `e.status`, preserva owner, `SECURITY DEFINER`, search path e EXECUTE apenas pelo helper, registra a presença no reconciliador de produção e mantém o gate 068 como prova ponta a ponta. Um novo head e uma CI completa são obrigatórios.

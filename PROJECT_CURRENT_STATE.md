@@ -54,7 +54,7 @@ Current accepted application evidence after PR #194 (2026-09-18 rechecked):
 - authenticated production session: workspace `Crescimento`, one real Instagram opportunity, 20 stored evidence items, one confirmed insight and real provider panels loaded;
 - Instagram status: connected Business account, publishing enabled for the authorized test account, eight media and sixteen direct metrics visible;
 - YouTube status: connected/live, but a fresh seven-day sync returned HTTP 502 and remains a real-provider blocker under diagnosis;
-- experiment planner: `GET /v1/experiments` returned HTTP 403; Railway recorded SQLSTATE `42501`, `permission denied for table experiments`, inside `growth.list_experiments`. Migration 066 / gate 068 are the current corrective candidate and are not yet accepted or deployed.
+- experiment planner: `GET /v1/experiments` returned HTTP 403; Railway recorded SQLSTATE `42501`, `permission denied for table experiments`, inside `growth.list_experiments`. Migration 066 / gate 068 are the privilege correction. The first canonical CI execution then exposed an existing ambiguous `status` predicate in `add_experiment_variant`; migration 067 qualifies the target table. The combined candidate is not yet accepted or deployed.
 
 Current accepted application evidence after PR #180 (2026-09-16):
 
@@ -143,7 +143,7 @@ Operational rule: distinguish repository head from serving runtime SHA. At final
 
 ## Canonical database state
 
-Production migration reconciliation is confirmed through migration 065. Migration 066 is a candidate only until exact-head CI, merge and migrator evidence pass.
+Production migration reconciliation is confirmed through migration 065. Migrations 066–067 are candidates only until exact-head CI, merge and migrator evidence pass.
 
 - Identity/provider foundations: 006, 009, 014–021.
 - Publication contracts/operations: 022–032.
@@ -210,7 +210,7 @@ Growth OS is materially advanced but is not yet legitimately 100% complete.
 3. **Same-task competitive visual comparison and final visual freeze.** Automated responsive/accessibility/cross-browser coverage is closed; competitive/final visual acceptance remains separate.
 4. **Final consolidated adversarial review** only at the project/freeze gate. Claude is not an intermediate micro-gate and must not be claimed as completed without an actual review.
 5. **Final Production Truth Gate authenticated/data chain**: exact public runtime SHA, deployment and health are proven. Native authenticated read paths for Radar/provider/content/analytics and expected panel behavior passed in PR #180 and remain available after PR #182. Remaining write/isolation/provider chains and final consolidated acceptance are still open; controlled fixtures are never factual production evidence.
-6. **Live experiment runtime regression**: production currently denies `growth.list_experiments` because the SECURITY DEFINER owner lacks the required base-table privileges. Candidate migration 066 and gate 068 must pass and be proven in production.
+6. **Live experiment runtime regression**: production currently denies `growth.list_experiments` because the SECURITY DEFINER owner lacks the required base-table privileges. Candidate migrations 066–067 and gate 068 must pass and be proven in production; gate 068 already caught the pre-existing ambiguous `status` predicate before promotion.
 7. **YouTube live sync regression/external response**: connected status succeeds, but the current seven-day sync returns HTTP 502. The next runtime adds non-secret connector-code logging so the failure can be classified and corrected without exposing credentials.
 
 ## Next execution order

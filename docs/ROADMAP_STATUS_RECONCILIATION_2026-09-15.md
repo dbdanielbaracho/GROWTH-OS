@@ -8,7 +8,7 @@ Purpose: current-status companion to `docs/FULL_PRODUCT_ROADMAP.md`.
 
 The 2026-09-15 checkpoint below remains historical evidence. Current accepted application runtime is PR #194 merge `a11f9bce3c5675263545b2e5e3ebb42b421cef21`, deployment `20e86731-0350-4675-ab20-c6032a8b34a7`; repository head after documentation-only PR #195 is `bbc1d4b84b85734eebb40e4088a49e26662da72b`. Production migrations are reconciled through 065, not 060.
 
-Authenticated production revalidation on 2026-09-18 confirmed real Instagram opportunity/evidence/intelligence and eight media / sixteen metrics, but exposed two open live regressions: experiment listing fails with SQLSTATE `42501` because the SECURITY DEFINER owner lacks base experiment-table privileges, and a fresh YouTube seven-day sync returns HTTP 502. Migration 066 / SQL gate 068 and safe YouTube connector-code logging are the active correction. No real external publication is claimed.
+Authenticated production revalidation on 2026-09-18 confirmed real Instagram opportunity/evidence/intelligence and eight media / sixteen metrics, but exposed two open live regressions: experiment listing fails with SQLSTATE `42501` because the SECURITY DEFINER owner lacks base experiment-table privileges, and a fresh YouTube seven-day sync returns HTTP 502. Migration 066 / SQL gate 068 and safe YouTube connector-code logging are the active correction. The first gate execution also found the existing ambiguous `status` predicate in `add_experiment_variant`; forward-only migration 067 qualifies it before production. No real external publication is claimed.
 
 ## Authority and history
 
