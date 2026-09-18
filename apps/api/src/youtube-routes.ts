@@ -66,7 +66,9 @@ async function integrationError(app: FastifyInstance, reply: FastifyReply, error
       {
         provider: "youtube",
         connectorCode: error.code,
-        httpStatus: error.httpStatus
+        httpStatus: error.httpStatus,
+        providerOperation: error.providerOperation,
+        providerHttpStatus: error.providerHttpStatus
       },
       "youtube connector request failed"
     );
