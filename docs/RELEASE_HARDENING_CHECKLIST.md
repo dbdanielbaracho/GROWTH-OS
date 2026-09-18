@@ -5,7 +5,7 @@ This document is the release gate for the complete material cycle. It is evidenc
 ## Before Claude review
 
 1. Confirm the PR head SHA is the exact candidate SHA and GitHub CI is green.
-2. Confirm all migrations and gates are present through migration 038 / gate 055.
+2. Confirm all migrations and gates are present through the current release ceiling (migration 066 / gate 068 for the active candidate).
 3. Confirm no synthetic opportunity, observation, recommendation, experiment outcome or automation request is used as production proof.
 4. Confirm automation requests are evidence-bound, pending by default, quota-limited and kill-switchable.
 5. Confirm commercial state is internal/auditable and no external charge is implied without a configured billing provider.
@@ -14,10 +14,10 @@ This document is the release gate for the complete material cycle. It is evidenc
 ## Railway production promotion after APPROVE only
 
 1. Merge the reviewed PR into GitHub main.
-2. Update the canonical migrator service start command to apply migrations 034 through 038 after the already-applied 030 through 033 sequence.
+2. Confirm the canonical migrator reconciles the complete ordered migration registry through the candidate ceiling; do not maintain a hand-written partial range.
 3. Redeploy the migrator from the GitHub main source and wait for SUCCESS.
 4. Confirm the app service still uses the GitHub main source, then redeploy the app from main.
-5. Verify /health/live, /health/ready and /v1/system.
+5. Verify `/health/live`, `/health/ready` and `/v1/deployment`.
 6. Verify the real deployment SHA in Railway metadata and record it in the execution memory.
 7. Run the tenant-isolation, approval, quota, kill-switch and entitlement checks against production.
 8. If any migration or health gate fails, stop promotion and restore service availability before retrying.

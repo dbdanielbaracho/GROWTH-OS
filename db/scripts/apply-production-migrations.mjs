@@ -585,6 +585,26 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '066_experiment_runtime_owner_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.opportunities', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.opportunity_evidence', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.hypotheses', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.hypotheses', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'UPDATE')
+          and not has_table_privilege('app_runtime', 'growth.hypotheses', 'INSERT')
+          and not has_table_privilege('app_runtime', 'growth.experiments', 'INSERT')
+          and not has_table_privilege('app_runtime', 'growth.experiments', 'UPDATE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
 
 ];
 
