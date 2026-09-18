@@ -4721,3 +4721,47 @@ No primeiro deploy Railway, o migrator `349afedd-7468-4474-bca2-f00a8d98307e` in
 **Limites:** o full-loop é prova controlada de produto, não prova de postagem real. Postagem real continua exigindo conteúdo e conta explicitamente aprovados e confirmação do provedor. Competitive visual/freeze e revisão adversarial final permanecem gates separados.
 
 **Próximo passo obrigatório:** este registro/documentação cria novo head do PR #194; rodar CI completa no head final, mesclar apenas o SHA aprovado, validar main CI e produção no merge exato.
+
+
+## Regra permanente ampliada — registrar toda a conversa do projeto neste mesmo documento — 2026-09-17
+
+**Pedido exato do usuário:** `"GRAVAR EM UM DOCUMENTO TODA CONVERSA QUE TIVERMOS AQUI NO GITHUB JÁ TEM UM DOCUMENTO LÁ USAR O MESMO"`.
+
+A partir desta instrução, o documento central `docs/PROJECT_EXECUTION_MEMORY.md` permanece como o único registro contínuo da conversa operacional do Growth OS no GitHub. Não criar um documento paralelo para cada nova conversa.
+
+Regras de registro:
+
+1. Acrescentar neste mesmo arquivo cada pedido relevante do usuário ligado ao Growth OS, inclusive mensagens curtas como `continuar`, correções, decisões, dúvidas, aprovações e mudanças de direção.
+2. Registrar também as respostas operacionais do assistente na medida necessária para reconstruir fielmente o que foi decidido, executado, verificado, corrigido, bloqueado ou deixado pendente.
+3. Preservar a sequência temporal. Não apagar nem substituir entradas anteriores para simplificar o histórico.
+4. Quando o texto exato estiver disponível, preservá-lo. Quando parte de uma conversa anterior não estiver acessível integralmente, registrar apenas o que estiver disponível ou comprovado, sem inventar trechos.
+5. Não registrar segredos, tokens, senhas, chaves privadas, valores de `DATABASE_URL`, OAuth secrets ou outras credenciais sensíveis; registrar apenas que a configuração/ação ocorreu.
+6. Toda continuação futura do projeto deve primeiro consultar este documento e depois acrescentar a nova entrada antes de encerrar a execução correspondente.
+7. Logs técnicos complementares podem existir quando necessários, mas devem ser referenciados a partir deste documento; a memória principal continua sendo este mesmo arquivo.
+
+**Estado desta solicitação:** regra registrada no documento central existente; nenhum novo arquivo de memória foi criado.
+
+
+## Pergunta de status — 2026-09-17 — o que falta para terminar o projeto
+
+**Pedido exato do usuário:** `"o que falta para terminar o projeto"`.
+
+**Verificação executada antes da resposta:**
+
+- `main` continua no merge técnico do PR #194, SHA `a11f9bce3c5675263545b2e5e3ebb42b421cef21`.
+- Fetch público sem cache confirmou `/health/ready` com `status=ready` e `database=ok`.
+- Fetch público de `/v1/deployment` confirmou SHA `a11f9bce3c5675263545b2e5e3ebb42b421cef21` e deployment `20e86731-0350-4675-ab20-c6032a8b34a7`.
+- PR #195, que mantém toda a conversa no mesmo documento central, está aberto/mergeable e seu CI run `35289385990` concluiu `success` antes desta nova entrada.
+- Reauditoria corrigiu gaps históricos: PR #186 está mergeado e fechou o gate backend/CI do ciclo completo de identidade e isolamento; PR #187 está mergeado e adicionou a superfície de convites/equipe; PR #188 está mergeado e fechou a recuperação controlada de publicação incerta sem reenvio.
+- PR #194 está mergeado e prova em uma única jornada controlada o encadeamento recomendação → draft → revisão → aprovação → intenção → execução controlada → métrica → experimento → aprendizagem. Essa prova não equivale a postagem real no provedor.
+
+**Pendências reais restantes para declarar o projeto 100% concluído/frozen:**
+
+1. Produzir evidência final de operação com provedor real nas partes que dependem de conta/permissões externas, especialmente publicação controlada real, somente com conteúdo e conta explicitamente aprovados e confirmação do provedor; validar também estados reais de falha/recuperação quando aplicáveis.
+2. Executar a aceitação final de produção autenticada no runtime aceito, consolidando frontend → API autenticada → dados reais → resultado esperado para as jornadas críticas que ainda dependem de evidência live, sem usar fixtures como prova factual.
+3. Fazer a comparação visual competitiva same-task e o freeze visual final conforme `docs/DESIGN_QUALITY_BENCHMARK_V0.2.md`.
+4. Consolidar o pacote final de evidências e executar a revisão adversarial final pelo Claude, conforme a governança definida pelo usuário; Claude não é micro-gate intermediário.
+5. Rodar o Production Truth Gate final no SHA aceito e congelar versão/documentação somente depois dos gates aplicáveis ou de limitações externas explicitamente documentadas.
+6. Atualizar os checkpoints de status que ficaram historicamente defasados para refletir PRs #186–#194 e a aceitação pública atual, sem apagar o histórico.
+
+**Classificação atual:** núcleo funcional e ciclo controlado estão implementados/provados; o projeto ainda não pode ser chamado de 100% concluído porque faltam principalmente evidência live de provedor, aceitação/freeze visual, revisão adversarial final e freeze consolidado.
