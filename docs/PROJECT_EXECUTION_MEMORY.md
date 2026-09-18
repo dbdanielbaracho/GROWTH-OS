@@ -4721,3 +4721,22 @@ No primeiro deploy Railway, o migrator `349afedd-7468-4474-bca2-f00a8d98307e` in
 **Limites:** o full-loop é prova controlada de produto, não prova de postagem real. Postagem real continua exigindo conteúdo e conta explicitamente aprovados e confirmação do provedor. Competitive visual/freeze e revisão adversarial final permanecem gates separados.
 
 **Próximo passo obrigatório:** este registro/documentação cria novo head do PR #194; rodar CI completa no head final, mesclar apenas o SHA aprovado, validar main CI e produção no merge exato.
+
+
+## Regra permanente ampliada — registrar toda a conversa do projeto neste mesmo documento — 2026-09-17
+
+**Pedido exato do usuário:** `"GRAVAR EM UM DOCUMENTO TODA CONVERSA QUE TIVERMOS AQUI NO GITHUB JÁ TEM UM DOCUMENTO LÁ USAR O MESMO"`.
+
+A partir desta instrução, o documento central `docs/PROJECT_EXECUTION_MEMORY.md` permanece como o único registro contínuo da conversa operacional do Growth OS no GitHub. Não criar um documento paralelo para cada nova conversa.
+
+Regras de registro:
+
+1. Acrescentar neste mesmo arquivo cada pedido relevante do usuário ligado ao Growth OS, inclusive mensagens curtas como `continuar`, correções, decisões, dúvidas, aprovações e mudanças de direção.
+2. Registrar também as respostas operacionais do assistente na medida necessária para reconstruir fielmente o que foi decidido, executado, verificado, corrigido, bloqueado ou deixado pendente.
+3. Preservar a sequência temporal. Não apagar nem substituir entradas anteriores para simplificar o histórico.
+4. Quando o texto exato estiver disponível, preservá-lo. Quando parte de uma conversa anterior não estiver acessível integralmente, registrar apenas o que estiver disponível ou comprovado, sem inventar trechos.
+5. Não registrar segredos, tokens, senhas, chaves privadas, valores de `DATABASE_URL`, OAuth secrets ou outras credenciais sensíveis; registrar apenas que a configuração/ação ocorreu.
+6. Toda continuação futura do projeto deve primeiro consultar este documento e depois acrescentar a nova entrada antes de encerrar a execução correspondente.
+7. Logs técnicos complementares podem existir quando necessários, mas devem ser referenciados a partir deste documento; a memória principal continua sendo este mesmo arquivo.
+
+**Estado desta solicitação:** regra registrada no documento central existente; nenhum novo arquivo de memória foi criado.
