@@ -98,3 +98,20 @@ test("YouTube lookback uses the last complete Pacific day, not the UTC calendar 
     { startDate: "2026-09-01", endDate: "2026-09-02" }
   );
 });
+
+test("YouTube refresh rejection requests reauthorization without exposing a provider payload", () => {
+  const error = connector.youtubeProviderFailureForTest("token_refresh", 400);
+  assert.equal(error.code, "youtube_reauthorization_required");
+  assert.equal(error.httpStatus, 401);
+  assert.equal(error.providerOperation, "token_refresh");
+  assert.equal(error.providerHttpStatus, 400);
+  assert.equal(error.message, "youtube_reauthorization_required");
+});
+
+test("YouTube analytics request rejection remains a bounded provider failure", () => {
+  const error = connector.youtubeProviderFailureForTest("analytics_report", 400);
+  assert.equal(error.code, "youtube_provider_request_failed");
+  assert.equal(error.httpStatus, 502);
+  assert.equal(error.providerOperation, "analytics_report");
+  assert.equal(error.providerHttpStatus, 400);
+});

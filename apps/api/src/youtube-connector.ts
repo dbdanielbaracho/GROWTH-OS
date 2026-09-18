@@ -105,9 +105,54 @@ type ZonedDateTimeParts = {
 type RequiredDateTimePart = "year" | "month" | "day" | "hour" | "minute" | "second";
 
 export class YoutubeConnectorError extends Error {
-  constructor(public readonly code: string, public readonly httpStatus: number) {
+  constructor(
+    public readonly code: string,
+    public readonly httpStatus: number,
+    public readonly providerOperation: YoutubeProviderOperation | null = null,
+    public readonly providerHttpStatus: number | null = null
+  ) {
     super(code);
   }
+}
+
+type YoutubeProviderOperation =
+  | "authorization_code_exchange"
+  | "token_refresh"
+  | "channel_lookup"
+  | "analytics_report";
+
+function youtubeProviderFailure(
+  operation: YoutubeProviderOperation,
+  providerHttpStatus: number
+): YoutubeConnectorError {
+  if (
+    (operation === "token_refresh" || operation === "authorization_code_exchange")
+    && [400, 401, 403].includes(providerHttpStatus)
+  ) {
+    return new YoutubeConnectorError(
+      operation === "token_refresh" ? "youtube_reauthorization_required" : "youtube_authorization_rejected",
+      401,
+      operation,
+      providerHttpStatus
+    );
+  }
+  if (providerHttpStatus === 401 || providerHttpStatus === 403) {
+    return new YoutubeConnectorError("youtube_authorization_rejected", 401, operation, providerHttpStatus);
+  }
+  if (providerHttpStatus === 429) {
+    return new YoutubeConnectorError("youtube_rate_limited", 503, operation, providerHttpStatus);
+  }
+  if (providerHttpStatus >= 500) {
+    return new YoutubeConnectorError("youtube_provider_unavailable", 503, operation, providerHttpStatus);
+  }
+  return new YoutubeConnectorError("youtube_provider_request_failed", 502, operation, providerHttpStatus);
+}
+
+export function youtubeProviderFailureForTest(
+  operation: YoutubeProviderOperation,
+  providerHttpStatus: number
+): YoutubeConnectorError {
+  return youtubeProviderFailure(operation, providerHttpStatus);
 }
 
 function parseConnectorConfig(): YoutubeConfig | null {
@@ -228,15 +273,14 @@ function openCredential(ciphertext: Buffer, workspaceId: string, connectionId: s
   }
 }
 
-async function googleJson<T>(url: string, init: RequestInit): Promise<T> {
+async function googleJson<T>(
+  url: string,
+  init: RequestInit,
+  operation: YoutubeProviderOperation
+): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new YoutubeConnectorError("youtube_authorization_rejected", 401);
-    }
-    if (response.status === 429) throw new YoutubeConnectorError("youtube_rate_limited", 503);
-    if (response.status >= 500) throw new YoutubeConnectorError("youtube_provider_unavailable", 503);
-    throw new YoutubeConnectorError("youtube_provider_request_failed", 502);
+    throw youtubeProviderFailure(operation, response.status);
   }
   try {
     return await response.json() as T;
@@ -257,7 +301,7 @@ async function exchangeAuthorizationCode(code: string, config: YoutubeConfig): P
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body
-  });
+  }, "authorization_code_exchange");
   if (!token.access_token || typeof token.expires_in !== "number") {
     throw new YoutubeConnectorError("youtube_token_response_invalid", 502);
   }
@@ -275,7 +319,7 @@ async function refreshAccessToken(refreshToken: string, config: YoutubeConfig): 
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body
-  });
+  }, "token_refresh");
   if (!token.access_token || typeof token.expires_in !== "number") {
     throw new YoutubeConnectorError("youtube_refresh_response_invalid", 502);
   }
@@ -288,7 +332,7 @@ async function fetchAuthorizedChannels(accessToken: string): Promise<YoutubeChan
   url.searchParams.set("mine", "true");
   const payload = await googleJson<{ items?: YoutubeChannel[] }>(url.toString(), {
     headers: { authorization: `Bearer ${accessToken}` }
-  });
+  }, "channel_lookup");
   return payload.items ?? [];
 }
 
@@ -311,7 +355,7 @@ async function fetchDailyAnalytics(accessToken: string, startDate: string, endDa
   ].join(","));
   return googleJson<AnalyticsResponse>(url.toString(), {
     headers: { authorization: `Bearer ${accessToken}` }
-  });
+  }, "analytics_report");
 }
 
 async function beginAuthorizationRow(client: PoolClient, managedAccountId: string): Promise<string> {

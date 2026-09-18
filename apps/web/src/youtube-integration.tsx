@@ -14,14 +14,18 @@ import "./youtube-integration.css";
 
 function friendlyError(error: unknown): string {
   if (error instanceof RadarApiError) {
+    if (
+      error.apiStatus === "youtube_reauthorization_required"
+      || error.apiStatus === "youtube_authorization_required"
+      || error.apiStatus === "youtube_refresh_token_unavailable"
+    ) {
+      return "YouTube authorization needs to be renewed.";
+    }
     if (error.httpStatus === 401) return "Your Growth OS session expired. Sign in again.";
     if (error.httpStatus === 403) return "This workspace is not allowed to manage this YouTube connection.";
     if (error.apiStatus === "youtube_channel_selection_required") return "More than one YouTube channel was returned. Automatic selection is blocked for safety.";
     if (error.apiStatus === "youtube_integration_not_configured" || error.apiStatus === "youtube_integration_misconfigured") {
       return "The YouTube connector is not configured correctly yet.";
-    }
-    if (error.apiStatus === "youtube_authorization_required" || error.apiStatus === "youtube_refresh_token_unavailable") {
-      return "YouTube authorization needs to be renewed.";
     }
     if (error.httpStatus === 429) return "YouTube is rate-limiting this request. Try again later.";
     if (error.httpStatus >= 500) return "The YouTube provider path is temporarily unavailable.";
@@ -49,6 +53,7 @@ function YoutubeIntegrationPanel() {
   const [lastSync, setLastSync] = useState<Record<string, YoutubeSyncResponse>>({});
   const [lookbackDays, setLookbackDays] = useState<Record<string, number>>({});
   const [lastRequestedWindow, setLastRequestedWindow] = useState<Record<string, number>>({});
+  const [reauthorizationRequired, setReauthorizationRequired] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState(false);
 
   const callbackNotice = useMemo(() => {
@@ -138,6 +143,7 @@ function YoutubeIntegrationPanel() {
 
     try {
       const result = await syncYoutube(connectionId, nonce, requestedLookbackDays);
+      setReauthorizationRequired((current) => ({ ...current, [connectionId]: false }));
       setLastSync((current) => ({ ...current, [connectionId]: result }));
       setLastRequestedWindow((current) => ({ ...current, [connectionId]: requestedLookbackDays }));
       window.dispatchEvent(new CustomEvent("growth-os:radar-refresh"));
@@ -151,6 +157,9 @@ function YoutubeIntegrationPanel() {
       // Preserve the nonce after an ambiguous/request failure. An explicit retry
       // therefore remains the same logical sync instead of silently duplicating it.
       setMessage(friendlyError(error));
+      if (error instanceof RadarApiError && error.apiStatus === "youtube_reauthorization_required") {
+        setReauthorizationRequired((current) => ({ ...current, [connectionId]: true }));
+      }
     } finally {
       setBusyId(null);
     }
@@ -229,6 +238,11 @@ function YoutubeIntegrationPanel() {
                         {busy ? "Syncing…" : pendingNonce[row.connection_id!] ? "Retry same sync" : "Sync selected window"}
                       </button>
                     </div>
+                    {reauthorizationRequired[row.connection_id!] && (
+                      <button className="youtube-primary" type="button" disabled={busy} onClick={() => void connect(row)}>
+                        {busy ? "Opening Google…" : "Reconnect YouTube"}
+                      </button>
+                    )}
                     {last && (
                       <div className="youtube-sync-result">
                         <strong>{last.observationsProcessed} real observations processed</strong>
