@@ -4740,3 +4740,28 @@ Regras de registro:
 7. Logs técnicos complementares podem existir quando necessários, mas devem ser referenciados a partir deste documento; a memória principal continua sendo este mesmo arquivo.
 
 **Estado desta solicitação:** regra registrada no documento central existente; nenhum novo arquivo de memória foi criado.
+
+
+## Pergunta de status — 2026-09-17 — o que falta para terminar o projeto
+
+**Pedido exato do usuário:** `"o que falta para terminar o projeto"`.
+
+**Verificação executada antes da resposta:**
+
+- `main` continua no merge técnico do PR #194, SHA `a11f9bce3c5675263545b2e5e3ebb42b421cef21`.
+- Fetch público sem cache confirmou `/health/ready` com `status=ready` e `database=ok`.
+- Fetch público de `/v1/deployment` confirmou SHA `a11f9bce3c5675263545b2e5e3ebb42b421cef21` e deployment `20e86731-0350-4675-ab20-c6032a8b34a7`.
+- PR #195, que mantém toda a conversa no mesmo documento central, está aberto/mergeable e seu CI run `35289385990` concluiu `success` antes desta nova entrada.
+- Reauditoria corrigiu gaps históricos: PR #186 está mergeado e fechou o gate backend/CI do ciclo completo de identidade e isolamento; PR #187 está mergeado e adicionou a superfície de convites/equipe; PR #188 está mergeado e fechou a recuperação controlada de publicação incerta sem reenvio.
+- PR #194 está mergeado e prova em uma única jornada controlada o encadeamento recomendação → draft → revisão → aprovação → intenção → execução controlada → métrica → experimento → aprendizagem. Essa prova não equivale a postagem real no provedor.
+
+**Pendências reais restantes para declarar o projeto 100% concluído/frozen:**
+
+1. Produzir evidência final de operação com provedor real nas partes que dependem de conta/permissões externas, especialmente publicação controlada real, somente com conteúdo e conta explicitamente aprovados e confirmação do provedor; validar também estados reais de falha/recuperação quando aplicáveis.
+2. Executar a aceitação final de produção autenticada no runtime aceito, consolidando frontend → API autenticada → dados reais → resultado esperado para as jornadas críticas que ainda dependem de evidência live, sem usar fixtures como prova factual.
+3. Fazer a comparação visual competitiva same-task e o freeze visual final conforme `docs/DESIGN_QUALITY_BENCHMARK_V0.2.md`.
+4. Consolidar o pacote final de evidências e executar a revisão adversarial final pelo Claude, conforme a governança definida pelo usuário; Claude não é micro-gate intermediário.
+5. Rodar o Production Truth Gate final no SHA aceito e congelar versão/documentação somente depois dos gates aplicáveis ou de limitações externas explicitamente documentadas.
+6. Atualizar os checkpoints de status que ficaram historicamente defasados para refletir PRs #186–#194 e a aceitação pública atual, sem apagar o histórico.
+
+**Classificação atual:** núcleo funcional e ciclo controlado estão implementados/provados; o projeto ainda não pode ser chamado de 100% concluído porque faltam principalmente evidência live de provedor, aceitação/freeze visual, revisão adversarial final e freeze consolidado.
