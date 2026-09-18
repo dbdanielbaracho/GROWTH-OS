@@ -62,6 +62,14 @@ async function principalOrReply(request: FastifyRequest, reply: FastifyReply) {
 
 async function integrationError(app: FastifyInstance, reply: FastifyReply, error: unknown) {
   if (error instanceof YoutubeConnectorError) {
+    app.log.warn(
+      {
+        provider: "youtube",
+        connectorCode: error.code,
+        httpStatus: error.httpStatus
+      },
+      "youtube connector request failed"
+    );
     return reply.code(error.httpStatus).send({ status: error.code });
   }
   if (pgCode(error) === "P0001" || pgCode(error) === "23505" || pgCode(error) === "23503") {

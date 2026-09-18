@@ -585,6 +585,48 @@ const steps = [
       return result.rows[0].present;
     },
   },
+  {
+    file: '066_experiment_runtime_owner_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.opportunities', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.opportunity_evidence', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.hypotheses', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.hypotheses', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'UPDATE')
+          and not has_table_privilege('app_runtime', 'growth.hypotheses', 'INSERT')
+          and not has_table_privilege('app_runtime', 'growth.experiments', 'INSERT')
+          and not has_table_privilege('app_runtime', 'growth.experiments', 'UPDATE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '067_experiment_variant_status_qualification.sql',
+    present: async () => {
+      const signature = 'growth.add_experiment_variant(uuid,uuid,text,jsonb)';
+      if (!(await functionExists(signature))) return false;
+
+      const result = await client.query(`
+        select
+          has_function_privilege('app_runtime', $1::regprocedure, 'EXECUTE')
+          and position(
+            'and e.status = ''draft'''
+            in lower(pg_get_functiondef($1::regprocedure))
+          ) > 0
+          and position(
+            'and status = ''draft'''
+            in lower(pg_get_functiondef($1::regprocedure))
+          ) = 0
+          as present
+      `, [signature]);
+      return result.rows[0].present;
+    },
+  },
 
 ];
 

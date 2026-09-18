@@ -4,13 +4,14 @@
 
 Every request to continue this project, including repeated or abbreviated requests, must receive a separate dated entry in `docs/PROJECT_EXECUTION_MEMORY.md`. Record the exact available request text, verified starting point, every performed action/attempt/check/correction, actual result, any blocker and the next pending action. Consult the last entry before resuming and update the central record during work and before ending the response. A request is not execution evidence. Preserve repetitions and history; never invent unavailable messages, timestamps or results, and never reproduce secrets. Full standing instruction: central memory, “Regra permanente — registrar cada pedido de continuação — v1.0 — 2026-09-15”.
 
-Last updated: 2026-09-16  
+Last updated: 2026-09-18
 Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.
 
 ## Repository and lineage
 
 - Repository: `dbdanielbaracho/GROWTH-OS`.
-- Current accepted application runtime after PR #182: `d2794e8286672af0fcf7809f0b09241d89b8b0d4`. Prior PR #180/#173 runtime evidence is preserved below. Documentation-only main commits must be tracked separately.
+- Current accepted application runtime after PR #194: `a11f9bce3c5675263545b2e5e3ebb42b421cef21`. Prior runtime evidence is preserved below. Documentation-only main commits must be tracked separately.
+- Current repository head after documentation PR #195: `bbc1d4b84b85734eebb40e4088a49e26662da72b`; Watch Paths correctly leave the accepted application runtime on PR #194 because #195 changed documentation only.
 - PR #173, `test: add cross-browser responsive accessibility gate`, is merged; its historical production SHA is recorded below. PR #182 is the current accepted application runtime.
 - Documentation-only commits after the accepted runtime SHA must be tracked separately from serving runtime identity. Railway Watch Paths are configured and physically proven to filter docs-only changes.
 - Historical stale PRs #29, #38, #49 and #65 were closed without merge after their valid work was proven already present or safely ported.
@@ -43,6 +44,17 @@ Canonical services:
 - `migrator`
 - Postgres
 - `growth-os-publication-worker`
+
+Current accepted application evidence after PR #194 (2026-09-18 rechecked):
+
+- runtime SHA: `a11f9bce3c5675263545b2e5e3ebb42b421cef21`;
+- application deployment `20e86731-0350-4675-ab20-c6032a8b34a7`: SUCCESS;
+- public `/health/ready`: ready/database ok;
+- public `/v1/deployment`: exact runtime SHA/deployment identity confirmed before this continuation;
+- authenticated production session: workspace `Crescimento`, one real Instagram opportunity, 20 stored evidence items, one confirmed insight and real provider panels loaded;
+- Instagram status: connected Business account, publishing enabled for the authorized test account, eight media and sixteen direct metrics visible;
+- YouTube status: connected/live, but a fresh seven-day sync returned HTTP 502 and remains a real-provider blocker under diagnosis;
+- experiment planner: `GET /v1/experiments` returned HTTP 403; Railway recorded SQLSTATE `42501`, `permission denied for table experiments`, inside `growth.list_experiments`. Migration 066 / gate 068 are the privilege correction. The first canonical CI execution then exposed an existing ambiguous `status` predicate in `add_experiment_variant`; migration 067 qualifies the target table. The combined candidate is not yet accepted or deployed.
 
 Current accepted application evidence after PR #180 (2026-09-16):
 
@@ -131,7 +143,7 @@ Operational rule: distinguish repository head from serving runtime SHA. At final
 
 ## Canonical database state
 
-Production migration reconciliation is confirmed through migration 060.
+Production migration reconciliation is confirmed through migration 065. Migrations 066–067 are candidates only until exact-head CI, merge and migrator evidence pass.
 
 - Identity/provider foundations: 006, 009, 014–021.
 - Publication contracts/operations: 022–032.
@@ -141,6 +153,9 @@ Production migration reconciliation is confirmed through migration 060.
 - Publication worker principal/security reconciliation: 056–058.
 - Safe publication queue-status projection: 059.
 - Publication reconciliation runtime privileges: 060.
+- Authority/identity runtime reconciliation: 061–062.
+- Experiment outcome and evidence-backed recommendation loop: 063–064.
+- Explicit content review submission: 065.
 
 Current production migrator proof on deployment `1c80b068-cb44-4b65-9e13-b64538c61211`:
 
@@ -195,6 +210,8 @@ Growth OS is materially advanced but is not yet legitimately 100% complete.
 3. **Same-task competitive visual comparison and final visual freeze.** Automated responsive/accessibility/cross-browser coverage is closed; competitive/final visual acceptance remains separate.
 4. **Final consolidated adversarial review** only at the project/freeze gate. Claude is not an intermediate micro-gate and must not be claimed as completed without an actual review.
 5. **Final Production Truth Gate authenticated/data chain**: exact public runtime SHA, deployment and health are proven. Native authenticated read paths for Radar/provider/content/analytics and expected panel behavior passed in PR #180 and remain available after PR #182. Remaining write/isolation/provider chains and final consolidated acceptance are still open; controlled fixtures are never factual production evidence.
+6. **Live experiment runtime regression**: production currently denies `growth.list_experiments` because the SECURITY DEFINER owner lacks the required base-table privileges. Candidate migrations 066–067 and gate 068 must pass and be proven in production; gate 068 already caught the pre-existing ambiguous `status` predicate before promotion.
+7. **YouTube live sync regression/external response**: connected status succeeds, but the current seven-day sync returns HTTP 502. The next runtime adds non-secret connector-code logging so the failure can be classified and corrected without exposing credentials.
 
 ## Next execution order
 

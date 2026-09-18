@@ -4765,3 +4765,26 @@ Regras de registro:
 6. Atualizar os checkpoints de status que ficaram historicamente defasados para refletir PRs #186–#194 e a aceitação pública atual, sem apagar o histórico.
 
 **Classificação atual:** núcleo funcional e ciclo controlado estão implementados/provados; o projeto ainda não pode ser chamado de 100% concluído porque faltam principalmente evidência live de provedor, aceitação/freeze visual, revisão adversarial final e freeze consolidado.
+
+
+## Continuação exata — `"continuar até terminar"` — 2026-09-18
+
+**Ponto de retomada verificado:** PR #195 estava aberto no head `567bf13ecf0b8807e4e0338959bec98306121eda`; CI run `35293185620` havia concluído `success`. O PR foi mesclado exatamente como `bbc1d4b84b85734eebb40e4088a49e26662da72b`. O runtime aceito continuou corretamente no merge técnico do PR #194, SHA `a11f9bce3c5675263545b2e5e3ebb42b421cef21`, deployment app `20e86731-0350-4675-ab20-c6032a8b34a7`, porque o PR #195 alterou somente documentação.
+
+**Aceitação autenticada executada:** a sessão segura foi restabelecida em `https://growos.predibeacon.com`. O workspace `Crescimento` carregou uma oportunidade Instagram real com score 75.6, vinte evidências persistidas e insight confirmado de curtidas 25,6% acima do baseline recente. Instagram e YouTube apareceram conectados/live. O painel Instagram mostrou conta Business autorizada, publicação habilitada para a conta de teste, oito mídias e dezesseis métricas diretas; a listagem real de oito publicações carregou com metadados e observações.
+
+**Defeito real 1 — experimentos:** o planejador exibiu `The stored experiment could not be loaded`. Railway provou `GET /v1/experiments` HTTP 403 e SQLSTATE `42501`, `permission denied for table experiments`, dentro de `growth.list_experiments`. A causa é a diferença entre EXECUTE da função SECURITY DEFINER e os privilégios ausentes do owner `growth_migrator` nas tabelas-base.
+
+**Correção candidata:** branch `fix/experiment-runtime-owner-privileges`, migration `066_experiment_runtime_owner_privileges.sql`, gate `068_experiment_runtime_owner_privileges.sql`, registro no reconciliador e CI. A migration concede ao owner somente SELECT nas fontes e SELECT/INSERT/UPDATE necessários em hipóteses/experimentos; `app_runtime` continua sem escrita direta. O gate reproduz listagem, criação, variante e feedback através de `app_runtime` com tenant/evidência reais de teste. Typecheck, build e 54 testes unitários via `node --import tsx --test` passaram localmente; o comando npm/tsx padrão não pôde criar seu socket IPC neste ambiente local, portanto a CI canônica continua obrigatória.
+
+**Defeito real 2 — YouTube:** a sincronização live de sete dias foi executada e retornou HTTP 502; a UI preservou o estado conectado e apresentou retry. O runtime anterior não registrava o código não secreto de `YoutubeConnectorError`, então a branch adiciona log estruturado limitado a provider, connectorCode e httpStatus, sem token, credencial, URL ou payload. A documentação oficial vigente confirma que `engagedViews` é métrica core e que relatórios de atividade por dia suportam a combinação de métricas usada; não foi removida nenhuma métrica por suposição.
+
+**Limites preservados:** nenhuma publicação externa foi criada; nenhuma autorização para post real foi inferida; nenhum token/segredo foi lido ou gravado; o PR corretivo, CI, merge, migration 066 e revalidação de produção ainda não são reivindicados nesta entrada.
+
+### Continuação — PR #196 e falha útil do gate 068 — 2026-09-18
+
+**Pedido do usuário:** `continuar`.
+
+O commit local candidato foi publicado pela conexão autenticada do GitHub no branch `fix/experiment-runtime-owner-privileges`, PR #196, head `33fd94e2c19ea829b092ce7cb8e8cb9bae436301`. O run CI #1251 (`35294820468`) passou integridade, hardening, typecheck, build, navegador e todos os gates SQL anteriores, mas bloqueou corretamente no novo gate 068.
+
+O gate provou que `growth.list_experiments` já executa após a migration 066 e então encontrou uma segunda falha real no primeiro caminho de criação de variante: `growth.add_experiment_variant` possuía `AND status = 'draft'`, ambíguo entre a coluna e a variável de saída PL/pgSQL `status`. Nenhum merge ou deploy foi feito. A correção forward-only é a migration 067, que reinstala a mesma função/boundary com alias explícito `e.status`, preserva owner, `SECURITY DEFINER`, search path e EXECUTE apenas pelo helper, registra a presença no reconciliador de produção e mantém o gate 068 como prova ponta a ponta. Um novo head e uma CI completa são obrigatórios.
