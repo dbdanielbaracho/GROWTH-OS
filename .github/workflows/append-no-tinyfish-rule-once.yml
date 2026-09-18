@@ -21,31 +21,11 @@ jobs:
       - name: Append central memory rule
         shell: bash
         run: |
-          cat >> docs/PROJECT_EXECUTION_MEMORY.md <<'EOF'
-
-### Regra operacional adicional — 2026-09-18 — não usar TinyFish
-
-O usuário determinou explicitamente: `"nao vou usar o tinyfish"`. A partir desta instrução, TinyFish não deve ser usado nas próximas execuções do Growth OS. O run TinyFish já registrado acima permanece somente como evidência histórica do que ocorreu antes desta decisão e não autoriza novo uso. Testes futuros devem usar GitHub, Railway, CI, testes diretos disponíveis no chat ou interação manual do usuário quando uma sessão/autorização humana for indispensável.
-EOF
-
+          printf '%s' 'CgojIyMgUmVncmEgb3BlcmFjaW9uYWwgYWRpY2lvbmFsIOKAlCAyMDI2LTA5LTE4IOKAlCBuw6NvIHVzYXIgVGlueUZpc2gKCk8gdXN1w6FyaW8gZGV0ZXJtaW5vdSBleHBsaWNpdGFtZW50ZTogYCJuYW8gdm91IHVzYXIgbyB0aW55ZmlzaCJgLiBBIHBhcnRpciBkZXN0YSBpbnN0cnXDp8OjbywgVGlueUZpc2ggbsOjbyBkZXZlIHNlciB1c2FkbyBuYXMgcHLDs3hpbWFzIGV4ZWN1w6fDtWVzIGRvIEdyb3d0aCBPUy4gTyBydW4gVGlueUZpc2ggasOhIHJlZ2lzdHJhZG8gYWNpbWEgcGVybWFuZWNlIHNvbWVudGUgY29tbyBldmlkw6puY2lhIGhpc3TDs3JpY2EgZG8gcXVlIG9jb3JyZXUgYW50ZXMgZGVzdGEgZGVjaXPDo28gZSBuw6NvIGF1dG9yaXphIG5vdm8gdXNvLiBUZXN0ZXMgZnV0dXJvcyBkZXZlbSB1c2FyIEdpdEh1YiwgUmFpbHdheSwgQ0ksIHRlc3RlcyBkaXJldG9zIGRpc3BvbsOtdmVpcyBubyBjaGF0IG91IGludGVyYcOnw6NvIG1hbnVhbCBkbyB1c3XDoXJpbyBxdWFuZG8gdW1hIHNlc3PDo28vYXV0b3JpemHDp8OjbyBodW1hbmEgZm9yIGluZGlzcGVuc8OhdmVsLgo=' | base64 -d >> docs/PROJECT_EXECUTION_MEMORY.md
       - name: Add current-state rule
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('PROJECT_CURRENT_STATE.md')
-          t = p.read_text(encoding='utf-8')
-          anchor = '- Live authenticated YouTube retest after PR #197 remains OPEN.'
-          rule = '- Operational constraint from the user (2026-09-18): do not use TinyFish for Growth OS going forward; the prior TinyFish run is historical evidence only. Future authenticated provider checks must use another available path or explicit manual human interaction when authorization is indispensable.\n'
-          if rule not in t:
-              idx = t.find(anchor)
-              if idx < 0:
-                  raise SystemExit('anchor not found')
-              line_end = t.find('\n', idx)
-              t = t[:line_end+1] + rule + t[line_end+1:]
-          p.write_text(t, encoding='utf-8')
-          PY
-
+          python -c 'from pathlib import Path; import base64; p=Path("PROJECT_CURRENT_STATE.md"); t=p.read_text(encoding="utf-8"); a="- Live authenticated YouTube retest after PR #197 remains OPEN."; r=base64.b64decode("LSBPcGVyYXRpb25hbCBjb25zdHJhaW50IGZyb20gdGhlIHVzZXIgKDIwMjYtMDktMTgpOiBkbyBub3QgdXNlIFRpbnlGaXNoIGZvciBHcm93dGggT1MgZ29pbmcgZm9yd2FyZDsgdGhlIHByaW9yIFRpbnlGaXNoIHJ1biBpcyBoaXN0b3JpY2FsIGV2aWRlbmNlIG9ubHkuIEZ1dHVyZSBhdXRoZW50aWNhdGVkIHByb3ZpZGVyIGNoZWNrcyBtdXN0IHVzZSBhbm90aGVyIGF2YWlsYWJsZSBwYXRoIG9yIGV4cGxpY2l0IG1hbnVhbCBodW1hbiBpbnRlcmFjdGlvbiB3aGVuIGF1dGhvcml6YXRpb24gaXMgaW5kaXNwZW5zYWJsZS4K").decode(); i=t.find(a); assert i>=0 or r in t; e=t.find("\n",i) if i>=0 else -1; p.write_text(t if r in t else t[:e+1]+r+t[e+1:],encoding="utf-8")'
       - name: Commit rule
         shell: bash
         run: |
