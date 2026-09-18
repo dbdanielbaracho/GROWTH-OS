@@ -1,0 +1,57 @@
+name: Append no-TinyFish operating rule once
+
+on:
+  push:
+    branches:
+      - docs/continuation-pr197-production-20260918
+    paths:
+      - .github/workflows/append-no-tinyfish-rule-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  append-rule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/continuation-pr197-production-20260918
+          fetch-depth: 0
+      - name: Append central memory rule
+        shell: bash
+        run: |
+          cat >> docs/PROJECT_EXECUTION_MEMORY.md <<'EOF'
+
+### Regra operacional adicional — 2026-09-18 — não usar TinyFish
+
+O usuário determinou explicitamente: `"nao vou usar o tinyfish"`. A partir desta instrução, TinyFish não deve ser usado nas próximas execuções do Growth OS. O run TinyFish já registrado acima permanece somente como evidência histórica do que ocorreu antes desta decisão e não autoriza novo uso. Testes futuros devem usar GitHub, Railway, CI, testes diretos disponíveis no chat ou interação manual do usuário quando uma sessão/autorização humana for indispensável.
+EOF
+
+      - name: Add current-state rule
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('PROJECT_CURRENT_STATE.md')
+          t = p.read_text(encoding='utf-8')
+          anchor = '- Live authenticated YouTube retest after PR #197 remains OPEN.'
+          rule = '- Operational constraint from the user (2026-09-18): do not use TinyFish for Growth OS going forward; the prior TinyFish run is historical evidence only. Future authenticated provider checks must use another available path or explicit manual human interaction when authorization is indispensable.\n'
+          if rule not in t:
+              idx = t.find(anchor)
+              if idx < 0:
+                  raise SystemExit('anchor not found')
+              line_end = t.find('\n', idx)
+              t = t[:line_end+1] + rule + t[line_end+1:]
+          p.write_text(t, encoding='utf-8')
+          PY
+
+      - name: Commit rule
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/PROJECT_EXECUTION_MEMORY.md PROJECT_CURRENT_STATE.md
+          git diff --cached --check
+          git commit -m "docs: record no-TinyFish operating rule"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
