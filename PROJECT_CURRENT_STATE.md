@@ -7,6 +7,25 @@ Every request to continue this project, including repeated or abbreviated reques
 Last updated: 2026-09-18
 Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.
 
+
+## Current accepted checkpoint — 2026-09-18 — PR #197 runtime
+
+This section supersedes older statements labeled “current” below while preserving them as historical evidence.
+
+- Repository technical baseline and accepted application runtime: `ba7c5be3d9f3537e863e1adb728209b97b18124c` (merge of PR #197).
+- PR #197 head `59f3226f7c0a23e649368d1cd5d65b93fb6fc76a`; head CI #1254 (`35303773340`) SUCCESS.
+- Merged-main CI #1255 (`35365367278`) SUCCESS, including the canonical final Test step.
+- Railway canonical project/environment: `successful-embrace` / `production`.
+- App deployment `b0207fab-6403-44a3-8059-4076481298db`: SUCCESS on the exact merge SHA; startup verified the same commit/deployment identity and `/health/ready` returned HTTP 200.
+- Publication worker deployment `7fa183c7-0dea-4435-980d-3c5748ce9a27`: SUCCESS on the exact merge SHA.
+- Migrator event `42a7e9f2-b86c-453c-8005-8bb358276460`: SKIPPED as expected because PR #197 contains no migration change.
+- Experiment runtime regression is CLOSED by PR #196: production migrations 066–067 were applied and authenticated `GET /v1/experiments` returned HTTP 200.
+- YouTube recovery implementation is deployed by PR #197: refresh-token 400/401/403 can map to `youtube_reauthorization_required`, provider reauthorization is kept distinct from Growth OS session expiry, and the UI exposes `Reconnect YouTube`.
+- Live authenticated YouTube retest after PR #197 remains OPEN. TinyFish run `64332d36-6231-452d-8c24-9633f16a2e49` reached the signed-out Growth OS login and stopped without credentials, so no post-PR #197 provider result is claimed.
+- Operational constraint from the user (2026-09-18): do not use TinyFish for Growth OS going forward; the prior TinyFish run is historical evidence only. Future authenticated provider checks must use another available path or explicit manual human interaction when authorization is indispensable.
+
+Remaining final acceptance work is evidence-bounded: obtain/reuse a valid authenticated production session and run one real seven-day YouTube sync; controlled real-provider publication only with explicitly approved content/account and provider confirmation; remaining authenticated write/isolation/provider portions of the Production Truth Gate; same-task competitive visual comparison/final visual freeze; final consolidated adversarial review; then freeze only after all applicable gates pass or an external limitation is explicitly documented.
+
 ## Repository and lineage
 
 - Repository: `dbdanielbaracho/GROWTH-OS`.

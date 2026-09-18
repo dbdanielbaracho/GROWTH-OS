@@ -4794,3 +4794,38 @@ O gate provou que `growth.list_experiments` já executa após a migration 066 e 
 O head final do PR #196, `47606f0d27cb5ad5e544fad18583d2bb4875cef6`, passou o run CI #1252 (`35302761883`) integralmente, incluindo gate 068. O merge protegido gerou `566c34a0efce2c7a3fa5c92f40531074473d054b`; o CI de `main` #1253 (`35303108432`) também terminou `success`. Railway aplicou explicitamente migrations 066 e 067 no deployment migrator `de22f92e-1bcf-4563-8155-8c52817e316e`, com os smokes de fila, reconciliação e cancelamento em PASS. Worker `9aa65a31-66ef-48f4-bf78-52aa13f49966` e app `52d404c6-ba2b-46b0-a8f9-2526f83ed3ee` terminaram SUCCESS no mesmo merge.
 
 Após reload autenticado, `GET /v1/experiments` retornou HTTP 200, o alerta anterior desapareceu e o formulário real de experimento carregou: a regressão de experimentos está fechada. O reteste YouTube executou `POST /v1/integrations/youtube/sync`, retornou 502 e o novo log seguro registrou `youtube_provider_request_failed`. Esse código ainda agrega rejeições 4xx de operações distintas; o follow-up separa `token_refresh`, `authorization_code_exchange`, `channel_lookup` e `analytics_report`, registra somente operação/status, mapeia refresh 400/401/403 para `youtube_reauthorization_required` e corrige a UI para mostrar renovação e `Reconnect YouTube` em vez de confundir o 401 do provedor com sessão Growth OS expirada. Nenhum payload, token, URL ou segredo é registrado.
+
+
+
+## Continuação registrada — 2026-09-18 — fechamento do PR #197 e bloqueio do reteste autenticado YouTube
+
+**Pedidos exatos do usuário nesta retomada:**
+
+- `"verificar aonde parou no continuação do projeto"`
+- `"continuar então de onde parou não esquecer de consultar a documentação do github e verificar tambem as conversas"`
+
+**Fontes consultadas antes e durante a execução:** o documento central `docs/PROJECT_EXECUTION_MEMORY.md`, `PROJECT_CURRENT_STATE.md`, o benchmark de design e o histórico recuperado das conversas do Growth OS. As fontes convergiram no mesmo ponto técnico: PR #196 já havia fechado a regressão de experimentos e o PR #197 era o follow-up ativo para diagnosticar/recuperar a autorização YouTube.
+
+**Ponto verificado de retomada:** PR #197 `fix: recover expired YouTube authorization`, head `59f3226f7c0a23e649368d1cd5d65b93fb6fc76a`, mergeable, sem comentários pendentes e com CI de head #1254 (`35303773340`) concluída com `success`.
+
+**Execução e evidência:**
+
+1. PR #197 mesclado com o head esperado; merge commit `ba7c5be3d9f3537e863e1adb728209b97b18124c`.
+2. CI de `main` #1255 (`35365367278`) concluída com `success`, incluindo o passo final `Test` e os gates canônicos.
+3. Railway canônico `successful-embrace` / `production`:
+   - migrator event `42a7e9f2-b86c-453c-8005-8bb358276460`: `SKIPPED`, esperado porque o PR #197 não contém migrations;
+   - worker deployment `7fa183c7-0dea-4435-980d-3c5748ce9a27`: `SUCCESS` no merge exato;
+   - app deployment `b0207fab-6403-44a3-8059-4076481298db`: `SUCCESS` no merge exato.
+4. Logs do app registraram a identidade Railway exata do commit/deployment, processo em porta 8080 e `GET /health/ready` HTTP 200.
+5. Tentativa bounded de validação autenticada via TinyFish, run `64332d36-6231-452d-8c24-9633f16a2e49`, com perfil persistente habilitado e sem Vault: o perfil chegou à tela de login desautenticada e interrompeu corretamente sem inserir credenciais. Nenhum sync YouTube pós-PR #197 foi executado; portanto nenhum resultado de reautorização/provedor é reivindicado.
+
+**Resultado:** a correção do PR #197 está integrada, com CI de `main` verde e runtime de produção confirmado no SHA exato `ba7c5be3d9f3537e863e1adb728209b97b18124c`. A regressão de experimentos permanece fechada pelo PR #196: migrations 066–067 foram aplicadas anteriormente e o `GET /v1/experiments` autenticado foi comprovado em HTTP 200. O único gate YouTube desta sequência que permanece aberto é o reteste autenticado real após o PR #197.
+
+**Limites preservados:** nenhuma credencial, token, MFA, consentimento Google, publicação externa, alteração de conteúdo ou migration nova foi executada nesta continuação. O run TinyFish desautenticado não é usado como prova do comportamento real do provedor.
+
+**Próximo ponto exato:** obter/reusar uma sessão autenticada válida de produção sem transferir cookies/credenciais; executar exatamente um sync YouTube de 7 dias. Se retornar `youtube_reauthorization_required`, a próxima etapa dependente é a reautorização explícita do usuário no Google; se retornar outra operação/status, diagnosticar somente a falha correspondente. Depois continuar, sem inferência, os gates finais de publicação real autorizada, comparação visual same-task/freeze, revisão adversarial final e Production Truth Gate consolidado.
+
+
+### Regra operacional adicional — 2026-09-18 — não usar TinyFish
+
+O usuário determinou explicitamente: `"nao vou usar o tinyfish"`. A partir desta instrução, TinyFish não deve ser usado nas próximas execuções do Growth OS. O run TinyFish já registrado acima permanece somente como evidência histórica do que ocorreu antes desta decisão e não autoriza novo uso. Testes futuros devem usar GitHub, Railway, CI, testes diretos disponíveis no chat ou interação manual do usuário quando uma sessão/autorização humana for indispensável.
