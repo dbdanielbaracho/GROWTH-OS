@@ -16,10 +16,15 @@ for (let number = 1; number <= 38; number += 1) {
 }
 
 const workflow = await readFile(join(root, ".github", "workflows", "ci.yml"), "utf8");
-for (const gate of ["053_experiment_lineage.sql", "054_automation_policy_control.sql", "055_commercial_entitlements.sql", "069_automation_action_execution.sql"]) {
+for (const gate of ["053_experiment_lineage.sql", "054_automation_policy_control.sql", "055_commercial_entitlements.sql"]) {
   if (!workflow.includes(gate)) {
     throw new Error("release hardening: CI is missing " + gate);
   }
+}
+
+const automationGate = await readFile(join(root, "db", "tests", "054_automation_policy_control.sql"), "utf8");
+if (!automationGate.includes("069_automation_action_execution.sql")) {
+  throw new Error("release hardening: canonical automation CI step does not chain execution gate 069");
 }
 
 const automationExecution = await readFile(join(migrationDir, "068_automation_action_execution.sql"), "utf8");
