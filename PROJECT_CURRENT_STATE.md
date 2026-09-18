@@ -22,6 +22,7 @@ This section supersedes older statements labeled “current” below while prese
 - Experiment runtime regression is CLOSED by PR #196: production migrations 066–067 were applied and authenticated `GET /v1/experiments` returned HTTP 200.
 - YouTube recovery implementation is deployed by PR #197: refresh-token 400/401/403 can map to `youtube_reauthorization_required`, provider reauthorization is kept distinct from Growth OS session expiry, and the UI exposes `Reconnect YouTube`.
 - Live authenticated YouTube retest after PR #197 remains OPEN. TinyFish run `64332d36-6231-452d-8c24-9633f16a2e49` reached the signed-out Growth OS login and stopped without credentials, so no post-PR #197 provider result is claimed.
+- Operational constraint from the user (2026-09-18): do not use TinyFish for Growth OS going forward; the prior TinyFish run is historical evidence only. Future authenticated provider checks must use another available path or explicit manual human interaction when authorization is indispensable.
 
 Remaining final acceptance work is evidence-bounded: obtain/reuse a valid authenticated production session and run one real seven-day YouTube sync; controlled real-provider publication only with explicitly approved content/account and provider confirmation; remaining authenticated write/isolation/provider portions of the Production Truth Gate; same-task competitive visual comparison/final visual freeze; final consolidated adversarial review; then freeze only after all applicable gates pass or an external limitation is explicitly documented.
 

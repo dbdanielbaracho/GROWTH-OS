@@ -4824,3 +4824,8 @@ Após reload autenticado, `GET /v1/experiments` retornou HTTP 200, o alerta ante
 **Limites preservados:** nenhuma credencial, token, MFA, consentimento Google, publicação externa, alteração de conteúdo ou migration nova foi executada nesta continuação. O run TinyFish desautenticado não é usado como prova do comportamento real do provedor.
 
 **Próximo ponto exato:** obter/reusar uma sessão autenticada válida de produção sem transferir cookies/credenciais; executar exatamente um sync YouTube de 7 dias. Se retornar `youtube_reauthorization_required`, a próxima etapa dependente é a reautorização explícita do usuário no Google; se retornar outra operação/status, diagnosticar somente a falha correspondente. Depois continuar, sem inferência, os gates finais de publicação real autorizada, comparação visual same-task/freeze, revisão adversarial final e Production Truth Gate consolidado.
+
+
+### Regra operacional adicional — 2026-09-18 — não usar TinyFish
+
+O usuário determinou explicitamente: `"nao vou usar o tinyfish"`. A partir desta instrução, TinyFish não deve ser usado nas próximas execuções do Growth OS. O run TinyFish já registrado acima permanece somente como evidência histórica do que ocorreu antes desta decisão e não autoriza novo uso. Testes futuros devem usar GitHub, Railway, CI, testes diretos disponíveis no chat ou interação manual do usuário quando uma sessão/autorização humana for indispensável.
