@@ -1,0 +1,100 @@
+name: Append Growth OS continuation record once
+
+on:
+  push:
+    branches:
+      - docs/continuation-pr197-production-20260918
+    paths:
+      - .github/workflows/append-growth-os-memory-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  append-record:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout continuation branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/continuation-pr197-production-20260918
+          fetch-depth: 0
+
+      - name: Append central memory and reconcile current checkpoint
+        shell: bash
+        run: |
+          cat >> docs/PROJECT_EXECUTION_MEMORY.md <<'EOF'
+
+
+## Continuação registrada — 2026-09-18 — fechamento do PR #197 e bloqueio do reteste autenticado YouTube
+
+**Pedidos exatos do usuário nesta retomada:**
+
+- `"verificar aonde parou no continuação do projeto"`
+- `"continuar então de onde parou não esquecer de consultar a documentação do github e verificar tambem as conversas"`
+
+**Fontes consultadas antes e durante a execução:** o documento central `docs/PROJECT_EXECUTION_MEMORY.md`, `PROJECT_CURRENT_STATE.md`, o benchmark de design e o histórico recuperado das conversas do Growth OS. As fontes convergiram no mesmo ponto técnico: PR #196 já havia fechado a regressão de experimentos e o PR #197 era o follow-up ativo para diagnosticar/recuperar a autorização YouTube.
+
+**Ponto verificado de retomada:** PR #197 `fix: recover expired YouTube authorization`, head `59f3226f7c0a23e649368d1cd5d65b93fb6fc76a`, mergeable, sem comentários pendentes e com CI de head #1254 (`35303773340`) concluída com `success`.
+
+**Execução e evidência:**
+
+1. PR #197 mesclado com o head esperado; merge commit `ba7c5be3d9f3537e863e1adb728209b97b18124c`.
+2. CI de `main` #1255 (`35365367278`) concluída com `success`, incluindo o passo final `Test` e os gates canônicos.
+3. Railway canônico `successful-embrace` / `production`:
+   - migrator event `42a7e9f2-b86c-453c-8005-8bb358276460`: `SKIPPED`, esperado porque o PR #197 não contém migrations;
+   - worker deployment `7fa183c7-0dea-4435-980d-3c5748ce9a27`: `SUCCESS` no merge exato;
+   - app deployment `b0207fab-6403-44a3-8059-4076481298db`: `SUCCESS` no merge exato.
+4. Logs do app registraram a identidade Railway exata do commit/deployment, processo em porta 8080 e `GET /health/ready` HTTP 200.
+5. Tentativa bounded de validação autenticada via TinyFish, run `64332d36-6231-452d-8c24-9633f16a2e49`, com perfil persistente habilitado e sem Vault: o perfil chegou à tela de login desautenticada e interrompeu corretamente sem inserir credenciais. Nenhum sync YouTube pós-PR #197 foi executado; portanto nenhum resultado de reautorização/provedor é reivindicado.
+
+**Resultado:** a correção do PR #197 está integrada, com CI de `main` verde e runtime de produção confirmado no SHA exato `ba7c5be3d9f3537e863e1adb728209b97b18124c`. A regressão de experimentos permanece fechada pelo PR #196: migrations 066–067 foram aplicadas anteriormente e o `GET /v1/experiments` autenticado foi comprovado em HTTP 200. O único gate YouTube desta sequência que permanece aberto é o reteste autenticado real após o PR #197.
+
+**Limites preservados:** nenhuma credencial, token, MFA, consentimento Google, publicação externa, alteração de conteúdo ou migration nova foi executada nesta continuação. O run TinyFish desautenticado não é usado como prova do comportamento real do provedor.
+
+**Próximo ponto exato:** obter/reusar uma sessão autenticada válida de produção sem transferir cookies/credenciais; executar exatamente um sync YouTube de 7 dias. Se retornar `youtube_reauthorization_required`, a próxima etapa dependente é a reautorização explícita do usuário no Google; se retornar outra operação/status, diagnosticar somente a falha correspondente. Depois continuar, sem inferência, os gates finais de publicação real autorizada, comparação visual same-task/freeze, revisão adversarial final e Production Truth Gate consolidado.
+EOF
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('PROJECT_CURRENT_STATE.md')
+          text = path.read_text(encoding='utf-8')
+          marker = 'Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.\n'
+          heading = '## Current accepted checkpoint — 2026-09-18 — PR #197 runtime'
+          block = '''
+
+## Current accepted checkpoint — 2026-09-18 — PR #197 runtime
+
+This section supersedes older statements labeled “current” below while preserving them as historical evidence.
+
+- Repository technical baseline and accepted application runtime: `ba7c5be3d9f3537e863e1adb728209b97b18124c` (merge of PR #197).
+- PR #197 head `59f3226f7c0a23e649368d1cd5d65b93fb6fc76a`; head CI #1254 (`35303773340`) SUCCESS.
+- Merged-main CI #1255 (`35365367278`) SUCCESS, including the canonical final Test step.
+- Railway canonical project/environment: `successful-embrace` / `production`.
+- App deployment `b0207fab-6403-44a3-8059-4076481298db`: SUCCESS on the exact merge SHA; startup verified the same commit/deployment identity and `/health/ready` returned HTTP 200.
+- Publication worker deployment `7fa183c7-0dea-4435-980d-3c5748ce9a27`: SUCCESS on the exact merge SHA.
+- Migrator event `42a7e9f2-b86c-453c-8005-8bb358276460`: SKIPPED as expected because PR #197 contains no migration change.
+- Experiment runtime regression is CLOSED by PR #196: production migrations 066–067 were applied and authenticated `GET /v1/experiments` returned HTTP 200.
+- YouTube recovery implementation is deployed by PR #197: refresh-token 400/401/403 can map to `youtube_reauthorization_required`, provider reauthorization is kept distinct from Growth OS session expiry, and the UI exposes `Reconnect YouTube`.
+- Live authenticated YouTube retest after PR #197 remains OPEN. TinyFish run `64332d36-6231-452d-8c24-9633f16a2e49` reached the signed-out Growth OS login and stopped without credentials, so no post-PR #197 provider result is claimed.
+
+Remaining final acceptance work is evidence-bounded: obtain/reuse a valid authenticated production session and run one real seven-day YouTube sync; controlled real-provider publication only with explicitly approved content/account and provider confirmation; remaining authenticated write/isolation/provider portions of the Production Truth Gate; same-task competitive visual comparison/final visual freeze; final consolidated adversarial review; then freeze only after all applicable gates pass or an external limitation is explicitly documented.
+'''
+          if heading not in text:
+              if marker not in text:
+                  raise SystemExit('Current-state insertion marker not found')
+              text = text.replace(marker, marker + block, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit documentation record
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/PROJECT_EXECUTION_MEMORY.md PROJECT_CURRENT_STATE.md
+          git diff --cached --check
+          git commit -m "docs: record PR 197 production continuation"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
