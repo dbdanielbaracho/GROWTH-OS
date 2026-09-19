@@ -47,6 +47,49 @@ export type AutomationExecutionOutcome =
   | { status: "succeeded"; resultRef: string; errorClass: null }
   | { status: "needs_input"; resultRef: null; errorClass: "invalid_action_payload" | "evidence_unavailable" };
 
+export type AutomationPublicationClassification =
+  | { outcome: "confirmed"; errorClass: null }
+  | {
+      outcome: "needs_input";
+      errorClass:
+        | "publication_needs_user_action"
+        | "publication_terminal_without_confirmation"
+        | "publication_pending_confirmation";
+    }
+  | { outcome: "failed"; errorClass: "publication_status_unrecognized" };
+
+export function classifyAutomationPublicationStatus(
+  status: string
+): AutomationPublicationClassification {
+  if (status === "confirmed") {
+    return { outcome: "confirmed", errorClass: null };
+  }
+
+  if (status === "needs_user_action") {
+    return { outcome: "needs_input", errorClass: "publication_needs_user_action" };
+  }
+
+  if (status === "cancelled" || status === "superseded") {
+    return {
+      outcome: "needs_input",
+      errorClass: "publication_terminal_without_confirmation"
+    };
+  }
+
+  if ([
+    "ready",
+    "scheduled",
+    "queued",
+    "sending",
+    "failed_retryable",
+    "retrying"
+  ].includes(status)) {
+    return { outcome: "needs_input", errorClass: "publication_pending_confirmation" };
+  }
+
+  return { outcome: "failed", errorClass: "publication_status_unrecognized" };
+}
+
 function payloadNeedsInput(): AutomationExecutionOutcome {
   return { status: "needs_input", resultRef: null, errorClass: "invalid_action_payload" };
 }
