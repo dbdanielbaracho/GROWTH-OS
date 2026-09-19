@@ -139,6 +139,19 @@ export async function registerYoutubeRoutes(app: FastifyInstance): Promise<void>
       await completeYoutubeAuthorizationFromCallback(parsed.data.state, parsed.data.code);
       return reply.redirect("/?youtube=connected", 303);
     } catch (error) {
+      if (error instanceof YoutubeConnectorError) {
+        app.log.warn(
+          {
+            provider: "youtube",
+            connectorCode: error.code,
+            httpStatus: error.httpStatus,
+            providerOperation: error.providerOperation,
+            providerHttpStatus: error.providerHttpStatus
+          },
+          "youtube connector callback failed"
+        );
+        return reply.redirect(`/?youtube=${encodeURIComponent(error.code)}`, 303);
+      }
       return integrationError(app, reply, error);
     }
   });

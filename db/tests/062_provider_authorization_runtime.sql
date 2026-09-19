@@ -73,7 +73,24 @@ SELECT growth.youtube_begin_authorization(
   'c0000000-0000-4000-8000-000000000041'::uuid,
   ARRAY['https://www.googleapis.com/auth/youtube.readonly']::text[]
 ) AS connection_id
+\gset youtube_first_
+
+SELECT growth.youtube_begin_authorization(
+  'c0000000-0000-4000-8000-000000000041'::uuid,
+  ARRAY['https://www.googleapis.com/auth/youtube.readonly']::text[]
+) AS connection_id
 \gset youtube_
+
+SELECT count(*) = 1 AS youtube_single_authorizing
+FROM growth.youtube_integration_status()
+WHERE managed_account_id = 'c0000000-0000-4000-8000-000000000041'::uuid
+  AND connection_state = 'authorizing'
+\gset
+\if :youtube_single_authorizing
+\else
+  \echo 'TEST FAIL: YouTube authorization attempts were not superseded safely'
+  \quit 1
+\endif
 
 SELECT growth.instagram_complete_authorization(
   :'instagram_connection_id'::uuid,
