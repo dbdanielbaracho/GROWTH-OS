@@ -14,7 +14,14 @@ import { createDatabasePublicationExecutionStore } from "./publication-store.js"
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
 import { executePublicationIntent } from "./publication-worker.js";
 
-class AutomationPublicationNeedsInputError extends Error {}
+class AutomationPublicationNeedsInputError extends Error {
+  constructor(
+    readonly errorClass: string,
+    readonly resultRef: string
+  ) {
+    super(errorClass);
+  }
+}
 
 function safeExecutionErrorClass(request: AutomationActionRequest): string {
   switch (request.action_code) {
@@ -98,6 +105,7 @@ export async function executeApprovedAutomationRequest(
             idempotencyKey: payload.idempotency_key
           })
         );
+        const resultRef = `publication_intent:${intent.id}`;
 
         const store = createDatabasePublicationExecutionStore(principal, intent.id);
         await executePublicationIntent({
@@ -111,19 +119,26 @@ export async function executeApprovedAutomationRequest(
         const processed = publicationIntents.find((candidate) => candidate.id === intent.id);
         if (!processed) throw new Error("automation_publication_result_missing");
 
-        if (processed.status === "confirmed") {
-          return `publication_intent:${intent.id}`;
+        if (processed.status === "confirmed") return resultRef;
+
+        if (processed.status === "needs_user_action") {
+          throw new AutomationPublicationNeedsInputError(
+            "publication_needs_user_action",
+            resultRef
+          );
         }
 
-        if (
-          processed.status === "needs_user_action"
-          || processed.status === "cancelled"
-          || processed.status === "superseded"
-        ) {
-          throw new AutomationPublicationNeedsInputError("publication_needs_user_action");
+        if (processed.status === "cancelled" || processed.status === "superseded") {
+          throw new AutomationPublicationNeedsInputError(
+            "publication_terminal_without_confirmation",
+            resultRef
+          );
         }
 
-        throw new Error("automation_publication_not_confirmed");
+        throw new AutomationPublicationNeedsInputError(
+          "publication_pending_confirmation",
+          resultRef
+        );
       },
       multiplyVariant: async (payload) => {
         const variant = await withTenantTransaction(principal, (client) =>
@@ -150,7 +165,8 @@ export async function executeApprovedAutomationRequest(
       return await withTenantTransaction(principal, (client) =>
         finalizeAutomationActionExecution(client, principal, claimed.id, {
           executionStatus: "needs_input",
-          errorClass: "publication_needs_user_action"
+          resultRef: error.resultRef,
+          errorClass: error.errorClass
         })
       );
     }
