@@ -28,6 +28,37 @@ let safeResult: Record<string, unknown> = {
 };
 
 try {
+  const targetSummary = await admin.query<{
+    connection_state: string;
+    connection_count: number;
+    credential_count: number;
+    social_account_count: number;
+    error_class: string | null;
+  }>(
+    `select
+       pc.state as connection_state,
+       count(distinct pc.id)::int as connection_count,
+       count(distinct pcd.platform_connection_id)::int as credential_count,
+       count(distinct sa.id)::int as social_account_count,
+       max(pc.error_class) as error_class
+     from growth.workspaces w
+     join growth.platform_connections pc
+       on pc.workspace_id = w.id
+      and pc.platform = 'youtube'
+     left join growth.provider_credentials pcd
+       on pcd.workspace_id = pc.workspace_id
+      and pcd.platform_connection_id = pc.id
+      and pcd.provider = 'youtube'
+     left join growth.social_accounts sa
+       on sa.workspace_id = pc.workspace_id
+      and sa.platform_connection_id = pc.id
+      and sa.platform = 'youtube'
+     where lower(w.name) = lower($1)
+     group by pc.state
+     order by pc.state`,
+    [workspaceName]
+  );
+
   const discovered = await admin.query<{
     workspace_id: string;
     user_id: string;
@@ -56,38 +87,39 @@ try {
         and pc.platform = 'youtube'
        where lower(w.name) = lower($1)
          and w.status = 'active'
-         and pc.state in ('connected','degraded','reauth_required')
+         and pc.state = 'connected'
      )
      select workspace_id, user_id, connection_id, connection_state
        from candidates
       where membership_rank = 1
-      order by
-        case connection_state
-          when 'connected' then 0
-          when 'degraded' then 1
-          else 2
-        end,
-        updated_at desc
+      order by updated_at desc
       limit 1`,
     [workspaceName]
   );
 
   const target = discovered.rows[0];
   if (!target) {
+    const youtubeWorkspaces = await admin.query<{ workspace_name: string; states: string[] }>(
+      `select w.name as workspace_name, array_agg(distinct pc.state order by pc.state) as states
+         from growth.workspaces w
+         join growth.platform_connections pc
+           on pc.workspace_id = w.id
+          and pc.platform = 'youtube'
+        where w.status = 'active'
+        group by w.id, w.name
+        order by w.name`,
+      []
+    );
+
     safeResult = {
-      status: "no_connection",
+      status: "no_connected_connection",
       workspace: workspaceName,
       connectionFound: false,
-      reauthorizationRequired: false
+      targetConnectionStates: targetSummary.rows,
+      youtubeWorkspaces: youtubeWorkspaces.rows,
+      reauthorizationRequired: targetSummary.rows.some((row) => row.connection_state === "reauth_required")
     };
   } else {
-    safeResult = {
-      status: "connection_found",
-      workspace: workspaceName,
-      connectionFound: true,
-      connectionStateBefore: target.connection_state
-    };
-
     try {
       const result = await syncYoutubeAnalytics(
         { userId: target.user_id, workspaceId: target.workspace_id },
