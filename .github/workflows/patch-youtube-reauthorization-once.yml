@@ -1,0 +1,31 @@
+name: Patch YouTube reauthorization once
+
+on:
+  push:
+    branches:
+      - fix/youtube-reauthorization-in-place
+    paths:
+      - .github/workflows/patch-youtube-reauthorization-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/youtube-reauthorization-in-place
+          fetch-depth: 0
+      - name: Apply YouTube reauthorization patch
+        run: python .github/scripts/patch_youtube_reauthorization.py
+      - name: Validate patch
+        run: git diff --check
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/api/src/youtube-connector.ts apps/api/src/youtube-routes.ts apps/api/src/youtube-connector.test.ts apps/web/src/youtube-integration.tsx db/scripts/apply-production-migrations.mjs db/scripts/release-hardening-gate.mjs db/tests/062_provider_authorization_runtime.sql
+          git commit -m "fix: reauthorize YouTube connection in place"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
