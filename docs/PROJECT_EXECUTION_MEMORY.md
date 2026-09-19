@@ -4898,3 +4898,5 @@ Regras obrigatórias:
 - correção do Analytics para carregar e exibir alertas de qualidade realmente retornados pelo backend.
 
 **Limites externos que continuam fora de qualquer atalho de código:** OAuth humano Google/YouTube para a prova real pós-PR #200 e autorização explícita do usuário para qualquer publicação pública concreta. Esses gates não podem ser declarados concluídos sem a prova real.
+
+- CI #1300 (`35454381986`) no head `7f21ed9eafcc6aef260eb656e26dd1d7437ce45f` passou Test Integrity e Release Hardening, mas o TypeScript rejeitou o acesso a `data.experiments[0]` como possivelmente `undefined`. A correção usa uma guarda explícita `if (!experiment)`; nenhum gate foi enfraquecido.

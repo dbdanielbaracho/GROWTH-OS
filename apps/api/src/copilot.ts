@@ -131,10 +131,10 @@ export function buildCopilotReply(message: string, data: CopilotData): CopilotRe
       for (const row of actionable) citations.push({ kind: "recommendation", ref: row.id, label: row.action_code.replaceAll("_", " ") });
     }
   } else if (intent === "experiments") {
-    if (data.experiments.length === 0) {
+    const experiment = data.experiments[0];
+    if (!experiment) {
       answer = "No experiment is stored in this workspace yet. A winner or loser cannot be declared without a persisted experiment, variant and evidence-backed outcome.";
     } else {
-      const experiment = data.experiments[0];
       const winners = data.topExperimentVariants.filter((row) => row.status === "winner");
       const losers = data.topExperimentVariants.filter((row) => row.status === "loser");
       answer = `The latest experiment is “${experiment.name}” (${experiment.status}) with ${data.topExperimentVariants.length} stored variant${data.topExperimentVariants.length === 1 ? "" : "s"}. ${winners.length} winner${winners.length === 1 ? "" : "s"} and ${losers.length} loser${losers.length === 1 ? "" : "s"} are currently recorded. Outcomes are only treated as measured learning when an evidence reference was stored.`;
