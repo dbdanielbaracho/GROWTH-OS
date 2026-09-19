@@ -81,16 +81,20 @@ SELECT growth.youtube_begin_authorization(
 ) AS connection_id
 \gset youtube_
 
-SELECT count(*) = 1 AS youtube_single_authorizing
-FROM growth.youtube_integration_status()
-WHERE managed_account_id = 'c0000000-0000-4000-8000-000000000041'::uuid
-  AND connection_state = 'authorizing'
-\gset
-\if :youtube_single_authorizing
-\else
-  \echo 'TEST FAIL: YouTube authorization attempts were not superseded safely'
-  \quit 1
-\endif
+DO $$
+DECLARE
+  authorizing_count bigint;
+BEGIN
+  SELECT count(*)
+    INTO authorizing_count
+    FROM growth.youtube_integration_status()
+   WHERE managed_account_id = 'c0000000-0000-4000-8000-000000000041'::uuid
+     AND connection_state = 'authorizing';
+
+  IF authorizing_count <> 1 THEN
+    RAISE EXCEPTION 'TEST FAIL: YouTube authorization attempts were not superseded safely; count=%', authorizing_count;
+  END IF;
+END $$;
 
 SELECT growth.instagram_complete_authorization(
   :'instagram_connection_id'::uuid,
