@@ -1,0 +1,33 @@
+name: Apply Copilot browser acceptance
+
+on:
+  push:
+    branches:
+      - feat/final-product-completion
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/final-product-completion
+      - name: Apply browser gate patch
+        run: python3 scripts/add-copilot-browser-gate.py
+      - name: Check diff
+        run: git diff --check
+      - name: Remove temporary helpers
+        run: |
+          git rm scripts/add-copilot-browser-gate.py
+          git rm .github/workflows/add-copilot-browser-gate.yml
+      - name: Commit browser acceptance
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/browser/growth-os.browser.spec.ts docs/PROJECT_EXECUTION_MEMORY.md
+          git commit -m "test: cover evidence-grounded copilot browser flow"
+          git push origin HEAD:feat/final-product-completion
