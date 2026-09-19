@@ -20,11 +20,11 @@ jobs:
           fetch-depth: 0
       - name: Apply completion patch
         run: python3 scripts/apply-creative-calendar-completion.py
-      - name: Commit clean branch
+      - name: Commit product files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/apply-creative-calendar-completion.yml scripts/apply-creative-calendar-completion.py
-          git add apps db tests .github/workflows/ci.yml
+          git checkout -- .github/workflows/ci.yml
+          git add apps db tests
           git commit -m "feat: complete creative studio and publication calendar"
           git push origin HEAD:feat/creative-studio-calendar-completion
