@@ -68,6 +68,10 @@ export async function runPublicationQueueOnce(input: {
   const job = await withWorkerSystemTransaction(
     { servicePrincipalId: input.servicePrincipalId },
     async (client) => {
+      await client.query(
+        `select growth.enqueue_due_scheduled_publications($1,$2,$3)`,
+        [input.servicePrincipalId, now.toISOString(), 25]
+      );
       const result = await client.query<PublicationQueueJob>(
         `select *
            from growth.claim_due_publication_job($1,$2,$3)

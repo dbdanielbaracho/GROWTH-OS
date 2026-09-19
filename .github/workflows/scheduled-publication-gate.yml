@@ -1,0 +1,113 @@
+name: Scheduled publication gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "db/migrations/070_scheduled_publication_dispatch.sql"
+      - "db/tests/070_scheduled_publication_dispatch.sql"
+      - "apps/api/src/publication-queue-worker.ts"
+      - "apps/api/src/publishing.ts"
+      - ".github/workflows/scheduled-publication-gate.yml"
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "db/migrations/070_scheduled_publication_dispatch.sql"
+      - "db/tests/070_scheduled_publication_dispatch.sql"
+      - "apps/api/src/publication-queue-worker.ts"
+      - "apps/api/src/publishing.ts"
+      - ".github/workflows/scheduled-publication-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  scheduled-publication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: growth_os_scheduled_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d growth_os_scheduled_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      CI_DATABASE_NAME: growth_os_scheduled_ci
+      CI_ADMIN_URL: postgresql://postgres:postgres@127.0.0.1:5432/growth_os_scheduled_ci
+      CI_MIGRATOR_URL: postgresql://growth_migrator:growth_migrator@127.0.0.1:5432/growth_os_scheduled_ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Provision isolated roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_migrator') THEN
+              CREATE ROLE growth_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'growth_migrator';
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_runtime') THEN
+              CREATE ROLE app_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'app_runtime';
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_worker') THEN
+              CREATE ROLE growth_worker LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_rls_helper') THEN
+              CREATE ROLE growth_rls_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_identity_helper') THEN
+              CREATE ROLE growth_identity_helper NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS;
+            END IF;
+          END
+          $$;
+          GRANT CONNECT, CREATE ON DATABASE growth_os_scheduled_ci TO growth_migrator;
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          SQL
+
+      - name: Apply canonical migrations
+        run: |
+          for migration in db/migrations/*.sql; do
+            database_url="$CI_MIGRATOR_URL"
+            case "$migration" in
+              *002_rc9_security_policy_fix.sql|*006_identity_v1.sql|*009_production_identity_adapter_support.sql|*012_youtube_rls_helper_execute.sql|*016_identity_signup_verification.sql|*017_instagram_connector_foundation.sql|*040_identity_account_cleanup.sql|*041_identity_signup_runtime_privileges.sql|*042_identity_signup_fk_privileges.sql|*043_identity_signup_fk_runtime_context.sql|*044_identity_signup_smoke_cleanup.sql|*045_production_helper_privileges.sql|*046_managed_account_onboarding.sql|*047_provider_status_runtime_privileges.sql|*048_provider_status_helper_call_chain_privileges.sql|*049_provider_status_membership_privilege.sql|*050_provider_helper_table_privileges.sql|*051_provider_helper_jobs_privilege.sql|*052_provider_authorization_runtime_privileges.sql|*061_authority_projection_trigger_privileges.sql|*062_identity_runtime_table_privileges.sql)
+                database_url="$CI_ADMIN_URL"
+                ;;
+            esac
+            DATABASE_URL="$database_url" node db/scripts/apply-migration.mjs "$migration"
+          done
+
+      - name: Provision test harness
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --command="GRANT USAGE ON SCHEMA growth TO app_runtime"
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/provisioning/test/01_test_roles.sql
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --command="GRANT growth_worker TO growth_test_harness"
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/provisioning/test/02_test_membership.sql
+          psql --host=127.0.0.1 --port=5432 --username=postgres --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --command="ALTER ROLE growth_test_harness PASSWORD 'growth_test_harness'"
+
+      - name: Prove schedule to durable queue transition
+        env:
+          PGPASSWORD: growth_test_harness
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_test_harness --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/070_scheduled_publication_dispatch.sql

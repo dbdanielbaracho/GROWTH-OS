@@ -7,7 +7,8 @@ export const CreatePublicationIntentSchema = z.object({
   contentVersionId: z.string().uuid(),
   mediaAssetId: z.string().uuid().optional(),
   requestNonce: z.string().uuid(),
-  idempotencyKey: z.string().trim().min(1).max(200)
+  idempotencyKey: z.string().trim().min(1).max(200),
+  scheduledFor: z.string().datetime().optional()
 });
 
 export type CreatePublicationIntentInput = z.infer<typeof CreatePublicationIntentSchema>;
@@ -17,35 +18,30 @@ export async function createPublicationIntent(
   principal: AuthPrincipal,
   input: CreatePublicationIntentInput
 ) {
+  let intent;
   if (input.mediaAssetId) {
     const result = await client.query(
-      `select *
-         from growth.create_publication_intent($1, $2, $3, $4, $5, $6)`,
-      [
-        principal.workspaceId,
-        input.socialAccountId,
-        input.contentVersionId,
-        input.requestNonce,
-        input.idempotencyKey,
-        input.mediaAssetId
-      ]
+      `select * from growth.create_publication_intent($1, $2, $3, $4, $5, $6)`,
+      [principal.workspaceId, input.socialAccountId, input.contentVersionId,
+       input.requestNonce, input.idempotencyKey, input.mediaAssetId]
     );
-    return result.rows[0];
+    intent = result.rows[0];
+  } else {
+    const result = await client.query(
+      `select * from growth.create_publication_intent($1, $2, $3, $4, $5)`,
+      [principal.workspaceId, input.socialAccountId, input.contentVersionId,
+       input.requestNonce, input.idempotencyKey]
+    );
+    intent = result.rows[0];
   }
 
-  const result = await client.query(
-    `select *
-       from growth.create_publication_intent($1, $2, $3, $4, $5)`,
-    [
-      principal.workspaceId,
-      input.socialAccountId,
-      input.contentVersionId,
-      input.requestNonce,
-      input.idempotencyKey
-    ]
-  );
+  if (!input.scheduledFor) return intent;
 
-  return result.rows[0];
+  const scheduled = await client.query(
+    `select * from growth.schedule_publication_intent($1, $2, $3)`,
+    [principal.workspaceId, intent.id, input.scheduledFor]
+  );
+  return scheduled.rows[0];
 }
 
 
