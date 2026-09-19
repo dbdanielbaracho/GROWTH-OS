@@ -4829,3 +4829,21 @@ Após reload autenticado, `GET /v1/experiments` retornou HTTP 200, o alerta ante
 ### Regra operacional adicional — 2026-09-18 — não usar TinyFish
 
 O usuário determinou explicitamente: `"nao vou usar o tinyfish"`. A partir desta instrução, TinyFish não deve ser usado nas próximas execuções do Growth OS. O run TinyFish já registrado acima permanece somente como evidência histórica do que ocorreu antes desta decisão e não autoriza novo uso. Testes futuros devem usar GitHub, Railway, CI, testes diretos disponíveis no chat ou interação manual do usuário quando uma sessão/autorização humana for indispensável.
+
+## Regra permanente — registrar toda conversa deste projeto — v1.0 — 2026-09-19
+
+**Instrução do usuário:** "sempre gravar no documento do github as conversar aqui".
+
+A partir desta instrução, toda conversa deste projeto no ChatGPT deve ser registrada no documento central `docs/PROJECT_EXECUTION_MEMORY.md`, e não apenas mensagens de continuação. O registro deve preservar, na medida em que estiver disponível e for seguro, o pedido do usuário, as respostas operacionais relevantes, decisões, verificações, tentativas, erros, correções, resultados, bloqueios e o próximo ponto de retomada.
+
+Regras obrigatórias:
+
+1. Registrar cada nova conversa/turno relevante do projeto durante a execução e antes de encerrar a resposta quando houver trabalho de projeto.
+2. Não apagar, condensar de forma destrutiva ou substituir entradas históricas anteriores.
+3. Não inventar mensagens, horários, ações ou resultados indisponíveis.
+4. Nunca registrar senhas, tokens, secrets, cookies, códigos OAuth, `DATABASE_URL` ou outros segredos.
+5. Quando houver GitHub, CI, Railway, banco ou provider envolvidos, registrar os identificadores e resultados verificáveis que não sejam secretos.
+6. Consultar este documento e `PROJECT_CURRENT_STATE.md` antes de continuar o projeto em nova conversa ou após interrupção.
+7. Esta regra complementa e amplia a regra de 2026-09-15 sobre registrar cada pedido de continuação.
+
+**Status:** regra permanente solicitada novamente e explicitamente pelo usuário em 2026-09-19.
