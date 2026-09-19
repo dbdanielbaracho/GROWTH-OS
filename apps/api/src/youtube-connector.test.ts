@@ -115,3 +115,19 @@ test("YouTube analytics request rejection remains a bounded provider failure", (
   assert.equal(error.providerOperation, "analytics_report");
   assert.equal(error.providerHttpStatus, 400);
 });
+
+test("YouTube reconnect requires both channel and analytics scopes", () => {
+  assert.deepEqual(
+    connector.youtubeMissingRequiredScopesForTest([
+      "https://www.googleapis.com/auth/youtube.readonly",
+      "https://www.googleapis.com/auth/yt-analytics.readonly"
+    ]),
+    []
+  );
+  assert.deepEqual(
+    connector.youtubeMissingRequiredScopesForTest([
+      "https://www.googleapis.com/auth/yt-analytics.readonly"
+    ]),
+    ["https://www.googleapis.com/auth/youtube.readonly"]
+  );
+});

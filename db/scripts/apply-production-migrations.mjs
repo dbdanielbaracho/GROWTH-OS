@@ -640,6 +640,19 @@ const steps = [
     },
   },
 
+  {
+    file: '069_youtube_reauthorization_cleanup.sql',
+    present: async () => {
+      const result = await client.query(`
+        select position(
+          'delete from growth.platform_connections'
+          in lower(pg_get_functiondef('growth.youtube_begin_authorization(uuid,text[])'::regprocedure))
+        ) > 0 as present
+      `);
+      return result.rows[0]?.present === true;
+    },
+  },
+
 ];
 
 try {

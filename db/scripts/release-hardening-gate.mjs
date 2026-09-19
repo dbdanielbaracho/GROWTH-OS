@@ -34,6 +34,14 @@ for (const marker of ["execution_status", "claim_automation_action_execution", "
   }
 }
 
+
+const youtubeReauthorization = await readFile(join(migrationDir, "069_youtube_reauthorization_cleanup.sql"), "utf8");
+for (const marker of ["youtube_begin_authorization", "DELETE FROM growth.platform_connections", "authorizing"]) {
+  if (!youtubeReauthorization.includes(marker)) {
+    throw new Error("release hardening: YouTube reauthorization marker missing " + marker);
+  }
+}
+
 const commercial = await readFile(join(migrationDir, "038_commercial_entitlements.sql"), "utf8");
 for (const marker of ["provider_customer_ref", "monthly_action_limit", "enterprise_policies"]) {
   if (!commercial.includes(marker)) {

@@ -358,6 +358,56 @@ async function fetchDailyAnalytics(accessToken: string, startDate: string, endDa
   }, "analytics_report");
 }
 
+type YoutubeConnectionStatusRow = {
+  managed_account_id: string;
+  connection_id: string | null;
+  connection_state: string | null;
+  connection_updated_at: string | null;
+  social_account_id: string | null;
+  provider_account_id: string | null;
+};
+
+export function youtubeMissingRequiredScopesForTest(scopes: readonly string[]): string[] {
+  return YOUTUBE_SCOPES.filter((scope) => !scopes.includes(scope));
+}
+
+async function reusableYoutubeConnection(
+  client: PoolClient,
+  managedAccountId: string
+): Promise<YoutubeConnectionStatusRow | null> {
+  const result = await client.query<YoutubeConnectionStatusRow>(
+    `select managed_account_id, connection_id, connection_state, connection_updated_at,
+            social_account_id, provider_account_id
+       from growth.youtube_integration_status()
+      where managed_account_id = $1
+        and connection_id is not null
+        and connection_state = 'connected'
+        and social_account_id is not null
+        and provider_account_id is not null
+      order by connection_updated_at desc nulls last
+      limit 1`,
+    [managedAccountId]
+  );
+  return result.rows[0] ?? null;
+}
+
+async function youtubeConnectionForCallback(
+  principal: AuthPrincipal,
+  connectionId: string
+): Promise<YoutubeConnectionStatusRow | null> {
+  return withTenantTransaction(principal, async (client) => {
+    const result = await client.query<YoutubeConnectionStatusRow>(
+      `select managed_account_id, connection_id, connection_state, connection_updated_at,
+              social_account_id, provider_account_id
+         from growth.youtube_integration_status()
+        where connection_id = $1
+        limit 1`,
+      [connectionId]
+    );
+    return result.rows[0] ?? null;
+  });
+}
+
 async function beginAuthorizationRow(client: PoolClient, managedAccountId: string): Promise<string> {
   const result = await client.query<{ connection_id: string }>(
     "select growth.youtube_begin_authorization($1,$2::text[]) as connection_id",
@@ -374,7 +424,8 @@ export async function beginYoutubeAuthorization(
   managedAccountId: string
 ): Promise<{ connectionId: string; authorizationUrl: string }> {
   const config = requireConnectorConfig();
-  const connectionId = await beginAuthorizationRow(client, managedAccountId);
+  const reusable = await reusableYoutubeConnection(client, managedAccountId);
+  const connectionId = reusable?.connection_id ?? await beginAuthorizationRow(client, managedAccountId);
   const state = sealYoutubeState({
     v: 1,
     userId: principal.userId,
@@ -405,14 +456,30 @@ export async function completeYoutubeAuthorizationFromCallback(
   const config = requireConnectorConfig();
   const state = openYoutubeState(sealedState);
   const token = await exchangeAuthorizationCode(code, config);
+  const scopes = token.scope?.split(/\s+/).filter(Boolean) ?? [...YOUTUBE_SCOPES];
+  const missingScopes = youtubeMissingRequiredScopesForTest(scopes);
+  if (missingScopes.length > 0) {
+    throw new YoutubeConnectorError("youtube_required_scopes_missing", 409);
+  }
+
   const channels = await fetchAuthorizedChannels(token.access_token);
   if (channels.length === 0) throw new YoutubeConnectorError("youtube_channel_not_found", 409);
   if (channels.length > 1) throw new YoutubeConnectorError("youtube_channel_selection_required", 409);
   const channel = channels[0]!;
   if (!channel.id) throw new YoutubeConnectorError("youtube_channel_identity_invalid", 502);
 
+  const principal: AuthPrincipal = { userId: state.userId, workspaceId: state.workspaceId };
+  const existing = await youtubeConnectionForCallback(principal, state.connectionId);
+  if (existing?.social_account_id && existing.connection_id) {
+    if (existing.provider_account_id !== channel.id) {
+      throw new YoutubeConnectorError("youtube_reauthorization_channel_mismatch", 409);
+    }
+    if (!token.refresh_token) {
+      throw new YoutubeConnectorError("youtube_refresh_token_unavailable", 409);
+    }
+  }
+
   const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
-  const scopes = token.scope?.split(/\s+/).filter(Boolean) ?? [...YOUTUBE_SCOPES];
   const credential: StoredCredential = {
     v: 1,
     accessToken: token.access_token,
@@ -421,9 +488,39 @@ export async function completeYoutubeAuthorizationFromCallback(
     scopes,
     expiresAt
   };
-  const ciphertext = sealCredential(credential, state.workspaceId, state.connectionId, config);
-  const principal: AuthPrincipal = { userId: state.userId, workspaceId: state.workspaceId };
 
+  if (existing?.social_account_id && existing.connection_id) {
+    const ciphertext = sealCredential(credential, state.workspaceId, existing.connection_id, config);
+    const updated = await withTenantTransaction(principal, async (client) => {
+      const result = await client.query<{ updated: boolean }>(
+        `select growth.youtube_update_connection_credential(
+          $1,$2,$3,$4,$5,$6,$7::text[]
+        ) as updated`,
+        [
+          existing.connection_id,
+          ciphertext,
+          "aes-256-gcm.v1",
+          config.keyVersion,
+          expiresAt,
+          true,
+          scopes
+        ]
+      );
+      return result.rows[0]?.updated === true;
+    });
+    if (!updated) {
+      throw new YoutubeConnectorError("youtube_credential_refresh_not_persisted", 500);
+    }
+    return {
+      workspaceId: state.workspaceId,
+      connectionId: existing.connection_id,
+      socialAccountId: existing.social_account_id,
+      channelId: channel.id,
+      channelTitle: channel.snippet?.title ?? null
+    };
+  }
+
+  const ciphertext = sealCredential(credential, state.workspaceId, state.connectionId, config);
   const socialAccountId = await withTenantTransaction(principal, async (client) => {
     const result = await client.query<{ social_account_id: string }>(
       `select growth.youtube_complete_authorization(

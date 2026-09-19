@@ -21,6 +21,8 @@ function friendlyError(error: unknown): string {
     ) {
       return "YouTube authorization needs to be renewed.";
     }
+    if (error.apiStatus === "youtube_required_scopes_missing") return "YouTube needs both channel-read and analytics permissions.";
+    if (error.apiStatus === "youtube_reauthorization_channel_mismatch") return "Reconnect returned a different YouTube channel, so the existing credential was not replaced.";
     if (error.httpStatus === 401) return "Your Growth OS session expired. Sign in again.";
     if (error.httpStatus === 403) return "This workspace is not allowed to manage this YouTube connection.";
     if (error.apiStatus === "youtube_channel_selection_required") return "More than one YouTube channel was returned. Automatic selection is blocked for safety.";
@@ -60,6 +62,12 @@ function YoutubeIntegrationPanel() {
     const value = new URLSearchParams(window.location.search).get("youtube");
     if (value === "connected") return "YouTube connected successfully. You can sync real analytics now.";
     if (value === "denied") return "YouTube authorization was cancelled. No provider credential was stored.";
+    if (value === "youtube_required_scopes_missing") return "YouTube needs both channel-read and analytics permissions. Reconnect and approve both requested permissions.";
+    if (value === "youtube_reauthorization_channel_mismatch") return "Reconnect used a different YouTube channel. Growth OS kept the existing credential unchanged.";
+    if (value === "youtube_channel_not_found") return "No YouTube channel was found for this Google account.";
+    if (value === "youtube_channel_selection_required") return "More than one YouTube channel was returned. Growth OS did not choose one automatically.";
+    if (value === "youtube_refresh_token_unavailable") return "Google did not return a durable refresh credential. Reconnect and approve offline access again.";
+    if (value === "youtube_authorization_rejected") return "Google rejected the YouTube authorization. Reconnect and approve both requested permissions.";
     return null;
   }, []);
 
