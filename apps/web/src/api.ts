@@ -1186,3 +1186,36 @@ export async function updateEnterprisePolicy(input: {
   });
   return response.policy;
 }
+
+
+export type CopilotCitation = {
+  kind: "opportunity" | "insight" | "evidence" | "metric" | "recommendation" | "experiment" | "automation";
+  ref: string;
+  label: string;
+};
+
+export type CopilotReply = {
+  mode: "evidence_grounded";
+  intent: "summary" | "metrics" | "evidence" | "actions" | "experiments" | "operations";
+  answer: string;
+  citations: CopilotCitation[];
+  workspace_pulse: {
+    opportunities: number;
+    insights: number;
+    metric_rows: number;
+    quality_alerts: number;
+    experiments: number;
+    automation_needs_attention: number;
+    automation_kill_switch: boolean;
+  };
+  suggested_prompts: string[];
+  limitations: string[];
+};
+
+export async function queryCopilot(message: string): Promise<CopilotReply> {
+  const response = await requestJson<{ status: "ok"; reply: CopilotReply }>("/v1/copilot/query", {
+    method: "POST",
+    body: { message }
+  });
+  return response.reply;
+}

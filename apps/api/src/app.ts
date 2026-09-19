@@ -38,6 +38,7 @@ import { CreatePublicationIntentSchema, PublicationReconciliationSchema, cancelP
 import { createDatabasePublicationExecutionStore } from "./publication-store.js";
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
 import { listMetricAnalyticsSummary, listMetricQualityAnomalies } from "./analytics.js";
+import { queryCopilot } from "./copilot.js";
 import { createRecommendation, listRecommendations, recordRecommendationFeedback } from "./recommendations.js";
 import { addExperimentVariant, createExperiment, listExperimentVariants, listExperiments, recordExperimentFeedback } from "./experiments.js";
 import {
@@ -104,6 +105,10 @@ const PublicationIntentParamsSchema = z.object({
 const AnalyticsQuerySchema = z.object({
   from: z.string().trim().optional(),
   to: z.string().trim().optional()
+});
+
+const CopilotQuerySchema = z.object({
+  message: z.string().trim().min(1).max(1000)
 });
 
 const RecommendationQuerySchema = z.object({
@@ -406,6 +411,25 @@ export function buildApp(logger = false) {
   });
 
 
+
+  app.post("/v1/copilot/query", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const parsed = CopilotQuerySchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const copilot = await withTenantTransaction(principal, (client) =>
+        queryCopilot(client, principal, parsed.data.message)
+      );
+      return { status: "ok", reply: copilot };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
 
   app.get("/v1/recommendations", async (request, reply) => {
     const principal = await requestPrincipal(request, reply);
