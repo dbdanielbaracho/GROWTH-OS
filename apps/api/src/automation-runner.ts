@@ -4,7 +4,10 @@ import {
   finalizeAutomationActionExecution,
   type AutomationActionRequest
 } from "./automation.js";
-import { dispatchApprovedAutomationAction } from "./automation-execution.js";
+import {
+  classifyAutomationPublicationStatus,
+  dispatchApprovedAutomationAction
+} from "./automation-execution.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import { createContent } from "./content.js";
 import { createExperiment, addExperimentVariant } from "./experiments.js";
@@ -119,26 +122,15 @@ export async function executeApprovedAutomationRequest(
         const processed = publicationIntents.find((candidate) => candidate.id === intent.id);
         if (!processed) throw new Error("automation_publication_result_missing");
 
-        if (processed.status === "confirmed") return resultRef;
-
-        if (processed.status === "needs_user_action") {
+        const classification = classifyAutomationPublicationStatus(String(processed.status));
+        if (classification.outcome === "confirmed") return resultRef;
+        if (classification.outcome === "needs_input") {
           throw new AutomationPublicationNeedsInputError(
-            "publication_needs_user_action",
+            classification.errorClass,
             resultRef
           );
         }
-
-        if (processed.status === "cancelled" || processed.status === "superseded") {
-          throw new AutomationPublicationNeedsInputError(
-            "publication_terminal_without_confirmation",
-            resultRef
-          );
-        }
-
-        throw new AutomationPublicationNeedsInputError(
-          "publication_pending_confirmation",
-          resultRef
-        );
+        throw new Error(classification.errorClass);
       },
       multiplyVariant: async (payload) => {
         const variant = await withTenantTransaction(principal, (client) =>
