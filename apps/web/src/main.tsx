@@ -611,7 +611,7 @@ function AutomationPanel({
         setMessage("Approved action executed. Its result reference is stored in the audit trail.");
       } else if (updated.execution_status === "needs_input") {
         setMessageIsError(true);
-        setMessage("Execution stopped safely because the approved request did not contain every required binding.");
+        setMessage("Execution stopped safely. Review the stored reason and result reference before creating a new bounded request; Growth OS did not mark an unconfirmed provider action as successful.");
       } else if (updated.execution_status === "failed") {
         setMessageIsError(true);
         setMessage("Execution failed safely. No retry is automatic; create a new bounded request after review.");
