@@ -9,10 +9,12 @@ import { withTenantTransaction } from "./tenant-db.js";
 import { createContent } from "./content.js";
 import { createExperiment, addExperimentVariant } from "./experiments.js";
 import { getOpportunityDetail } from "./intelligence.js";
-import { createPublicationIntent } from "./publishing.js";
+import { createPublicationIntent, listPublicationIntents } from "./publishing.js";
 import { createDatabasePublicationExecutionStore } from "./publication-store.js";
 import { createPublicationProviderAdapter } from "./publication-adapter-composition.js";
 import { executePublicationIntent } from "./publication-worker.js";
+
+class AutomationPublicationNeedsInputError extends Error {}
 
 function safeExecutionErrorClass(request: AutomationActionRequest): string {
   switch (request.action_code) {
@@ -96,12 +98,32 @@ export async function executeApprovedAutomationRequest(
             idempotencyKey: payload.idempotency_key
           })
         );
+
         const store = createDatabasePublicationExecutionStore(principal, intent.id);
-        const processed = await executePublicationIntent({
+        await executePublicationIntent({
           store,
           adapterFactory: (publication) => createPublicationProviderAdapter(publication)
         });
-        return `publication_intent:${processed.id}`;
+
+        const publicationIntents = await withTenantTransaction(principal, (client) =>
+          listPublicationIntents(client, principal, 100)
+        );
+        const processed = publicationIntents.find((candidate) => candidate.id === intent.id);
+        if (!processed) throw new Error("automation_publication_result_missing");
+
+        if (processed.status === "confirmed") {
+          return `publication_intent:${intent.id}`;
+        }
+
+        if (
+          processed.status === "needs_user_action"
+          || processed.status === "cancelled"
+          || processed.status === "superseded"
+        ) {
+          throw new AutomationPublicationNeedsInputError("publication_needs_user_action");
+        }
+
+        throw new Error("automation_publication_not_confirmed");
       },
       multiplyVariant: async (payload) => {
         const variant = await withTenantTransaction(principal, (client) =>
@@ -123,7 +145,16 @@ export async function executeApprovedAutomationRequest(
         errorClass: outcome.errorClass
       })
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof AutomationPublicationNeedsInputError) {
+      return await withTenantTransaction(principal, (client) =>
+        finalizeAutomationActionExecution(client, principal, claimed.id, {
+          executionStatus: "needs_input",
+          errorClass: "publication_needs_user_action"
+        })
+      );
+    }
+
     return await withTenantTransaction(principal, (client) =>
       finalizeAutomationActionExecution(client, principal, claimed.id, {
         executionStatus: "failed",
