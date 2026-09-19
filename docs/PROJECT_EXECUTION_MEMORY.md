@@ -4875,3 +4875,30 @@ Regras obrigatórias:
 10. Fechar issue #26 somente quando os critérios atuais estiverem realmente satisfeitos.
 
 **Observação:** billing-provider real continua condicional (`if adopted`) no roadmap e não deve ser tratado como blocker obrigatório sem decisão explícita de produto.
+
+
+## Continuação — fechamento de todas as pendências internas — 2026-09-19
+
+**Pedido exato do usuário:** "verificar todos as pendencias e resolver tudo ir até o final e resolver. temos que completar tudo"
+
+**Ponto de partida verificado:** `main` em `cf4bd898c32588ff4518fa742e5bf4a6d90e499c` após merge documental do PR #202; runtime de aplicação aceito continua `6289685a572a2dbfa0840d20311d2e3674c1605e` até um novo runtime-affecting merge/deploy. Railway canônico permanecia SUCCESS no app, migrator e publication worker. A única issue aberta era #26.
+
+**Auditoria desta continuação:**
+- confirmou que Analytics já possuía export JSON/freshness/completeness backend, mas a UI importava `fetchMetricQualityAnomalies` sem executá-la; alerta de qualidade podia ficar invisível;
+- confirmou que Experiments já possui UI/API para criar plano, variantes e registrar winner/loser/inconclusive com `evidence_ref`;
+- confirmou que Autopilot possui aprovação separada de execução e execução auditável do PR #199;
+- confirmou que o requisito de Copilot conversacional existia apenas no roadmap e não no código;
+- abriu a branch `feat/final-product-completion` para fechar lacunas internas em conjunto, sem TinyFish.
+
+**Implementação em andamento:**
+- serviço `apps/api/src/copilot.ts`: Copilot determinístico, evidence-grounded e fail-closed, limitado ao workspace e sem executar publicação;
+- testes unitários para classificação de intent, ausência de evidência e preservação das barreiras de aprovação;
+- painel web de Copilot com workspace pulse, referências de evidência e limites explícitos;
+- rota autenticada `/v1/copilot/query`;
+- correção do Analytics para carregar e exibir alertas de qualidade realmente retornados pelo backend.
+
+**Limites externos que continuam fora de qualquer atalho de código:** OAuth humano Google/YouTube para a prova real pós-PR #200 e autorização explícita do usuário para qualquer publicação pública concreta. Esses gates não podem ser declarados concluídos sem a prova real.
+
+- CI #1300 (`35454381986`) no head `7f21ed9eafcc6aef260eb656e26dd1d7437ce45f` passou Test Integrity e Release Hardening, mas o TypeScript rejeitou o acesso a `data.experiments[0]` como possivelmente `undefined`. A correção usa uma guarda explícita `if (!experiment)`; nenhum gate foi enfraquecido.
+
+- O fechamento adiciona cobertura browser explícita para o Copilot evidence-grounded e adiciona `/v1/analytics/anomalies` ao mock fail-closed do browser gate, garantindo que a nova leitura de alertas de qualidade não seja mascarada como request desconhecido.

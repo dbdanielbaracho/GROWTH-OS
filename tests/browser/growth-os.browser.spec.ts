@@ -88,7 +88,7 @@ async function mockApi(
     // Known authenticated reads can still be in flight when signout finishes.
     if (mode === "signed_out" && [
       "/v1/integrations/youtube/status", "/v1/integrations/instagram/status",
-      "/v1/analytics/metrics", "/v1/content", "/v1/publication-intents",
+      "/v1/analytics/metrics", "/v1/analytics/anomalies", "/v1/content", "/v1/publication-intents",
       "/v1/opportunities", `/v1/opportunities/${opportunity.id}`,
       "/v1/recommendations", "/v1/experiments", "/v1/automation/policy", "/v1/automation/requests",
       "/v1/commercial/entitlements", "/v1/commercial/enterprise-policy"
@@ -122,6 +122,46 @@ async function mockApi(
         from: "2026-09-08T00:00:00.000Z",
         to: "2026-09-15T00:00:00.000Z",
         metrics
+      });
+    }
+
+    if (mode === "authenticated" && path === "/v1/analytics/anomalies") {
+      return json(route, 200, {
+        status: "ok",
+        from: "2026-09-08T00:00:00.000Z",
+        to: "2026-09-15T00:00:00.000Z",
+        anomalies: []
+      });
+    }
+
+    if (mode === "authenticated" && path === "/v1/copilot/query" && route.request().method() === "POST") {
+      return json(route, 200, {
+        status: "ok",
+        reply: {
+          mode: "evidence_grounded",
+          intent: "evidence",
+          answer: "The controlled opportunity is supported by one persisted evidence reference. This browser fixture proves only the Copilot interface and evidence boundary.",
+          citations: [{
+            kind: "evidence",
+            ref: "browser-quality-controlled-fixture",
+            label: "owned evidence"
+          }],
+          workspace_pulse: {
+            opportunities: 1,
+            insights: 0,
+            metric_rows: metrics.length,
+            quality_alerts: 0,
+            experiments: 0,
+            automation_needs_attention: 0,
+            automation_kill_switch: false
+          },
+          suggested_prompts: ["What evidence supports the top opportunity?"],
+          limitations: [
+            "Answers use only persisted data available to the current workspace.",
+            "Correlation is not presented as confirmed causality.",
+            "Copilot does not publish or execute provider actions; those remain behind existing approval and Autopilot controls."
+          ]
+        }
       });
     }
 
@@ -272,6 +312,52 @@ test("authenticated Radar shell remains accessible across desktop and mobile", a
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { name: "See what is beginning to move." })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  expect(unhandled).toEqual([]);
+});
+
+test("Copilot stays evidence-grounded, accessible and read-only in the authenticated shell", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  const copilotWrites: Record<string, unknown>[] = [];
+  await page.route("**/v1/copilot/query", async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    copilotWrites.push(request.postDataJSON());
+    return json(route, 200, {
+      status: "ok",
+      reply: {
+        mode: "evidence_grounded",
+        intent: "evidence",
+        answer: "The controlled opportunity is supported by one persisted evidence reference. No provider action is executed.",
+        citations: [{ kind: "evidence", ref: "browser-quality-controlled-fixture", label: "owned evidence" }],
+        workspace_pulse: {
+          opportunities: 1, insights: 0, metric_rows: 0, quality_alerts: 0,
+          experiments: 0, automation_needs_attention: 0, automation_kill_switch: false
+        },
+        suggested_prompts: ["What evidence supports the top opportunity?"],
+        limitations: [
+          "Answers use only persisted data available to the current workspace.",
+          "Correlation is not presented as confirmed causality.",
+          "Copilot does not publish or execute provider actions; those remain behind existing approval and Autopilot controls."
+        ]
+      }
+    });
+  });
+
+  await page.goto("/");
+  const toggle = page.getByRole("button", { name: /Copilot.*Evidence grounded/i });
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  await expect(page.getByRole("heading", { name: "Ask what the evidence supports" })).toBeVisible();
+  await page.getByRole("button", { name: "What evidence supports the top opportunity?", exact: true }).click();
+  const copilotAnswer = page.getByRole("region", { name: "Copilot answer" });
+  await expect(copilotAnswer.getByText("The controlled opportunity is supported by one persisted evidence reference. No provider action is executed.", { exact: true })).toBeVisible();
+  await expect(copilotAnswer.getByText("browser-quality-controlled-fixture", { exact: true })).toBeVisible();
+  expect(copilotWrites).toEqual([{ message: "What evidence supports the top opportunity?" }]);
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousAccessibilityViolations(page);
   expect(unhandled).toEqual([]);

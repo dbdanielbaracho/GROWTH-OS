@@ -47,15 +47,20 @@ function AnalyticsPanel() {
       await fetchAuthSession();
       if (generation !== authGeneration.current) return;
       setAuthenticated(true);
-      const metrics = await fetchMetricAnalyticsSummary();
+      const [metrics, qualityAlerts] = await Promise.all([
+        fetchMetricAnalyticsSummary(),
+        fetchMetricQualityAnomalies()
+      ]);
       if (generation !== authGeneration.current) return;
       setRows(metrics);
+      setAnomalies(qualityAlerts);
       setMessage(null);
     } catch (error) {
       if (generation !== authGeneration.current) return;
       if (error instanceof RadarApiError && error.httpStatus === 401) {
         setAuthenticated(false);
         setRows([]);
+        setAnomalies([]);
       } else {
         setMessage(analyticsError(error));
       }
