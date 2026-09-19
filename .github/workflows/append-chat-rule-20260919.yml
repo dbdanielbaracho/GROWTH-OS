@@ -1,0 +1,47 @@
+name: Append permanent chat logging rule
+
+on:
+  push:
+    branches:
+      - docs/record-all-chat-20260919
+
+permissions:
+  contents: write
+
+jobs:
+  append-rule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/record-all-chat-20260919
+      - name: Append permanent rule and self-remove helper
+        shell: bash
+        run: |
+          cat <<'EOF' >> docs/PROJECT_EXECUTION_MEMORY.md
+
+
+## Regra permanente — registrar toda conversa deste projeto — v1.0 — 2026-09-19
+
+**Instrução do usuário:** "sempre gravar no documento do github as conversar aqui".
+
+A partir desta instrução, toda conversa deste projeto no ChatGPT deve ser registrada no documento central `docs/PROJECT_EXECUTION_MEMORY.md`, e não apenas mensagens de continuação. O registro deve preservar, na medida em que estiver disponível e for seguro, o pedido do usuário, as respostas operacionais relevantes, decisões, verificações, tentativas, erros, correções, resultados, bloqueios e o próximo ponto de retomada.
+
+Regras obrigatórias:
+
+1. Registrar cada nova conversa/turno relevante do projeto durante a execução e antes de encerrar a resposta quando houver trabalho de projeto.
+2. Não apagar, condensar de forma destrutiva ou substituir entradas históricas anteriores.
+3. Não inventar mensagens, horários, ações ou resultados indisponíveis.
+4. Nunca registrar senhas, tokens, secrets, cookies, códigos OAuth, `DATABASE_URL` ou outros segredos.
+5. Quando houver GitHub, CI, Railway, banco ou provider envolvidos, registrar os identificadores e resultados verificáveis que não sejam secretos.
+6. Consultar este documento e `PROJECT_CURRENT_STATE.md` antes de continuar o projeto em nova conversa ou após interrupção.
+7. Esta regra complementa e amplia a regra de 2026-09-15 sobre registrar cada pedido de continuação.
+
+**Status:** regra permanente solicitada novamente e explicitamente pelo usuário em 2026-09-19.
+EOF
+          git rm .github/workflows/append-chat-rule-20260919.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/PROJECT_EXECUTION_MEMORY.md
+          git commit -m "docs: make all project chat logging permanent"
+          git push origin HEAD:docs/record-all-chat-20260919
