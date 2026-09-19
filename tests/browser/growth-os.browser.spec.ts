@@ -350,8 +350,9 @@ test("Copilot stays evidence-grounded, accessible and read-only in the authentic
   await toggle.click();
   await expect(page.getByRole("heading", { name: "Ask what the evidence supports" })).toBeVisible();
   await page.getByRole("button", { name: "What evidence supports the top opportunity?", exact: true }).click();
-  await expect(page.getByText("The controlled opportunity is supported by one persisted evidence reference. No provider action is executed.", { exact: true })).toBeVisible();
-  await expect(page.getByText("browser-quality-controlled-fixture", { exact: true })).toBeVisible();
+  const copilotAnswer = page.getByRole("region", { name: "Copilot answer" });
+  await expect(copilotAnswer.getByText("The controlled opportunity is supported by one persisted evidence reference. No provider action is executed.", { exact: true })).toBeVisible();
+  await expect(copilotAnswer.getByText("browser-quality-controlled-fixture", { exact: true })).toBeVisible();
   expect(copilotWrites).toEqual([{ message: "What evidence supports the top opportunity?" }]);
 
   await expectNoHorizontalOverflow(page);
