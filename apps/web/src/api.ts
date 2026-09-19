@@ -1050,6 +1050,7 @@ export type AutomationPolicy = {
 
 export type AutomationActionRequest = {
   id: string;
+  workspace_id: string;
   policy_id: string;
   action_code: "draft_content" | "review_evidence" | "plan_experiment" | "publish_content" | "multiply_variant";
   target_ref: string;
@@ -1058,6 +1059,13 @@ export type AutomationActionRequest = {
   requested_by: string;
   approved_by: string | null;
   note: string | null;
+  action_payload: Record<string, unknown>;
+  execution_status: "not_ready" | "ready" | "executing" | "succeeded" | "needs_input" | "failed";
+  execution_result_ref: string | null;
+  execution_error_class: string | null;
+  execution_started_at: string | null;
+  executed_at: string | null;
+  execution_attempts: number;
   created_at: string;
   decided_at: string | null;
 };
@@ -1092,6 +1100,7 @@ export async function createAutomationRequest(input: {
   actionCode: AutomationActionRequest["action_code"];
   targetRef: string;
   evidenceRef: string;
+  actionPayload?: Record<string, unknown>;
   note?: string;
 }): Promise<AutomationActionRequest> {
   const response = await requestJson<{ status: "created"; request: AutomationActionRequest }>("/v1/automation/requests", {
@@ -1100,6 +1109,7 @@ export async function createAutomationRequest(input: {
       action_code: input.actionCode,
       target_ref: input.targetRef,
       evidence_ref: input.evidenceRef,
+      action_payload: input.actionPayload ?? {},
       note: input.note
     }
   });
@@ -1114,6 +1124,17 @@ export async function decideAutomationRequest(
   const response = await requestJson<{ status: "decided"; request: AutomationActionRequest }>(
     "/v1/automation/requests/" + encodeURIComponent(requestId) + "/decision",
     { method: "POST", body: { decision, note } }
+  );
+  return response.request;
+}
+
+
+export async function executeAutomationRequest(
+  requestId: string
+): Promise<AutomationActionRequest> {
+  const response = await requestJson<{ status: "processed"; request: AutomationActionRequest }>(
+    "/v1/automation/requests/" + encodeURIComponent(requestId) + "/execute",
+    { method: "POST" }
   );
   return response.request;
 }

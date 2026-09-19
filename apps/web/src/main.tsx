@@ -22,6 +22,7 @@ import {
   fetchAutomationRequests,
   createAutomationRequest,
   decideAutomationRequest,
+  executeAutomationRequest,
   fetchWorkspaceEntitlements,
   fetchEnterprisePolicy,
   hasDevelopmentIdentity,
@@ -454,12 +455,33 @@ function ExperimentPlanner({ opportunityId, onLearningRecorded }: { opportunityI
   );
 }
 
-function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string; evidenceRef: string | null }) {
+function AutomationPanel({
+  opportunityId,
+  evidenceRef,
+  market,
+  platform,
+  socialAccountId
+}: {
+  opportunityId: string;
+  evidenceRef: string | null;
+  market: string;
+  platform: string;
+  socialAccountId: string | null;
+}) {
   const [policy, setPolicy] = useState<AutomationPolicy | null>(null);
   const [requests, setRequests] = useState<AutomationActionRequest[]>([]);
   const [actionCode, setActionCode] = useState<AutomationActionRequest["action_code"]>("plan_experiment");
+  const [draftLanguage, setDraftLanguage] = useState("");
+  const [draftBody, setDraftBody] = useState("");
+  const [experimentName, setExperimentName] = useState("");
+  const [experimentHypothesis, setExperimentHypothesis] = useState("");
+  const [experimentRule, setExperimentRule] = useState("");
+  const [publicationContentVersionId, setPublicationContentVersionId] = useState("");
+  const [variantExperimentId, setVariantExperimentId] = useState("");
+  const [variantLabel, setVariantLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageIsError, setMessageIsError] = useState(false);
 
   async function load() {
     try {
@@ -470,6 +492,7 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
       setPolicy(nextPolicy);
       setRequests(nextRequests.filter((request) => request.target_ref === opportunityId));
     } catch {
+      setMessageIsError(true);
       setMessage("Automation controls are unavailable; no action was queued.");
     }
   }
@@ -478,22 +501,81 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
     void load();
   }, [opportunityId]);
 
+  function actionPayload(): Record<string, unknown> | null {
+    if (actionCode === "review_evidence") return {};
+    if (actionCode === "draft_content") {
+      if (!draftLanguage.trim() || !draftBody.trim()) {
+        setMessage("Draft execution needs a language and an explicit draft brief/body before approval.");
+        return null;
+      }
+      return {
+        market,
+        language: draftLanguage.trim(),
+        platform_target: platform,
+        body: draftBody.trim(),
+        objective: "Evidence-linked opportunity draft"
+      };
+    }
+    if (actionCode === "plan_experiment") {
+      if (!experimentName.trim() || !experimentHypothesis.trim() || !experimentRule.trim()) {
+        setMessage("Experiment execution needs a name, hypothesis and decision rule before approval.");
+        return null;
+      }
+      return {
+        name: experimentName.trim(),
+        hypothesis: experimentHypothesis.trim(),
+        decision_rule: experimentRule.trim()
+      };
+    }
+    if (actionCode === "publish_content") {
+      if (!socialAccountId || !publicationContentVersionId.trim()) {
+        setMessage("Publishing requires this opportunity to be bound to a social account and an explicit approved content version ID.");
+        return null;
+      }
+      return {
+        social_account_id: socialAccountId,
+        content_version_id: publicationContentVersionId.trim(),
+        request_nonce: crypto.randomUUID(),
+        idempotency_key: `automation-${opportunityId}-${crypto.randomUUID()}`
+      };
+    }
+    if (!variantExperimentId.trim() || !variantLabel.trim()) {
+      setMessage("Variant multiplication needs an explicit experiment ID and variant label.");
+      return null;
+    }
+    return {
+      experiment_id: variantExperimentId.trim(),
+      label: variantLabel.trim(),
+      lineage: { source_opportunity_id: opportunityId, autonomous_publishing: false }
+    };
+  }
+
   async function queueRequest() {
     if (!evidenceRef) {
+      setMessageIsError(true);
       setMessage("An action needs a stored evidence item before it can be queued.");
       return;
     }
-    setBusy(true);
     setMessage(null);
+    setMessageIsError(false);
+    const payload = actionPayload();
+    if (payload === null) {
+      setMessageIsError(true);
+      return;
+    }
+    setBusy(true);
     try {
       const created = await createAutomationRequest({
         actionCode,
         targetRef: opportunityId,
         evidenceRef,
+        actionPayload: payload,
         note: "Requested from the evidence-linked opportunity view."
       });
       setRequests((current) => [created, ...current]);
+      setMessage("Action queued with its execution parameters frozen for approval.");
     } catch {
+      setMessageIsError(true);
       setMessage("The request was blocked by policy, evidence, quota, or tenant controls.");
     } finally {
       setBusy(false);
@@ -503,11 +585,40 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
   async function decide(requestId: string, decision: "approve" | "reject") {
     setBusy(true);
     setMessage(null);
+    setMessageIsError(false);
     try {
       const updated = await decideAutomationRequest(requestId, decision);
       setRequests((current) => current.map((item) => item.id === updated.id ? updated : item));
+      setMessage(decision === "approve"
+        ? "Approved. A second explicit Execute action is still required."
+        : "Request rejected; it cannot execute.");
     } catch {
+      setMessageIsError(true);
       setMessage("Only an owner or admin can approve or reject, and the kill switch always wins.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function execute(requestId: string) {
+    setBusy(true);
+    setMessage(null);
+    setMessageIsError(false);
+    try {
+      const updated = await executeAutomationRequest(requestId);
+      setRequests((current) => current.map((item) => item.id === updated.id ? updated : item));
+      if (updated.execution_status === "succeeded") {
+        setMessage("Approved action executed. Its result reference is stored in the audit trail.");
+      } else if (updated.execution_status === "needs_input") {
+        setMessageIsError(true);
+        setMessage("Execution stopped safely. Review the stored reason and result reference before creating a new bounded request; Growth OS did not mark an unconfirmed provider action as successful.");
+      } else if (updated.execution_status === "failed") {
+        setMessageIsError(true);
+        setMessage("Execution failed safely. No retry is automatic; create a new bounded request after review.");
+      }
+    } catch {
+      setMessageIsError(true);
+      setMessage("Execution was blocked because the request was not approved/ready, policy changed, or the kill switch is active.");
     } finally {
       setBusy(false);
     }
@@ -516,8 +627,8 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
   return (
     <section className="detail-section automation-panel">
       <p className="section-kicker">Automation control</p>
-      <h3>Queue a bounded action for approval</h3>
-      <p>Requests are never executed here. They remain auditable and pending until an owner or admin approves them.</p>
+      <h3>Approve, then execute a bounded action</h3>
+      <p>Approval and execution are separate. Every action keeps its evidence and parameters; provider publishing requires an explicit social account and approved content version.</p>
       <div className="automation-status">
         <span>Mode: {policy ? titleCase(policy.mode) : "Loading"}</span>
         <span>Daily limit: {policy?.daily_request_limit ?? "—"}</span>
@@ -530,9 +641,34 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
           <option value="draft_content">Draft content</option>
           <option value="review_evidence">Review evidence</option>
           <option value="plan_experiment">Plan experiment</option>
-          <option value="publish_content">Publish content</option>
+          <option value="publish_content">Publish approved content</option>
           <option value="multiply_variant">Multiply variant</option>
         </select>
+        {actionCode === "draft_content" && (
+          <div className="automation-action-fields">
+            <label><span>Language</span><input value={draftLanguage} onChange={(event) => setDraftLanguage(event.target.value)} placeholder="pt-BR, en-US…" maxLength={20} /></label>
+            <label><span>Draft brief/body</span><textarea value={draftBody} onChange={(event) => setDraftBody(event.target.value)} maxLength={100000} /></label>
+          </div>
+        )}
+        {actionCode === "plan_experiment" && (
+          <div className="automation-action-fields">
+            <label><span>Experiment name</span><input value={experimentName} onChange={(event) => setExperimentName(event.target.value)} maxLength={160} /></label>
+            <label><span>Hypothesis</span><textarea value={experimentHypothesis} onChange={(event) => setExperimentHypothesis(event.target.value)} maxLength={2000} /></label>
+            <label><span>Decision rule</span><textarea value={experimentRule} onChange={(event) => setExperimentRule(event.target.value)} maxLength={2000} /></label>
+          </div>
+        )}
+        {actionCode === "publish_content" && (
+          <div className="automation-action-fields">
+            <p className="recommendation-muted">Account: {socialAccountId ?? "No account bound to this opportunity"}</p>
+            <label><span>Approved content version ID</span><input value={publicationContentVersionId} onChange={(event) => setPublicationContentVersionId(event.target.value)} placeholder="UUID" /></label>
+          </div>
+        )}
+        {actionCode === "multiply_variant" && (
+          <div className="automation-action-fields">
+            <label><span>Experiment ID</span><input value={variantExperimentId} onChange={(event) => setVariantExperimentId(event.target.value)} placeholder="UUID" /></label>
+            <label><span>Variant label</span><input value={variantLabel} onChange={(event) => setVariantLabel(event.target.value)} maxLength={120} /></label>
+          </div>
+        )}
         <button className="detail-action-button" type="button" disabled={busy || !evidenceRef} onClick={() => void queueRequest()}>
           {busy ? "Saving…" : "Queue for approval"}
         </button>
@@ -543,7 +679,9 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
             <article className="automation-request-card" key={request.id}>
               <div>
                 <strong>{titleCase(request.action_code)}</strong>
-                <span>{titleCase(request.status)} · evidence stored</span>
+                <span>{titleCase(request.status)} · {titleCase(request.execution_status)} · evidence stored</span>
+                {request.execution_result_ref && <small>{request.execution_result_ref}</small>}
+                {request.execution_error_class && <small>{titleCase(request.execution_error_class)}</small>}
               </div>
               {request.status === "pending" && (
                 <div className="recommendation-feedback">
@@ -551,12 +689,17 @@ function AutomationPanel({ opportunityId, evidenceRef }: { opportunityId: string
                   <button type="button" disabled={busy} onClick={() => void decide(request.id, "reject")}>Reject</button>
                 </div>
               )}
+              {request.status === "approved" && request.execution_status === "ready" && (
+                <button className="detail-action-button" type="button" disabled={busy} onClick={() => void execute(request.id)}>
+                  Execute approved action
+                </button>
+              )}
             </article>
           ))}
         </div>
       )}
       {!evidenceRef && <p className="recommendation-muted">No stored evidence is available, so automation remains unavailable.</p>}
-      {message && <p className="recommendation-error" role="alert">{message}</p>}
+      {message && <p className={messageIsError ? "recommendation-error" : "experiment-success"} role={messageIsError ? "alert" : "status"}>{message}</p>}
     </section>
   );
 }
@@ -737,7 +880,13 @@ function DetailPanel({
         opportunityId={opportunity.id}
         onLearningRecorded={() => setLearningRefreshToken((current) => current + 1)}
       />
-      <AutomationPanel opportunityId={opportunity.id} evidenceRef={evidence[0]?.evidence_ref ?? null} />
+      <AutomationPanel
+        opportunityId={opportunity.id}
+        evidenceRef={evidence[0]?.evidence_ref ?? null}
+        market={opportunity.market}
+        platform={opportunity.platform}
+        socialAccountId={opportunity.social_account_id}
+      />
       <CommercialPanel />
     </section>
   );

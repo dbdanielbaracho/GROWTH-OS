@@ -47,6 +47,7 @@ import {
   listAutomationActionRequests,
   setAutomationPolicy
 } from "./automation.js";
+import { executeApprovedAutomationRequest } from "./automation-runner.js";
 import {
   getEnterprisePolicy,
   getWorkspaceEntitlements,
@@ -155,6 +156,7 @@ const AutomationRequestSchema = z.object({
   action_code: z.enum(["draft_content", "review_evidence", "plan_experiment", "publish_content", "multiply_variant"]),
   target_ref: z.string().trim().min(1).max(500),
   evidence_ref: z.string().trim().min(1).max(1000),
+  action_payload: z.record(z.string().max(200), z.unknown()).optional(),
   note: z.string().trim().max(1000).nullable().optional()
 });
 
@@ -1117,7 +1119,8 @@ export function buildApp(logger = false) {
           actionCode: parsed.data.action_code,
           targetRef: parsed.data.target_ref,
           evidenceRef: parsed.data.evidence_ref,
-          note: parsed.data.note ?? null
+          note: parsed.data.note ?? null,
+          actionPayload: parsed.data.action_payload ?? {}
         })
       );
       return reply.code(201).send({ status: "created", request: created });
@@ -1149,6 +1152,24 @@ export function buildApp(logger = false) {
       return { status: "decided", request: decided };
     } catch (error) {
       app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+
+  app.post("/v1/automation/requests/:id/execute", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    const params = AutomationRequestParamsSchema.safeParse(request.params);
+    if (!params.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const executed = await executeApprovedAutomationRequest(principal, params.data.id);
+      return { status: "processed", request: executed };
+    } catch (error) {
+      app.log.error({ automationRequestId: params.data.id }, "automation execution claim/finalization failed");
       const mapped = databaseStatus(error);
       return reply.code(mapped.code).send({ status: mapped.status });
     }

@@ -22,6 +22,18 @@ for (const gate of ["053_experiment_lineage.sql", "054_automation_policy_control
   }
 }
 
+const automationGate = await readFile(join(root, "db", "tests", "054_automation_policy_control.sql"), "utf8");
+if (!automationGate.includes("069_automation_action_execution.sql")) {
+  throw new Error("release hardening: canonical automation CI step does not chain execution gate 069");
+}
+
+const automationExecution = await readFile(join(migrationDir, "068_automation_action_execution.sql"), "utf8");
+for (const marker of ["execution_status", "claim_automation_action_execution", "finalize_automation_action_execution", "kill switch"]) {
+  if (!automationExecution.includes(marker)) {
+    throw new Error("release hardening: automation execution marker missing " + marker);
+  }
+}
+
 const commercial = await readFile(join(migrationDir, "038_commercial_entitlements.sql"), "utf8");
 for (const marker of ["provider_customer_ref", "monthly_action_limit", "enterprise_policies"]) {
   if (!commercial.includes(marker)) {

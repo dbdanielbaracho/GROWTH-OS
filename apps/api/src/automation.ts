@@ -11,8 +11,17 @@ export type AutomationPolicy = {
   updated_at: string;
 };
 
+export type AutomationExecutionStatus =
+  | "not_ready"
+  | "ready"
+  | "executing"
+  | "succeeded"
+  | "needs_input"
+  | "failed";
+
 export type AutomationActionRequest = {
   id: string;
+  workspace_id: string;
   policy_id: string;
   action_code: "draft_content" | "review_evidence" | "plan_experiment" | "publish_content" | "multiply_variant";
   target_ref: string;
@@ -21,6 +30,13 @@ export type AutomationActionRequest = {
   requested_by: string;
   approved_by: string | null;
   note: string | null;
+  action_payload: Record<string, unknown>;
+  execution_status: AutomationExecutionStatus;
+  execution_result_ref: string | null;
+  execution_error_class: string | null;
+  execution_started_at: string | null;
+  executed_at: string | null;
+  execution_attempts: number;
   created_at: string;
   decided_at: string | null;
 };
@@ -62,7 +78,7 @@ export async function listAutomationActionRequests(
   limit = 50
 ): Promise<AutomationActionRequest[]> {
   const result = await client.query<AutomationActionRequest>(
-    "select * from growth.list_automation_action_requests($1, $2)",
+    "select * from growth.list_automation_action_requests_v2($1, $2)",
     [principal.workspaceId, Math.min(Math.max(limit, 1), 100)]
   );
   return result.rows;
@@ -76,16 +92,18 @@ export async function createAutomationActionRequest(
     targetRef: string;
     evidenceRef: string;
     note?: string | null;
+    actionPayload?: Record<string, unknown>;
   }
 ): Promise<AutomationActionRequest> {
   const result = await client.query<AutomationActionRequest>(
-    "select * from growth.create_automation_action_request($1, $2, $3, $4, $5)",
+    "select * from growth.create_automation_action_request_v2($1, $2, $3, $4, $5, $6::jsonb)",
     [
       principal.workspaceId,
       input.actionCode,
       input.targetRef,
       input.evidenceRef,
-      input.note ?? null
+      input.note ?? null,
+      JSON.stringify(input.actionPayload ?? {})
     ]
   );
   const row = result.rows[0];
@@ -101,10 +119,49 @@ export async function decideAutomationActionRequest(
   note?: string | null
 ): Promise<AutomationActionRequest> {
   const result = await client.query<AutomationActionRequest>(
-    "select * from growth.decide_automation_action_request($1, $2, $3, $4)",
+    "select * from growth.decide_automation_action_request_v2($1, $2, $3, $4)",
     [principal.workspaceId, requestId, decision, note ?? null]
   );
   const row = result.rows[0];
   if (!row) throw new Error("automation helper returned no row");
+  return row;
+}
+
+export async function claimAutomationActionExecution(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  requestId: string
+): Promise<AutomationActionRequest> {
+  const result = await client.query<AutomationActionRequest>(
+    "select * from growth.claim_automation_action_execution($1, $2)",
+    [principal.workspaceId, requestId]
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error("automation claim returned no row");
+  return row;
+}
+
+export async function finalizeAutomationActionExecution(
+  client: PoolClient,
+  principal: AuthPrincipal,
+  requestId: string,
+  input: {
+    executionStatus: "succeeded" | "needs_input" | "failed";
+    resultRef?: string | null;
+    errorClass?: string | null;
+  }
+): Promise<AutomationActionRequest> {
+  const result = await client.query<AutomationActionRequest>(
+    "select * from growth.finalize_automation_action_execution($1, $2, $3, $4, $5)",
+    [
+      principal.workspaceId,
+      requestId,
+      input.executionStatus,
+      input.resultRef ?? null,
+      input.errorClass ?? null
+    ]
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error("automation finalization returned no row");
   return row;
 }

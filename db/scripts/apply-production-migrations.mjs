@@ -628,6 +628,18 @@ const steps = [
     },
   },
 
+  {
+    file: '068_automation_action_execution.sql',
+    present: async () => {
+      const claimSignature = 'growth.claim_automation_action_execution(uuid,uuid)';
+      const finalizeSignature = 'growth.finalize_automation_action_execution(uuid,uuid,text,text,text)';
+      return (await columnExists('automation_action_requests', 'action_payload'))
+        && (await columnExists('automation_action_requests', 'execution_status'))
+        && (await functionExists(claimSignature))
+        && (await functionExists(finalizeSignature));
+    },
+  },
+
 ];
 
 try {

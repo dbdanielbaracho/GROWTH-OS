@@ -85,3 +85,6 @@ $automation_gate$;
 ROLLBACK;
 
 SELECT 'TEST-054 PASS: approval-gated automation control plane' AS result;
+
+-- Keep execution-state/security verification inside the canonical automation CI step.
+\ir 069_automation_action_execution.sql
