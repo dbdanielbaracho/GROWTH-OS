@@ -4900,3 +4900,5 @@ Regras obrigatórias:
 **Limites externos que continuam fora de qualquer atalho de código:** OAuth humano Google/YouTube para a prova real pós-PR #200 e autorização explícita do usuário para qualquer publicação pública concreta. Esses gates não podem ser declarados concluídos sem a prova real.
 
 - CI #1300 (`35454381986`) no head `7f21ed9eafcc6aef260eb656e26dd1d7437ce45f` passou Test Integrity e Release Hardening, mas o TypeScript rejeitou o acesso a `data.experiments[0]` como possivelmente `undefined`. A correção usa uma guarda explícita `if (!experiment)`; nenhum gate foi enfraquecido.
+
+- O fechamento adiciona cobertura browser explícita para o Copilot evidence-grounded e adiciona `/v1/analytics/anomalies` ao mock fail-closed do browser gate, garantindo que a nova leitura de alertas de qualidade não seja mascarada como request desconhecido.
