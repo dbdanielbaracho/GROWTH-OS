@@ -18,6 +18,8 @@ jobs:
         with:
           ref: fix/youtube-reauthorization-in-place
           fetch-depth: 0
+      - name: Fix helper replacement escaping
+        run: sed -i 's/re.subn(pattern, replacement, text, count=1, flags=re.S)/re.subn(pattern, lambda _: replacement, text, count=1, flags=re.S)/' .github/scripts/patch_youtube_reauthorization.py
       - name: Apply YouTube reauthorization patch
         run: python .github/scripts/patch_youtube_reauthorization.py
       - name: Validate patch
