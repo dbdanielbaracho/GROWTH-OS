@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import {
+  classifyAutomationPublicationStatus,
   dispatchApprovedAutomationAction,
   type AutomationExecutionEffects
 } from "./automation-execution.js";
@@ -118,6 +119,37 @@ test("publish_content cannot execute without explicit account/content binding", 
   );
   assert.equal(valid.status, "succeeded");
   assert.equal(publishCalled, true);
+});
+
+test("automation publication succeeds only on provider-confirmed status", () => {
+  assert.deepEqual(classifyAutomationPublicationStatus("confirmed"), {
+    outcome: "confirmed",
+    errorClass: null
+  });
+
+  for (const status of ["ready", "scheduled", "queued", "sending", "failed_retryable", "retrying"]) {
+    assert.deepEqual(classifyAutomationPublicationStatus(status), {
+      outcome: "needs_input",
+      errorClass: "publication_pending_confirmation"
+    });
+  }
+
+  assert.deepEqual(classifyAutomationPublicationStatus("needs_user_action"), {
+    outcome: "needs_input",
+    errorClass: "publication_needs_user_action"
+  });
+  assert.deepEqual(classifyAutomationPublicationStatus("cancelled"), {
+    outcome: "needs_input",
+    errorClass: "publication_terminal_without_confirmation"
+  });
+  assert.deepEqual(classifyAutomationPublicationStatus("superseded"), {
+    outcome: "needs_input",
+    errorClass: "publication_terminal_without_confirmation"
+  });
+  assert.deepEqual(classifyAutomationPublicationStatus("unexpected_provider_state"), {
+    outcome: "failed",
+    errorClass: "publication_status_unrecognized"
+  });
 });
 
 test("plan_experiment and multiply_variant preserve opportunity lineage", async () => {
