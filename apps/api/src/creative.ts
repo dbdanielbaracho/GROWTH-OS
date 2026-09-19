@@ -300,3 +300,58 @@ export async function createLineageEdge(
   );
   return result.rows[0];
 }
+
+
+export async function listCreativeRequests(client: PoolClient, principal: AuthPrincipal, limit = 100) {
+  const result = await client.query(
+    `select id, workspace_id, content_item_id, content_version_id, source_type, source_id,
+            capability, modality, target_market, target_language, requested_by, status, created_at
+       from growth.creative_requests
+      where workspace_id = $1
+      order by created_at desc, id desc
+      limit $2`,
+    [principal.workspaceId, limit]
+  );
+  return result.rows;
+}
+
+export async function listCreativeGenerations(client: PoolClient, principal: AuthPrincipal, limit = 100) {
+  const result = await client.query(
+    `select id, workspace_id, creative_request_id, provider, model, status,
+            supports_provider_idempotency, idempotency_key, external_handle,
+            error_class, resolved_manually, resolved_by, resolved_at,
+            started_at, completed_at, created_at
+       from growth.creative_generations
+      where workspace_id = $1
+      order by created_at desc, id desc
+      limit $2`,
+    [principal.workspaceId, limit]
+  );
+  return result.rows;
+}
+
+export async function listMediaAssets(client: PoolClient, principal: AuthPrincipal, limit = 200) {
+  const result = await client.query(
+    `select id, workspace_id, storage_ref, mime_type, checksum, rights_status, source_class,
+            bytes, duration_seconds, width_px, height_px, purpose,
+            content_version_id, creative_generation_id, created_at
+       from growth.media_assets
+      where workspace_id = $1
+      order by created_at desc, id desc
+      limit $2`,
+    [principal.workspaceId, limit]
+  );
+  return result.rows;
+}
+
+export async function listMediaAssetLineage(client: PoolClient, principal: AuthPrincipal, limit = 400) {
+  const result = await client.query(
+    `select workspace_id, output_asset_id, input_asset_id, role, created_at
+       from growth.media_asset_lineage
+      where workspace_id = $1
+      order by created_at desc, output_asset_id, input_asset_id
+      limit $2`,
+    [principal.workspaceId, limit]
+  );
+  return result.rows;
+}

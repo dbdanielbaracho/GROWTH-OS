@@ -750,6 +750,8 @@ export async function createPublicationIntent(input: {
   contentVersionId: string;
   requestNonce: string;
   idempotencyKey: string;
+  mediaAssetId?: string;
+  scheduledFor?: string;
 }): Promise<PublicationIntentMutationResponse> {
   return requestJson<PublicationIntentMutationResponse>("/v1/publication-intents", {
     method: "POST",
@@ -1218,4 +1220,159 @@ export async function queryCopilot(message: string): Promise<CopilotReply> {
     body: { message }
   });
   return response.reply;
+}
+
+
+export type CreativeRequest = {
+  id: string;
+  workspace_id: string;
+  content_item_id: string | null;
+  content_version_id: string | null;
+  source_type: "opportunity" | "insight" | "experiment" | "multiply" | "user_request" | "content";
+  source_id: string;
+  capability: string;
+  modality: "text" | "image" | "video" | "audio" | "embedding";
+  target_market: string;
+  target_language: string;
+  requested_by: string;
+  status: "requested" | "in_progress" | "completed" | "failed" | "cancelled";
+  created_at: string;
+};
+
+export type CreativeGeneration = {
+  id: string;
+  workspace_id: string;
+  creative_request_id: string;
+  provider: string;
+  model: string | null;
+  status: "requested" | "queued" | "processing" | "succeeded" | "failed" | "cancelled" | "ambiguous";
+  supports_provider_idempotency: boolean;
+  idempotency_key: string;
+  external_handle: string | null;
+  error_class: string | null;
+  resolved_manually: boolean;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type MediaAsset = {
+  id: string;
+  workspace_id: string;
+  storage_ref: string;
+  mime_type: string;
+  checksum: string;
+  rights_status: string;
+  source_class: string;
+  bytes: number | null;
+  duration_seconds: number | null;
+  width_px: number | null;
+  height_px: number | null;
+  purpose: "source" | "intermediate" | "publishable" | null;
+  content_version_id: string | null;
+  creative_generation_id: string | null;
+  created_at: string;
+};
+
+export type MediaAssetLineage = {
+  workspace_id: string;
+  output_asset_id: string;
+  input_asset_id: string;
+  role: string | null;
+  created_at: string;
+};
+
+export async function fetchCreativeRequests(): Promise<CreativeRequest[]> {
+  const response = await requestJson<{ status: "ok"; creativeRequests: CreativeRequest[] }>("/v1/creative/requests");
+  return response.creativeRequests;
+}
+
+export async function createCreativeRequest(input: {
+  contentItemId?: string;
+  contentVersionId?: string;
+  sourceType: CreativeRequest["source_type"];
+  sourceId: string;
+  capability: string;
+  modality: CreativeRequest["modality"];
+  targetMarket: string;
+  targetLanguage: string;
+}): Promise<CreativeRequest> {
+  const response = await requestJson<{ status: "created"; creativeRequest: CreativeRequest }>("/v1/creative/requests", { method: "POST", body: input });
+  return response.creativeRequest;
+}
+
+export async function fetchCreativeGenerations(): Promise<CreativeGeneration[]> {
+  const response = await requestJson<{ status: "ok"; creativeGenerations: CreativeGeneration[] }>("/v1/creative/generations");
+  return response.creativeGenerations;
+}
+
+export async function createCreativeGeneration(input: {
+  creativeRequestId: string;
+  provider: string;
+  model?: string;
+  supportsProviderIdempotency?: boolean;
+}): Promise<CreativeGeneration> {
+  const response = await requestJson<{ status: "created"; creativeGeneration: CreativeGeneration }>("/v1/creative/generations", { method: "POST", body: input });
+  return response.creativeGeneration;
+}
+
+export async function transitionCreativeGeneration(
+  generationId: string,
+  status: CreativeGeneration["status"]
+): Promise<CreativeGeneration> {
+  const response = await requestJson<{ status: "ok"; creativeGeneration: CreativeGeneration }>(
+    `/v1/creative/generations/${encodeURIComponent(generationId)}`,
+    { method: "PATCH", body: { status } }
+  );
+  return response.creativeGeneration;
+}
+
+export async function reconcileCreativeGeneration(
+  generationId: string,
+  resolvedStatus: "succeeded" | "failed"
+): Promise<CreativeGeneration> {
+  const response = await requestJson<{ status: "ok"; creativeGeneration: CreativeGeneration }>(
+    `/v1/creative/generations/${encodeURIComponent(generationId)}/reconcile`,
+    { method: "POST", body: { resolvedStatus } }
+  );
+  return response.creativeGeneration;
+}
+
+export async function fetchMediaAssets(): Promise<MediaAsset[]> {
+  const response = await requestJson<{ status: "ok"; mediaAssets: MediaAsset[] }>("/v1/media-assets");
+  return response.mediaAssets;
+}
+
+export async function createMediaAsset(input: {
+  storageRef: string;
+  mimeType: string;
+  checksum: string;
+  rightsStatus: string;
+  sourceClass: string;
+  bytes?: number;
+  durationSeconds?: number;
+  widthPx?: number;
+  heightPx?: number;
+  purpose?: MediaAsset["purpose"];
+  contentVersionId?: string;
+  creativeGenerationId?: string;
+}): Promise<MediaAsset> {
+  const response = await requestJson<{ status: "created"; mediaAsset: MediaAsset }>("/v1/media-assets", { method: "POST", body: input });
+  return response.mediaAsset;
+}
+
+export async function fetchMediaAssetLineage(): Promise<MediaAssetLineage[]> {
+  const response = await requestJson<{ status: "ok"; lineage: MediaAssetLineage[] }>("/v1/media-assets/lineage");
+  return response.lineage;
+}
+
+export async function createMediaAssetLineage(input: {
+  outputAssetId: string;
+  inputAssetId: string;
+  role?: string;
+}): Promise<MediaAssetLineage> {
+  const response = await requestJson<{ status: "created"; lineageEdge: MediaAssetLineage }>("/v1/media-assets/lineage", { method: "POST", body: input });
+  return response.lineageEdge;
 }

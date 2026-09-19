@@ -91,7 +91,8 @@ async function mockApi(
       "/v1/analytics/metrics", "/v1/analytics/anomalies", "/v1/content", "/v1/publication-intents",
       "/v1/opportunities", `/v1/opportunities/${opportunity.id}`,
       "/v1/recommendations", "/v1/experiments", "/v1/automation/policy", "/v1/automation/requests",
-      "/v1/commercial/entitlements", "/v1/commercial/enterprise-policy"
+      "/v1/commercial/entitlements", "/v1/commercial/enterprise-policy",
+      "/v1/creative/requests", "/v1/creative/generations", "/v1/media-assets", "/v1/media-assets/lineage"
     ].includes(path)) return json(route, 401, { status: "unauthorized" });
 
     if (path === "/v1/auth/session") {
@@ -171,6 +172,19 @@ async function mockApi(
 
     if (mode === "authenticated" && path === "/v1/publication-intents") {
       return json(route, 200, { status: "ok", publicationIntents });
+    }
+
+    if (mode === "authenticated" && path === "/v1/creative/requests") {
+      return json(route, 200, { status: "ok", creativeRequests: [] });
+    }
+    if (mode === "authenticated" && path === "/v1/creative/generations") {
+      return json(route, 200, { status: "ok", creativeGenerations: [] });
+    }
+    if (mode === "authenticated" && path === "/v1/media-assets") {
+      return json(route, 200, { status: "ok", mediaAssets: [] });
+    }
+    if (mode === "authenticated" && path === "/v1/media-assets/lineage") {
+      return json(route, 200, { status: "ok", lineage: [] });
     }
 
     if (mode === "authenticated" && path === "/v1/opportunities") {
@@ -312,6 +326,30 @@ test("authenticated Radar shell remains accessible across desktop and mobile", a
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { name: "See what is beginning to move." })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  expect(unhandled).toEqual([]);
+});
+
+test("Creative Studio and Publication Calendar are accessible fail-closed product surfaces", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  await page.goto("/");
+
+  const creativeToggle = page.getByRole("button", { name: /Creative Studio.*Requests/i });
+  await expect(creativeToggle).toBeVisible();
+  await creativeToggle.click();
+  await expect(page.getByRole("heading", { name: "Build creative work without losing provenance." })).toBeVisible();
+  await expect(page.getByText("No creative requests yet.", { exact: true })).toBeVisible();
+
+  const calendarToggle = page.getByRole("button", { name: /Publication Calendar.*Schedule/i });
+  await expect(calendarToggle).toBeVisible();
+  await calendarToggle.click();
+  await expect(page.getByRole("heading", { name: "Schedule approved content without bypassing the worker." })).toBeVisible();
+  await expect(page.getByText("No publication intents yet.", { exact: true })).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousAccessibilityViolations(page);
   expect(unhandled).toEqual([]);
