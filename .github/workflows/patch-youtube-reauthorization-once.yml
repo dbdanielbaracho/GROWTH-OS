@@ -23,6 +23,13 @@ jobs:
           sed -i 's/re.subn(pattern, replacement, text, count=1, flags=re.S)/re.subn(pattern, lambda _: replacement, text, count=1, flags=re.S)/' .github/scripts/patch_youtube_reauthorization.py
       - name: Apply YouTube reauthorization patch
         run: python .github/scripts/patch_youtube_reauthorization.py
+      - name: Normalize generated test EOF
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("apps/api/src/youtube-connector.test.ts")
+          path.write_text(path.read_text().rstrip() + "\n")
+          PY
       - name: Validate patch
         run: git diff --check
       - name: Commit patch
