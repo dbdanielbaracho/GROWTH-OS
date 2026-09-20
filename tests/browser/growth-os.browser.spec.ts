@@ -91,7 +91,7 @@ async function mockApi(
       "/v1/analytics/metrics", "/v1/analytics/anomalies", "/v1/content", "/v1/publication-intents",
       "/v1/opportunities", `/v1/opportunities/${opportunity.id}`,
       "/v1/recommendations", "/v1/experiments", "/v1/automation/policy", "/v1/automation/requests",
-      "/v1/commercial/entitlements", "/v1/commercial/enterprise-policy",
+      "/v1/commercial/entitlements", "/v1/commercial/enterprise-policy", "/v1/intelligence/modules",
       "/v1/creative/requests", "/v1/creative/generations", "/v1/media-assets", "/v1/media-assets/lineage"
     ].includes(path)) return json(route, 401, { status: "unauthorized" });
 
@@ -163,6 +163,16 @@ async function mockApi(
             "Copilot does not publish or execute provider actions; those remain behind existing approval and Autopilot controls."
           ]
         }
+      });
+    }
+
+    if (mode === "authenticated" && path === "/v1/intelligence/modules") {
+      return json(route, 200, {
+        status: "ok", generated_at: "2026-09-19T12:00:00.000Z", modules: [
+          { key: "global_trend_migration", title: "Global Trend Migration", state: "limited", summary: "Controlled browser fixture has external evidence in one dimension only.", evidence_count: 1, evidence_refs: ["browser-quality-trend-evidence"], signals: [{ label: "US · instagram", detail: "One controlled external reference.", evidence_refs: ["browser-quality-trend-evidence"] }], provider_states: [{ platform: "instagram", status: "validation_required", evidence_ref: "browser-quality-provider-doc", evidence_status: "verified", kill_switch: true, limits: {} }], limitations: ["Requires two dimensions."] },
+          { key: "competitor_intelligence", title: "Competitor Intelligence", state: "provider_limited", summary: "No explicit competitor observation is stored.", evidence_count: 0, evidence_refs: [], signals: [], provider_states: [{ platform: "instagram", status: "validation_required", evidence_ref: "browser-quality-provider-doc", evidence_status: "verified", kill_switch: true, limits: {} }], limitations: ["No inferred competitor metrics."] },
+          { key: "viral_dna", title: "Viral DNA", state: "insufficient_evidence", summary: "No measured winner is stored.", evidence_count: 0, evidence_refs: [], signals: [], provider_states: [{ platform: "instagram", status: "validation_required", evidence_ref: "browser-quality-provider-doc", evidence_status: "verified", kill_switch: true, limits: {} }], limitations: ["No causal claim without measured evidence."] }
+        ]
       });
     }
 
@@ -326,6 +336,28 @@ test("authenticated Radar shell remains accessible across desktop and mobile", a
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("heading", { name: "See what is beginning to move." })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  expect(unhandled).toEqual([]);
+});
+
+
+test("evidence-bounded intelligence modules expose provider limits without synthetic signals", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  await page.goto("/");
+
+  const region = page.getByRole("region", { name: "What the evidence can support now" });
+  await expect(region).toBeVisible();
+  await expect(region.getByRole("heading", { name: "Global Trend Migration" })).toBeVisible();
+  await expect(region.getByRole("heading", { name: "Competitor Intelligence" })).toBeVisible();
+  await expect(region.getByRole("heading", { name: "Viral DNA" })).toBeVisible();
+  await expect(region.getByText("Provider limited", { exact: true })).toBeVisible();
+  await expect(region.getByText("browser-quality-trend-evidence", { exact: true })).toBeVisible();
+  await expect(region.getByText("No qualifying stored signal is being substituted with synthetic data.").first()).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousAccessibilityViolations(page);
   expect(unhandled).toEqual([]);

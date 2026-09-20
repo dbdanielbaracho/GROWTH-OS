@@ -1376,3 +1376,30 @@ export async function createMediaAssetLineage(input: {
   const response = await requestJson<{ status: "created"; lineageEdge: MediaAssetLineage }>("/v1/media-assets/lineage", { method: "POST", body: input });
   return response.lineageEdge;
 }
+
+
+export type IntelligenceModuleState = "available" | "limited" | "insufficient_evidence" | "provider_limited";
+export type IntelligenceProviderState = {
+  platform: string;
+  status: "enabled" | "disabled" | "degraded" | "validation_required";
+  evidence_ref: string | null;
+  evidence_status: string;
+  kill_switch: boolean;
+  limits: Record<string, unknown>;
+};
+export type IntelligenceModule = {
+  key: "global_trend_migration" | "competitor_intelligence" | "viral_dna";
+  title: string;
+  state: IntelligenceModuleState;
+  summary: string;
+  evidence_count: number;
+  evidence_refs: string[];
+  signals: Array<{ label: string; detail: string; evidence_refs: string[] }>;
+  provider_states: IntelligenceProviderState[];
+  limitations: string[];
+};
+
+export async function fetchIntelligenceModules(): Promise<IntelligenceModule[]> {
+  const response = await requestJson<{ status: "ok"; generated_at: string; modules: IntelligenceModule[] }>("/v1/intelligence/modules");
+  return response.modules;
+}

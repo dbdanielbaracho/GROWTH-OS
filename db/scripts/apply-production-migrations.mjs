@@ -669,6 +669,26 @@ const steps = [
       return result.rows[0]?.present === true;
     },
   },
+  {
+    file: '071_intelligence_module_capabilities.sql',
+    present: async () => {
+      if (!(await functionExists('growth.list_intelligence_module_capabilities(uuid)'))
+          || !(await functionExists('growth.list_competitor_intelligence_evidence(uuid,integer)'))
+          || !(await functionExists('growth.list_viral_dna_evidence(uuid,integer)'))) return false;
+      const result = await client.query(`
+        select count(*) = 9
+          and count(*) filter (where evidence_ref is not null and btrim(evidence_ref) <> '') = 9
+          as present
+          from growth.capabilities
+         where capability in (
+           'intelligence_global_trend_migration',
+           'intelligence_competitor_intelligence',
+           'intelligence_viral_dna'
+         )
+      `);
+      return result.rows[0]?.present === true;
+    },
+  },
 
 ];
 
