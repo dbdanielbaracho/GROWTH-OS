@@ -14,104 +14,17 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
-        with:
-          ref: docs/record-phase11-final-20260920
-
-      - name: Append verified Phase 11 record
-        shell: bash
-        run: |
-          if git log -1 --pretty=%B | grep -Fq '[memory-appended]'; then
-            echo 'Documentation already appended; no recursive update required.'
-            exit 0
-          fi
-          python - <<'PY'
-          from pathlib import Path
-
-          memory_path = Path('docs/PROJECT_EXECUTION_MEMORY.md')
-          state_path = Path('PROJECT_CURRENT_STATE.md')
-
-          memory_heading = '## Continuação — status atual, correção final da Fase 11 e regra TinyFish reafirmada — 2026-09-20'
-          memory_section = r'''## Continuação — status atual, correção final da Fase 11 e regra TinyFish reafirmada — 2026-09-20
-
-**Pedido exato do usuário:** `"continuar o projeto do status atual"`.
-
-**Ponto verificado de retomada:** os PRs #205 e #206 já estavam mesclados e aceitos. O ponto funcional real era o PR #207, `feat: add Phase 11 operational hardening gates`, aberto na branch `feat/phase11-hardening`.
-
-**Correção de procedimento sobre TinyFish:** durante o diagnóstico inicial, o GitHub API havia mostrado qual step falhou sem expor a linha detalhada do erro, e foi iniciada uma tentativa somente leitura de abrir o job via TinyFish. O usuário interrompeu com a pergunta exata `"porque está voltando a falar do tinyfish"`. Nenhuma alteração no GitHub, Railway, conta, credencial ou produto foi feita por TinyFish. A regra permanente de 2026-09-18 — `"nao vou usar o tinyfish"` — foi reafirmada e, após essa interrupção, nenhuma outra ação TinyFish foi usada nesta continuação. O diagnóstico e a execução seguiram somente por GitHub e Railway. TinyFish não deve ser usado nas próximas execuções do Growth OS.
-
-**Falha exata encontrada no terceiro CI da Fase 11:** head `5bdcb63f8342365529478bf743cdd1f8a8bd3540`, CI #1360, run `35525488384`. Integridade, hardening, typecheck, build, Browser Product Gate, migrations, gates SQL, identidade, Growth Intelligence e o gate de carga/resiliência passaram. Somente `Phase 11 backup and restore drill` falhou. O log oficial do GitHub registrou `permission denied for table content_items` quando o usuário de runtime restaurado tentou executar `select id from growth.content_items where workspace_id = $1 and id = $2`.
-
-**Causa:** o restore em si já havia funcionado. A fonte de CI tinha todas as migrations, porém o workflow havia concedido apenas uso do schema ao `app_runtime`; o snapshot ainda não continha o arquivo canônico de permissões de runtime usado em produção. Assim, o restore drill estava testando um banco parcialmente provisionado, não o contrato real da aplicação.
-
-**Correção aplicada:** commit `d00f6fb8303f75be70a07c863eac0dcc5744a99e`, arquivo `db/scripts/phase11-restore-drill.mjs`. Antes do fixture controlado e do `pg_dump`, o drill executa o arquivo oficial `db/provisioning/production/02_runtime_grants.sql` com `psql --set=ON_ERROR_STOP=1`. Não foi adicionado grant ad hoc ao teste. Permaneceram intactas as barreiras do drill: target distinto `growth_os_restore_*`, mesmo cluster de quarentena, dois acknowledgements explícitos, dump anterior à exclusão, replay do ledger/tombstone, prova de que o read path restaurado fica negado após replay e limpeza no `finally`.
-
-**Aceite do PR #207:** head `d00f6fb8303f75be70a07c863eac0dcc5744a99e`; CI #1362, run `35526433434`, `SUCCESS`. Passaram integralmente Test Integrity, Release Hardening, Typecheck, Build, Browser Product Gate, todas as migrations/gates SQL, integrações de identidade/Growth Intelligence, Phase 11 bounded load/resilience, Phase 11 backup/restore drill, production same-origin shell e Test final.
-
-**Merge:** PR #207 mesclado por squash, com verificação do head esperado, no commit `d1e3296c5a431a7443584e84e52cb7bff081f994`.
-
-**Aceite de `main`:** CI #1363, run `35526788270`, `SUCCESS` no SHA exato `d1e3296c5a431a7443584e84e52cb7bff081f994`. O push de `main` repetiu com sucesso o gate de carga/resiliência, o backup/restore drill, o production shell e o Test final.
-
-**Railway canônico — produção:** projeto `successful-embrace`, ambiente `production`, todos originados do mesmo merge:
-- migrator deployment `f6f228ac-58fc-4e47-be5e-975321af6c2a`: `SUCCESS`;
-- publication worker deployment `752da9cb-2e27-4991-b523-1cfcf865dd76`: `SUCCESS`;
-- app `growth-os` deployment `9778659d-92ce-4bde-906a-4610b7d9a7c4`: `SUCCESS`.
-
-Os logs do app registraram `verified Railway deployment identity` com o commit `d1e3296c5a431a7443584e84e52cb7bff081f994`, processo ouvindo na porta 8080 e healthcheck Railway `/health/ready` com HTTP 200. A nova telemetria operacional registrou somente método, template normalizado da rota, status, duração e classe SLO para a requisição de health; não registrou payload, credencial nem tenant. Uma tentativa separada de abrir o domínio público pela ferramenta web desta sessão foi bloqueada pela própria ferramenta e não foi contada como prova adicional.
-
-**Resultado:** a Fase 11 interna de hardening operacional está aceita na linhagem exata do runtime: telemetria limitada, SLOs/condições de alerta documentados, gate de carga/resiliência e restore drill físico em Postgres de quarentena. O restore drill de CI não é convertido em alegação sobre política/retensão real de backups do Railway.
-
-**O projeto ainda não é declarado 100% frozen. Pendências externas/finais restantes:**
-1. autorização humana Google/YouTube pós-PR #200 com os escopos necessários e um sync real de sete dias com evidência persistida;
-2. publicação real controlada somente após autorização explícita de conta e conteúdo concretos, com confirmação do provedor;
-3. fechar a linhagem real completa `provider data → observations → evidence/signal → insight/opportunity → recommendation/content → approval → confirmed publication → measurement → learning`;
-4. concluir as jornadas autenticadas de produção ainda aplicáveis, inclusive isolamento/recovery/provider paths, sem substituir por fixture;
-5. comparação visual competitiva same-task e freeze visual final;
-6. pacote final de evidências no SHA aceito e revisão adversarial final pelo revisor real designado, com correção e repetição dos gates afetados;
-7. atualizar checkpoints/roadmap de freeze e fechar a issue #26 somente depois dos gates aplicáveis.
-
-**Próximo ponto exato:** a partir do commit `d1e3296c5a431a7443584e84e52cb7bff081f994`, tratar apenas os gates externos/finais acima. Não reabrir a Fase 11 interna sem evidência de regressão e não usar TinyFish.'''
-
-          memory = memory_path.read_text(encoding='utf-8')
-          if memory_heading not in memory:
-              memory = memory.rstrip() + '\n\n\n' + memory_section.strip() + '\n'
-              memory_path.write_text(memory, encoding='utf-8')
-
-          state_heading = '## Current accepted checkpoint — 2026-09-20 — PR #207 Phase 11 operational hardening'
-          state_section = r'''## Current accepted checkpoint — 2026-09-20 — PR #207 Phase 11 operational hardening
-
-This section supersedes the PR #206 accepted checkpoint below while preserving it as historical evidence.
-
-- Repository and accepted runtime SHA: `d1e3296c5a431a7443584e84e52cb7bff081f994`, squash merge of PR #207.
-- PR head `d00f6fb8303f75be70a07c863eac0dcc5744a99e`; PR CI #1362 (`35526433434`): SUCCESS, including bounded load/resilience and physical PostgreSQL backup/restore quarantine drill.
-- Merged-main CI #1363 (`35526788270`): SUCCESS on the exact merge SHA, including the same Phase 11 gates and final Test.
-- Railway canonical `successful-embrace` / `production`, exact merge lineage:
-  - migrator `f6f228ac-58fc-4e47-be5e-975321af6c2a`: SUCCESS;
-  - app `9778659d-92ce-4bde-906a-4610b7d9a7c4`: SUCCESS; exact deployment identity verified; `/health/ready` healthcheck HTTP 200;
-  - publication worker `752da9cb-2e27-4991-b523-1cfcf865dd76`: SUCCESS.
-- Phase 11 internal operational hardening is accepted: payload-free normalized request telemetry, measurable SLO/alert criteria, bounded load/resilience gate and controlled custom-format backup/restore drill with deletion-ledger replay/read denial.
-- Evidence boundary: the CI restore drill proves recoverability mechanics in disposable quarantine; it does not claim Railway production backup retention or provider purge completion.
-- TinyFish operational rule remains mandatory: do not use TinyFish for Growth OS going forward. The brief read-only attempt in this continuation was stopped after the user's objection and was not used again.
-- Remaining work is external/final rather than an unimplemented internal Phase 11 block: real YouTube human authorization/seven-day sync, explicitly authorized real-provider publication and full measured loop, remaining authenticated production acceptance where applicable, same-task visual freeze, final evidence package/adversarial review, then documentation freeze and issue #26 closure only after the applicable gates.
-'''
-
-          state = state_path.read_text(encoding='utf-8')
-          if state_heading not in state:
-              marker = '\n## Current accepted checkpoint — 2026-09-20 — PR #206 enterprise/privacy operations\n'
-              if marker not in state:
-                  raise SystemExit('expected PR #206 checkpoint marker not found')
-              state = state.replace(marker, '\n' + state_section.strip() + '\n\n' + marker.lstrip('\n'), 1)
-              state_path.write_text(state, encoding='utf-8')
-          PY
-
-      - name: Commit documentation update
+      - name: Update official project documents
+        run: python .github/scripts/temporary_finalize_phase11_docs.py
+      - name: Commit documentation changes
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/PROJECT_EXECUTION_MEMORY.md PROJECT_CURRENT_STATE.md
+          git add docs/PROJECT_EXECUTION_MEMORY.md PROJECT_CURRENT_STATE.md docs/ROADMAP_STATUS_RECONCILIATION_2026-09-15.md
           if git diff --cached --quiet; then
             echo "No documentation changes required"
             exit 0
           fi
-          git commit -m "[memory-appended] docs: record Phase 11 final checkpoint"
+          git commit -m "docs: record accepted Phase 11 checkpoint"
           git push origin HEAD:docs/record-phase11-final-20260920
