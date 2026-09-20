@@ -7,6 +7,22 @@ Every request to continue this project, including repeated or abbreviated reques
 Last updated: 2026-09-20
 Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.
 
+## Current accepted checkpoint — 2026-09-20 — PR #207 Phase 11 operational hardening
+
+This section supersedes the PR #206 accepted checkpoint below while preserving it as historical evidence.
+
+- Repository and accepted runtime SHA: `d1e3296c5a431a7443584e84e52cb7bff081f994`, squash merge of PR #207.
+- PR head `d00f6fb8303f75be70a07c863eac0dcc5744a99e`; PR CI #1362 (`35526433434`): SUCCESS, including bounded load/resilience and the physical PostgreSQL backup/restore quarantine drill.
+- Merged-main CI #1363 (`35526788270`): SUCCESS on the exact merge SHA, including the same Phase 11 gates and final Test.
+- Railway canonical `successful-embrace` / `production`, exact merge lineage:
+  - migrator `f6f228ac-58fc-4e47-be5e-975321af6c2a`: SUCCESS;
+  - app `9778659d-92ce-4bde-906a-4610b7d9a7c4`: SUCCESS; exact deployment identity verified; `/health/ready` healthcheck HTTP 200;
+  - publication worker `752da9cb-2e27-4991-b523-1cfcf865dd76`: SUCCESS.
+- Phase 11 internal operational hardening is accepted: payload-free normalized request telemetry, measurable SLO/alert criteria, bounded load/resilience gate and controlled custom-format backup/restore drill with deletion-ledger replay/read denial.
+- Evidence boundary: the CI restore drill proves recoverability mechanics in disposable quarantine; it does not claim Railway production backup retention or provider purge completion.
+- TinyFish operational rule remains mandatory: do not use TinyFish for Growth OS going forward.
+- Remaining work is external/final rather than an unimplemented internal Phase 11 block: real YouTube human authorization/seven-day sync, explicitly authorized real-provider publication and full measured loop, remaining authenticated production acceptance where applicable, same-task visual freeze, final evidence package/adversarial review, then Production Truth Gate/freeze and issue #26 closure only after the applicable gates.
+
 ## Current accepted checkpoint — 2026-09-20 — PR #206 enterprise/privacy operations
 
 This section supersedes the older accepted-checkpoint statements below while preserving them as historical evidence.
