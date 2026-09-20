@@ -132,6 +132,15 @@ async function recordDeletion(pool) {
 }
 
 try {
+  // Snapshot the same explicit runtime ACLs used by production. The CI database is
+  // migration-complete but intentionally starts with only minimal runtime grants;
+  // without this reconciliation a restore would test an environment the app never uses.
+  await run(
+    "psql",
+    ["--set=ON_ERROR_STOP=1", "--file", "db/provisioning/production/02_runtime_grants.sql"],
+    sourceUrl
+  );
+
   await sourcePool.query(
     `insert into growth.content_items
        (id, workspace_id, objective, market, language, platform_target, source_type, status, created_by)
