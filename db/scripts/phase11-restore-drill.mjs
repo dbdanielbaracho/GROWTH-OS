@@ -144,7 +144,7 @@ try {
 
   await dropQuarantineDatabase();
   await maintenancePool.query(`create database "${restoreDatabase}" template template0`);
-  await run("pg_restore", ["--exit-on-error", dumpPath], restoreUrl);
+  await run("pg_restore", ["--exit-on-error", "--dbname", restoreDatabase, dumpPath], restoreUrl);
 
   restoreAdminPool = new Pool({ connectionString: restoreUrl });
   restoreRuntimePool = new Pool({ connectionString: restoreAppUrl });
