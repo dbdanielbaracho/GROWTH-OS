@@ -365,6 +365,20 @@ jobs:
           HARNESS_DATABASE_URL: ${{ env.CI_HARNESS_URL }}
         run: npx tsx apps/api/integration-tests/growth-intelligence.integration.mts
 
+      - name: Phase 11 bounded load and resilience gate
+        env:
+          DATABASE_URL: ${{ env.CI_APP_URL }}
+        run: npx tsx apps/api/integration-tests/phase11-runtime-acceptance.integration.mts
+
+      - name: Phase 11 backup and restore drill
+        env:
+          SOURCE_DATABASE_URL: ${{ env.CI_ADMIN_URL }}
+          RESTORE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/growth_os_restore_ci
+          RESTORE_APP_DATABASE_URL: postgresql://app_runtime:app_runtime@127.0.0.1:5432/growth_os_restore_ci
+          PHASE11_RESTORE_DRILL_ACK: RESTORE_TO_DISPOSABLE_QUARANTINE
+          PHASE11_RESTORE_DRILL_ENV: ci_quarantine
+        run: node db/scripts/phase11-restore-drill.mjs
+
       - name: Production same-origin web shell gate
         env:
           NODE_ENV: production

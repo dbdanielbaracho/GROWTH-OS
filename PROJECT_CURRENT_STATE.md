@@ -7,19 +7,19 @@ Every request to continue this project, including repeated or abbreviated reques
 Last updated: 2026-09-20
 Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.
 
-## Current accepted checkpoint — 2026-09-20 — PR #205 intelligence modules
+## Current accepted checkpoint — 2026-09-20 — PR #206 enterprise/privacy operations
 
 This section supersedes the older accepted-checkpoint statements below while preserving them as historical evidence.
 
-- Repository and accepted runtime SHA: `f3710e66dc772bf07915ebdbbe1bb938c6910f82`, merge of PR #205.
-- PR head CI #1350 (`35523042221`): SUCCESS. The corrected Browser Product Gate, migrations, SQL gates, integrations and final Test all passed.
-- Merged-main CI #1351 (`35523343009`): SUCCESS.
+- Repository and accepted runtime SHA: `f7b11bdfaeaf8365618e6eb4ed4ce2ae2a599775`, merge of PR #206.
+- PR head CI #1353 (`35524264079`): SUCCESS. Browser Product Gate, migration/gate 072, integrations and final Test all passed.
+- Merged-main CI #1354 (`35524578010`): SUCCESS.
 - Railway canonical `successful-embrace` / `production`:
-  - migrator `e718bb8b-4728-4a53-a53c-5885d1c2b7b5`: SUCCESS; migration 071 applied; queue/reconciliation/cancellation smokes PASS;
-  - app `5db44b4d-226a-48ff-9dd7-935ca647dcc3`: SUCCESS and deployment identity verified;
-  - publication worker `04d9bc16-0cf9-456c-a604-0e8085858df9`: SUCCESS.
-- Global Trend Migration, Competitor Intelligence and Viral DNA now exist as evidence-bounded product modules. Unsupported provider paths remain limited/disabled rather than synthetic.
-- Active internal-completion candidate: `feat/enterprise-privacy-operations`, migration/gate 072. It is not accepted until CI, merge and production evidence pass.
+  - migrator `b5c09207-4178-4086-a2d0-3dda3033a39f`: SUCCESS; migration 072 applied; queue/reconciliation/cancellation smokes PASS;
+  - app `d1673b29-d0c1-4bc7-b252-5451a7053dcf`: SUCCESS, deployment identity verified and public health ready/database ok;
+  - publication worker `fca52bb4-ad15-4d18-9dc1-b20c034355d0`: SUCCESS.
+- Agency portfolio, support, consent and explicit deletion/tombstone operations are now production-deployed with tenant/RBAC boundaries. No purge completion or external billing is implied.
+- Active internal-completion candidate: `feat/phase11-hardening`, adding bounded load/resilience, safe operational telemetry, SLOs and a real PostgreSQL quarantine restore drill.
 - Remaining external/final gates are unchanged: real YouTube authorization/seven-day sync, explicitly authorized real publication/measurement, full real loop, Phase 11 hardening evidence, same-task visual acceptance, final adversarial review and freeze.
 
 

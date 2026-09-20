@@ -71,13 +71,13 @@ Implemented foundation/UI: workspace entitlements, plan/subscription state, auto
 
 Remaining internal audit/completion: agency multi-client administration, support/admin tooling, consent/deletion/compliance operations and any billing-provider workflow explicitly adopted by product scope. External billing integration is not treated as mandatory unless adopted, consistent with prior roadmap reconciliation.
 
-Active candidate after PR #205: branch `feat/enterprise-privacy-operations` implements migration/gate 072, tenant-scoped agency portfolio links, support cases/events, append-only consent decisions, two-step deletion request/tombstone operations, typed APIs and the authenticated Enterprise Operations product surface. It remains a candidate until exact-head CI, merge and production migration/deploy evidence pass.
+Closed by PR #206 on 2026-09-20: migration/gate 072, tenant-scoped agency portfolio links, support cases/events, append-only consent decisions, two-step deletion request/tombstone operations, typed APIs and the authenticated Enterprise Operations surface passed CI #1353/#1354 and were deployed on Railway SHA `f7b11bdfaeaf8365618e6eb4ed4ce2ae2a599775`. External billing remains outside adopted scope and no tombstone is represented as completed purge.
 
 ## Phase 11 — Production hardening and launch
 
 Implemented: exact-SHA CI, migration gates, Railway deployment identity/health, deterministic install, cross-browser/responsive/accessibility gates, publication operational smokes and provider-safe diagnostics.
 
-Confirmed remaining hardening work: load/resilience/security acceptance, observability/SLO/alerting freeze record, controlled backup/restore drill evidence, privacy/security review, final Production Truth Gate, same-task visual acceptance, final adversarial review and freeze.
+Active candidate: `feat/phase11-hardening` implements bounded load/resilience acceptance, payload-free operational telemetry, explicit SLO/alert conditions, security/privacy acceptance rules and a real PostgreSQL quarantine backup/restore/tombstone-replay drill. It remains unaccepted until exact-head CI proves both new physical gates. Platform alert delivery, production backup-retention evidence, final Production Truth Gate, same-task visual acceptance, final adversarial review and freeze remain separate.
 
 ## Execution order from this audit
 
