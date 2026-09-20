@@ -1,0 +1,29 @@
+name: Apply evidence-bounded intelligence patch
+
+on:
+  push:
+    branches:
+      - feat/evidence-bounded-intelligence-modules
+    paths:
+      - .github/workflows/apply-evidence-bounded-intelligence.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/evidence-bounded-intelligence-modules
+          fetch-depth: 0
+      - name: Apply product patch
+        run: python3 scripts/apply-evidence-bounded-intelligence.py
+      - name: Commit product files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps db tests
+          git commit -m "feat: add evidence-bounded intelligence modules"
+          git push origin HEAD:feat/evidence-bounded-intelligence-modules
