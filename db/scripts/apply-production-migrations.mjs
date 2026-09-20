@@ -652,6 +652,23 @@ const steps = [
       return result.rows[0]?.present === true;
     },
   },
+  {
+    file: '070_scheduled_publication_dispatch.sql',
+    present: async () => {
+      const scheduleSignature = 'growth.schedule_publication_intent(uuid,uuid,timestamptz)';
+      const dispatchSignature = 'growth.enqueue_due_scheduled_publications(uuid,timestamptz,integer)';
+      if (!(await functionExists(scheduleSignature)) || !(await functionExists(dispatchSignature))) return false;
+      const result = await client.query(`
+        select
+          has_function_privilege('app_runtime', $1::regprocedure, 'EXECUTE')
+          and has_function_privilege('growth_worker', $2::regprocedure, 'EXECUTE')
+          and not has_function_privilege('public', $1::regprocedure, 'EXECUTE')
+          and not has_function_privilege('public', $2::regprocedure, 'EXECUTE')
+          as present
+      `, [scheduleSignature, dispatchSignature]);
+      return result.rows[0]?.present === true;
+    },
+  },
 
 ];
 

@@ -13,6 +13,7 @@ import {
   transitionGeneration, reconcileAmbiguousGeneration,
   CreateMediaAssetSchema, createMediaAsset,
   CreateLineageEdgeSchema, createLineageEdge,
+  listCreativeRequests, listCreativeGenerations, listMediaAssets, listMediaAssetLineage,
   SourceContextNotFoundError
 } from "./creative.js";
 import {
@@ -935,6 +936,66 @@ export function buildApp(logger = false) {
         )
       );
       return { status: "reconciled", reconciliation };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/creative/requests", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    try {
+      const creativeRequests = await withTenantTransaction(principal, (client) =>
+        listCreativeRequests(client, principal)
+      );
+      return { status: "ok", creativeRequests };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/creative/generations", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    try {
+      const creativeGenerations = await withTenantTransaction(principal, (client) =>
+        listCreativeGenerations(client, principal)
+      );
+      return { status: "ok", creativeGenerations };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/media-assets", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    try {
+      const mediaAssets = await withTenantTransaction(principal, (client) =>
+        listMediaAssets(client, principal)
+      );
+      return { status: "ok", mediaAssets };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/media-assets/lineage", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    try {
+      const lineage = await withTenantTransaction(principal, (client) =>
+        listMediaAssetLineage(client, principal)
+      );
+      return { status: "ok", lineage };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);
