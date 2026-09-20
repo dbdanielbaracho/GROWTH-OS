@@ -1189,6 +1189,138 @@ export async function updateEnterprisePolicy(input: {
   return response.policy;
 }
 
+export type AgencyClient = {
+  link_id: string;
+  client_workspace_id: string;
+  client_workspace_name: string;
+  label: string;
+  state: "active" | "paused";
+  client_role: WorkspaceSummary["role"];
+  created_at: string;
+  updated_at: string;
+};
+
+export type SupportCase = {
+  id: string;
+  workspace_id: string;
+  category: "product" | "provider" | "privacy" | "security" | "billing";
+  priority: "normal" | "high" | "urgent";
+  state: "open" | "waiting_customer" | "resolved" | "closed";
+  subject: string;
+  description: string;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ConsentRecord = {
+  consent_event_id: string;
+  managed_account_id: string | null;
+  consent_type: "ai_processing" | "analytics_storage" | "aggregate_learning" | "provider_data_processing" | "marketing_communications";
+  decision: "granted" | "denied" | "revoked";
+  policy_version: string;
+  effective_at: string;
+  actor_user_id: string;
+};
+
+export type DeletionRequest = {
+  id: string;
+  scope: "workspace" | "account" | "content" | "user";
+  target_id: string;
+  state: "requested" | "tombstoned" | "purging" | "provider_pending" | "completed" | "failed";
+  requested_by: string | null;
+  requested_at: string;
+  tombstoned_at: string | null;
+  completed_at: string | null;
+  manifest_version: string;
+  purge_jobs_total: string;
+  purge_jobs_confirmed: string;
+};
+
+export async function fetchAgencyClients(): Promise<AgencyClient[]> {
+  const response = await requestJson<{ status: "ok"; clients: AgencyClient[] }>("/v1/enterprise/agency-clients");
+  return response.clients;
+}
+
+export async function updateAgencyClient(input: {
+  clientWorkspaceId: string;
+  label: string;
+  state: AgencyClient["state"];
+}): Promise<void> {
+  await requestJson("/v1/enterprise/agency-clients", {
+    method: "PUT",
+    body: { client_workspace_id: input.clientWorkspaceId, label: input.label, state: input.state }
+  });
+}
+
+export async function fetchSupportCases(): Promise<SupportCase[]> {
+  const response = await requestJson<{ status: "ok"; cases: SupportCase[] }>("/v1/enterprise/support-cases");
+  return response.cases;
+}
+
+export async function createSupportCase(input: {
+  category: SupportCase["category"];
+  priority: SupportCase["priority"];
+  subject: string;
+  description: string;
+}): Promise<void> {
+  await requestJson("/v1/enterprise/support-cases", { method: "POST", body: input });
+}
+
+export async function updateSupportCase(input: {
+  caseId: string;
+  note: string;
+  state?: SupportCase["state"];
+}): Promise<void> {
+  await requestJson(`/v1/enterprise/support-cases/${encodeURIComponent(input.caseId)}/updates`, {
+    method: "POST",
+    body: { note: input.note, state: input.state }
+  });
+}
+
+export async function fetchConsents(): Promise<ConsentRecord[]> {
+  const response = await requestJson<{ status: "ok"; consents: ConsentRecord[] }>("/v1/privacy/consents");
+  return response.consents;
+}
+
+export async function recordConsent(input: {
+  managedAccountId?: string;
+  consentType: ConsentRecord["consent_type"];
+  decision: ConsentRecord["decision"];
+  policyVersion: string;
+}): Promise<void> {
+  await requestJson("/v1/privacy/consents", {
+    method: "POST",
+    body: {
+      managed_account_id: input.managedAccountId ?? null,
+      consent_type: input.consentType,
+      decision: input.decision,
+      policy_version: input.policyVersion
+    }
+  });
+}
+
+export async function fetchDeletionRequests(): Promise<DeletionRequest[]> {
+  const response = await requestJson<{ status: "ok"; requests: DeletionRequest[] }>("/v1/privacy/deletion-requests");
+  return response.requests;
+}
+
+export async function requestDeletion(input: {
+  scope: DeletionRequest["scope"];
+  targetId: string;
+  manifestVersion: string;
+}): Promise<void> {
+  await requestJson("/v1/privacy/deletion-requests", {
+    method: "POST",
+    body: { scope: input.scope, target_id: input.targetId, manifest_version: input.manifestVersion }
+  });
+}
+
+export async function applyDeletionTombstone(requestId: string): Promise<void> {
+  await requestJson(`/v1/privacy/deletion-requests/${encodeURIComponent(requestId)}/tombstone`, { method: "POST" });
+}
+
 
 export type CopilotCitation = {
   kind: "opportunity" | "insight" | "evidence" | "metric" | "recommendation" | "experiment" | "automation";

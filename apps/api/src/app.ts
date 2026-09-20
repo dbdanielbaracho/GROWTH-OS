@@ -57,6 +57,18 @@ import {
   setEnterprisePolicy,
   setWorkspaceSubscription
 } from "./commercial.js";
+import {
+  createDeletionRequest,
+  createSupportCase,
+  listAgencyClients,
+  listDeletionRequests,
+  listLatestConsents,
+  listSupportCases,
+  recordWorkspaceConsent,
+  setAgencyClient,
+  tombstoneDeletionRequest,
+  updateSupportCase
+} from "./enterprise-operations.js";
 import { executePublicationIntent } from "./publication-worker.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
@@ -184,6 +196,43 @@ const EnterprisePolicySchema = z.object({
   support_tier: z.enum(["standard", "priority", "dedicated"]),
   legal_acceptance_ref: z.string().trim().max(500).nullable().optional()
 });
+
+const AgencyClientSchema = z.object({
+  client_workspace_id: z.string().uuid(),
+  label: z.string().trim().min(1).max(120),
+  state: z.enum(["active", "paused"])
+});
+
+const SupportCaseSchema = z.object({
+  category: z.enum(["product", "provider", "privacy", "security", "billing"]),
+  priority: z.enum(["normal", "high", "urgent"]),
+  subject: z.string().trim().min(3).max(160),
+  description: z.string().trim().min(3).max(4000)
+});
+
+const SupportCaseParamsSchema = z.object({ id: z.string().uuid() });
+const SupportCaseUpdateSchema = z.object({
+  note: z.string().trim().min(1).max(4000),
+  state: z.enum(["open", "waiting_customer", "resolved", "closed"]).nullable().optional()
+});
+
+const ConsentSchema = z.object({
+  managed_account_id: z.string().uuid().nullable().optional(),
+  consent_type: z.enum([
+    "ai_processing", "analytics_storage", "aggregate_learning",
+    "provider_data_processing", "marketing_communications"
+  ]),
+  decision: z.enum(["granted", "denied", "revoked"]),
+  policy_version: z.string().trim().min(1).max(100)
+});
+
+const DeletionRequestSchema = z.object({
+  scope: z.enum(["workspace", "account", "content", "user"]),
+  target_id: z.string().uuid(),
+  manifest_version: z.string().trim().min(1).max(100)
+});
+
+const DeletionRequestParamsSchema = z.object({ id: z.string().uuid() });
 
 export function buildApp(logger = false) {
   const app = Fastify({
@@ -1350,6 +1399,170 @@ export function buildApp(logger = false) {
         })
       );
       return { status: "updated", policy };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/enterprise/agency-clients", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    try {
+      const clients = await withTenantTransaction(principal, (client) => listAgencyClients(client, principal));
+      return { status: "ok", clients };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.put("/v1/enterprise/agency-clients", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    const parsed = AgencyClientSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const clientLink = await withTenantTransaction(principal, (client) => setAgencyClient(client, principal, {
+        clientWorkspaceId: parsed.data.client_workspace_id,
+        label: parsed.data.label,
+        state: parsed.data.state
+      }));
+      return { status: "updated", client: clientLink };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/enterprise/support-cases", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    try {
+      const cases = await withTenantTransaction(principal, (client) => listSupportCases(client, principal));
+      return { status: "ok", cases };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/enterprise/support-cases", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    const parsed = SupportCaseSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const supportCase = await withTenantTransaction(principal, (client) =>
+        createSupportCase(client, principal, parsed.data)
+      );
+      return reply.code(201).send({ status: "created", case: supportCase });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/enterprise/support-cases/:id/updates", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    const params = SupportCaseParamsSchema.safeParse(request.params);
+    const parsed = SupportCaseUpdateSchema.safeParse(request.body);
+    if (!params.success || !parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const supportCase = await withTenantTransaction(principal, (client) => updateSupportCase(client, principal, {
+        caseId: params.data.id,
+        note: parsed.data.note,
+        state: parsed.data.state ?? null
+      }));
+      return { status: "updated", case: supportCase };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/privacy/consents", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    try {
+      const consents = await withTenantTransaction(principal, (client) => listLatestConsents(client, principal));
+      return { status: "ok", consents };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/privacy/consents", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    const parsed = ConsentSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const consent = await withTenantTransaction(principal, (client) => recordWorkspaceConsent(client, principal, {
+        managedAccountId: parsed.data.managed_account_id ?? null,
+        consentType: parsed.data.consent_type,
+        decision: parsed.data.decision,
+        policyVersion: parsed.data.policy_version
+      }));
+      return reply.code(201).send({ status: "recorded", consent });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.get("/v1/privacy/deletion-requests", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    try {
+      const requests = await withTenantTransaction(principal, (client) => listDeletionRequests(client, principal));
+      return { status: "ok", requests };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/privacy/deletion-requests", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    const parsed = DeletionRequestSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const deletionRequest = await withTenantTransaction(principal, (client) => createDeletionRequest(client, principal, {
+        scope: parsed.data.scope,
+        targetId: parsed.data.target_id,
+        manifestVersion: parsed.data.manifest_version
+      }));
+      return reply.code(201).send({ status: "requested", request: deletionRequest });
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
+
+  app.post("/v1/privacy/deletion-requests/:id/tombstone", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+    const params = DeletionRequestParamsSchema.safeParse(request.params);
+    if (!params.success) return reply.code(400).send({ status: "invalid_request" });
+    try {
+      const deletionRequest = await withTenantTransaction(principal, (client) =>
+        tombstoneDeletionRequest(client, principal, params.data.id)
+      );
+      return { status: "tombstoned", request: deletionRequest };
     } catch (error) {
       app.log.error(error);
       const mapped = databaseStatus(error);

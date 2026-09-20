@@ -689,6 +689,27 @@ const steps = [
       return result.rows[0]?.present === true;
     },
   },
+  {
+    file: '072_enterprise_privacy_operations.sql',
+    present: async () => {
+      if (!(await tableExists('growth.agency_client_links'))
+          || !(await tableExists('growth.support_cases'))
+          || !(await tableExists('growth.support_case_events'))
+          || !(await functionExists('growth.list_agency_clients(uuid)'))
+          || !(await functionExists('growth.record_workspace_consent(uuid,uuid,text,text,text)'))
+          || !(await functionExists('growth.create_deletion_request(uuid,text,uuid,text)'))
+          || !(await functionExists('growth.tombstone_deletion_request(uuid,uuid)'))) return false;
+      const result = await client.query(`
+        select not has_table_privilege('app_runtime','growth.agency_client_links','SELECT')
+          and not has_table_privilege('app_runtime','growth.support_cases','SELECT')
+          and has_function_privilege('app_runtime','growth.list_agency_clients(uuid)','EXECUTE')
+          and has_function_privilege('app_runtime','growth.list_latest_consents(uuid)','EXECUTE')
+          and has_function_privilege('app_runtime','growth.list_deletion_requests(uuid,integer)','EXECUTE')
+          as present
+      `);
+      return result.rows[0]?.present === true;
+    },
+  },
 
 ];
 

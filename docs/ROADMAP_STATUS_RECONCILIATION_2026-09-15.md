@@ -10,6 +10,12 @@ The 2026-09-15 checkpoint below remains historical evidence. Current accepted ap
 
 Authenticated production revalidation on 2026-09-18 confirmed real Instagram opportunity/evidence/intelligence and eight media / sixteen metrics, but exposed two open live regressions: experiment listing fails with SQLSTATE `42501` because the SECURITY DEFINER owner lacks base experiment-table privileges, and a fresh YouTube seven-day sync returns HTTP 502. Migration 066 / SQL gate 068 and safe YouTube connector-code logging are the active correction. The first gate execution also found the existing ambiguous `status` predicate in `add_experiment_variant`; forward-only migration 067 qualifies it before production. No real external publication is claimed.
 
+## Current addendum — 2026-09-20
+
+PR #204 closed the Creative Studio and publication-calendar product-surface gaps. PR #205 closed the distinct evidence-bounded Global Trend Migration, Competitor Intelligence and Viral DNA module gap. Accepted runtime/repository SHA is `f3710e66dc772bf07915ebdbbe1bb938c6910f82`; PR CI #1350 and merged-main CI #1351 succeeded. Railway app, migrator and publication worker deployments succeeded, and migration 071 was applied by the canonical migrator.
+
+The active Phase 10 candidate is `feat/enterprise-privacy-operations` with migration/gate 072. It adds agency portfolio links only where the actor already administers both workspaces, workspace support cases/events, append-only consent records and two-step deletion request/tombstone operations. External billing remains out of adopted scope, and no purge or provider success is claimed before its own evidence exists.
+
 ## Authority and history
 
 `docs/FULL_PRODUCT_ROADMAP.md` is an execution roadmap with chronological addenda. Older statements such as “future phase”, “pending Railway”, or early migration ceilings describe the state at the time they were written and must not be read as the current production truth.
