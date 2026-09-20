@@ -4972,3 +4972,31 @@ Limites preservados: o restore drill de CI não prova por si só a retenção de
 **Primeiro CI da Fase 11:** PR #207, head `cb3109d6a4dbe53efc212a6215c1584452ef4517`, CI #1356 (`35525098529`). Integridade, hardening, typecheck, build, navegador, migrations/gates SQL, identidade e Growth Intelligence passaram. O novo gate de carga passou com p95 4,83 ms para 300 liveness/concorrência 30, 31,30 ms para 60 readiness/concorrência 10 e 2,98 ms para 120 negações tenant 401/concorrência 20. O restore drill falhou antes do dump porque o cliente `pg_dump` não interpretou uma URL completa em `PGDATABASE` e tentou o socket Unix local do runner. Nenhum restore foi declarado PASS. A correção decompõe a URL validada nas variáveis libpq explícitas `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` e `PGSSLMODE` opcional, mantendo credenciais fora dos argumentos e logs do processo. Próximo gate: repetir o CI completo no novo head.
 
 **Segundo CI da Fase 11:** head `dcd27e668dcc15d60b7540d06f6f5b422d834a30`, CI #1358 (`35525298761`). Os gates anteriores e o gate de carga voltaram a passar. A conexão libpq explícita permitiu criar o dump e o database de quarentena, mas `pg_restore` encerrou com `one of -d/--dbname and -f/--file must be specified`: ele exige seleção explícita do modo de restauração mesmo quando `PGDATABASE` está presente. A correção adiciona `--dbname` com somente o nome de database já validado; host, usuário e senha continuam exclusivamente no ambiente do subprocesso e não nos argumentos/logs. O target descartável e o fixture de origem foram limpos no `finally`. Nenhum restore PASS foi alegado.
+
+
+## Continuação — fechamento interno, documentação e execução até o último gate possível — 2026-09-20
+
+**Pedidos exatos do usuário nesta retomada:**
+- `"o que falta fazer para terminar o projeto"`;
+- `"precisamos terminar tudo executar até o final para terminar tudo execute entao até o final"`.
+
+**Ponto real verificado de retomada:** PR #207 já estava mesclado. O runtime aceito é o merge `d1e3296c5a431a7443584e84e52cb7bff081f994`; o PR head aceito foi `d00f6fb8303f75be70a07c863eac0dcc5744a99e`. O PR CI #1362 (`35526433434`) e o CI de `main` #1363 (`35526788270`) concluíram `SUCCESS`. Railway canônico `successful-embrace` / `production`: migrator `f6f228ac-58fc-4e47-be5e-975321af6c2a`, app `9778659d-92ce-4bde-906a-4610b7d9a7c4` e publication worker `752da9cb-2e27-4991-b523-1cfcf865dd76` estavam `SUCCESS` nessa linhagem; o app verificou identidade de deploy e healthcheck `/health/ready` HTTP 200.
+
+**Correção final da Fase 11:** o terceiro CI anterior, head `5bdcb63f8342365529478bf743cdd1f8a8bd3540`, run `35525488384`, havia falhado somente no restore drill com `permission denied for table content_items` ao executar o read path restaurado. O restore já funcionava; faltavam no snapshot os grants canônicos de runtime. O commit `d00f6fb8303f75be70a07c863eac0dcc5744a99e` passou a aplicar `db/provisioning/production/02_runtime_grants.sql` antes do fixture/dump. Não foi criado grant ad hoc. O CI subsequente passou integralmente, incluindo bounded load/resilience e backup/restore físico em Postgres de quarentena com replay de tombstone/read denial.
+
+**Resultado interno:** a Fase 11 de hardening está aceita e não deve ser reaberta sem regressão. O projeto possui telemetria operacional sem payload/credenciais/tenant IDs, SLOs/condições de alerta documentados, gates de carga/resiliência, restore drill físico controlado, exata linhagem CI -> merge -> Railway e healthcheck canônico.
+
+**Regra operacional reafirmada:** TinyFish não deve ser usado no Growth OS. O usuário já havia determinado `"nao vou usar o tinyfish"`; nesta retomada não houve uso de TinyFish.
+
+**Gates que continuam necessariamente externos ou dependentes de autorização humana real:**
+1. Google/YouTube: concluir autorização/reautorização humana e provar um sync real de sete dias pós-PR #200 com dados persistidos;
+2. publicação real em provider: somente com conta e conteúdo concretos explicitamente autorizados, seguida de confirmação do provider e medição;
+3. encadear numa única evidência real a linhagem `provider data -> observations -> evidence/signal -> insight/opportunity -> recommendation/content -> approval -> confirmed publication -> measurement -> learning`;
+4. concluir as jornadas autenticadas de produção ainda aplicáveis, sem substituir por fixtures;
+5. comparação visual competitiva same-task e freeze visual final;
+6. revisão adversarial final por revisor externo real no SHA/pacote final; não substituir essa revisão por autoaprovação;
+7. Production Truth Gate final, freeze e fechamento da issue #26 somente após os gates aplicáveis acima.
+
+**Limite de evidência:** o restore drill de CI prova mecânica de recuperação em quarentena descartável; não prova política/retensão de backup do Railway. Nenhum OAuth, publicação externa, medição de post real ou parecer de revisor externo é inventado.
+
+**Próximo ponto de execução:** manter `d1e3296c5a431a7443584e84e52cb7bff081f994` como runtime aceito enquanto alterações forem apenas documentais. Executar automaticamente todos os gates que não exigem humano; quando chegar a OAuth/publicação/revisor externo, registrar o gate como dependência externa real e não como defeito interno.

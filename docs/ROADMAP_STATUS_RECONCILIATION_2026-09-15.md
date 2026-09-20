@@ -16,7 +16,9 @@ PR #204 closed the Creative Studio and publication-calendar product-surface gaps
 
 PR #206 closed the adopted Phase 10 operational gap with migration/gate 072. Agency links require administration in both workspaces; support cases are audited; consent is append-only; deletion remains request -> tombstone -> separately evidenced purge. CI #1353/#1354 passed and Railway promoted exact SHA `f7b11bdfaeaf8365618e6eb4ed4ce2ae2a599775`, including migration 072. External billing remains out of adopted scope.
 
-The active internal candidate is `feat/phase11-hardening`: bounded load/resilience, payload-free operational telemetry, SLO/alert rules and a PostgreSQL quarantine restore drill that replays deletion tombstones before serving restored data.
+PR #207 closed the remaining internal Phase 11 hardening candidate. PR head `d00f6fb8303f75be70a07c863eac0dcc5744a99e` passed CI #1362 (`35526433434`); squash merge `d1e3296c5a431a7443584e84e52cb7bff081f994` passed merged-main CI #1363 (`35526788270`). Canonical Railway production promoted the same lineage: migrator `f6f228ac-58fc-4e47-be5e-975321af6c2a`, app `9778659d-92ce-4bde-906a-4610b7d9a7c4`, and publication worker `752da9cb-2e27-4991-b523-1cfcf865dd76` all succeeded; the app healthcheck `/health/ready` returned HTTP 200. Phase 11 now has bounded load/resilience, payload-free operational telemetry, SLO/alert criteria and a physical PostgreSQL quarantine backup/restore drill with deletion-ledger replay/read denial. The drill proves recoverability mechanics in disposable CI quarantine, not Railway backup-retention policy.
+
+The remaining critical path is external/final acceptance: human YouTube authorization plus real seven-day sync, explicitly authorized real-provider publication/measurement and full real lineage, remaining authenticated production proof, same-task visual freeze, final external adversarial review, Production Truth Gate and final freeze/issue #26 closure.
 
 ## Authority and history
 
