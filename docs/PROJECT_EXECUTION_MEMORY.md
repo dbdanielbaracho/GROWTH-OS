@@ -4902,3 +4902,28 @@ Regras obrigatórias:
 - CI #1300 (`35454381986`) no head `7f21ed9eafcc6aef260eb656e26dd1d7437ce45f` passou Test Integrity e Release Hardening, mas o TypeScript rejeitou o acesso a `data.experiments[0]` como possivelmente `undefined`. A correção usa uma guarda explícita `if (!experiment)`; nenhum gate foi enfraquecido.
 
 - O fechamento adiciona cobertura browser explícita para o Copilot evidence-grounded e adiciona `/v1/analytics/anomalies` ao mock fail-closed do browser gate, garantindo que a nova leitura de alertas de qualidade não seja mascarada como request desconhecido.
+
+## Continuação — retomada do PR #205 e correção do Browser Product Gate — 2026-09-20
+
+**Pedidos do usuário nesta sequência:**
+
+- perguntou o que estava sendo executado e reforçou que as conversas devem ser incluídas no documento do GitHub;
+- confirmou que o documento central deve continuar sendo `docs/PROJECT_EXECUTION_MEMORY.md`, sem documento paralelo;
+- pediu a situação do que já foi realizado e do que ainda falta, com percentuais;
+- determinou: `"então continuar até o final do projeto sem parar precisamos terminar o projeto"`.
+
+**Ponto real verificado:** PR #204 (Creative Studio e calendário/agendamento) já estava mesclado. O PR #205, `feat: add evidence-bounded intelligence modules`, permanecia aberto, mergeable e com head `77a7d93f67ee12aa59140d921a3a18e120204e4c`. Ele adiciona Global Trend Migration, Competitor Intelligence e Viral DNA com evidência armazenada, Capability Registry e limites de provider fail-closed. A migration associada é `071_intelligence_module_capabilities.sql`.
+
+**Diagnóstico do bloqueio:** o run CI #1347 (`35485058585`) passou Test Integrity, Release Hardening, Typecheck e Build, mas falhou no passo Browser Product Gate. Os dez cenários autenticados que renderizam o novo painel falharam pela mesma violação Axe `color-contrast`: o painel claro herdava o `--ink` claro do tema escuro global. O botão `Refresh evidence` foi medido em 1,14:1 e o kicker dos cards em 1,04:1, abaixo do mínimo WCAG AA de 4,5:1 para esses textos. Os gates SQL e integrações posteriores foram corretamente pulados após a falha.
+
+**Correção implementada:** `apps/web/src/intelligence-modules.css` agora estabelece cor de texto escura no shell claro e cores explícitas de contraste para o kicker, botão, estatística e textos secundários. Nenhum teste, navegador, axe, overflow, teclado ou regra de evidência foi removido ou relaxado.
+
+**Validações locais concluídas:**
+
+- `npm run typecheck`: PASS;
+- `npm run build`: PASS;
+- testes unitários da API executados por `node --import tsx --test apps/api/src/**/*.test.ts`: 68/68 PASS, incluindo os três testes dos módulos de inteligência;
+- o comando padrão `npm test` encontrou uma restrição desta sessão ao socket IPC temporário do binário `tsx` (`listen EPERM`), contornada sem alterar o repositório pelo runner direto `node --import tsx`;
+- a tentativa de executar Playwright localmente não conseguiu instalar dependências do Chromium porque o ambiente negou operações de usuário do `apt`; a tentativa sem `--with-deps` também encontrou timeout/502 no CDN do Playwright. Isso é uma limitação do ambiente local e não é usado como aprovação do Browser Product Gate.
+
+**Próximo gate obrigatório:** publicar a correção no mesmo branch do PR #205, executar o CI completo no runner GitHub, exigir todos os passos verdes e somente então mesclar. Depois validar migration/deploy 071 no Railway canônico e continuar pelas pendências enterprise, hardening, provas reais de provider e Production Truth Gate, sem usar TinyFish e sem declarar como concluído aquilo que depende de OAuth, credencial ou autorização humana real.

@@ -6,6 +6,7 @@ import { resolvePrincipal, type AuthPrincipal } from "./auth.js";
 import { withTenantTransaction } from "./tenant-db.js";
 import { getCurrentMembership, getCurrentWorkspace } from "./workspaces.js";
 import { getOpportunityDetail, listInsights, listOpportunities } from "./intelligence.js";
+import { getIntelligenceModules } from "./intelligence-modules.js";
 import { AppendContentVersionSchema, ContentDecisionSchema, ContentNotFoundError, ContentVersionNotFoundError, CreateContentSchema, SubmitContentReviewSchema, appendContentVersion, approveContent, createContent, listContent, requestContentChanges, submitContentForReview } from "./content.js";
 import {
   CreateCreativeRequestSchema, createCreativeRequest,
@@ -411,6 +412,22 @@ export function buildApp(logger = false) {
     }
   });
 
+
+  app.get("/v1/intelligence/modules", async (request, reply) => {
+    const principal = await requestPrincipal(request, reply);
+    if (!principal) return;
+
+    try {
+      const result = await withTenantTransaction(principal, (client) =>
+        getIntelligenceModules(client, principal)
+      );
+      return { status: "ok", ...result };
+    } catch (error) {
+      app.log.error(error);
+      const mapped = databaseStatus(error);
+      return reply.code(mapped.code).send({ status: mapped.status });
+    }
+  });
 
 
   app.post("/v1/copilot/query", async (request, reply) => {

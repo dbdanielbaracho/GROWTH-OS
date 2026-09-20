@@ -20,6 +20,9 @@ export type ExperimentVariant = {
   lineage: Record<string, unknown>;
   status: "candidate" | "active" | "winner" | "loser" | "archived";
   created_at: string;
+  latest_outcome?: "winner" | "loser" | "inconclusive" | null;
+  latest_evidence_ref?: string | null;
+  feedback_created_at?: string | null;
 };
 
 export async function listExperiments(client: PoolClient, principal: AuthPrincipal, limit = 50) {
