@@ -328,6 +328,18 @@ jobs:
         run: |
           psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/055_commercial_entitlements.sql
 
+      - name: Run intelligence module capability gate
+        env:
+          PGPASSWORD: growth_migrator
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/071_intelligence_module_capabilities.sql
+
+      - name: Run enterprise privacy operations gate
+        env:
+          PGPASSWORD: growth_migrator
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=growth_migrator --dbname="$CI_DATABASE_NAME" --set=ON_ERROR_STOP=1 --file=db/tests/072_enterprise_privacy_operations.sql
+
       - name: Run production identity adapter integration
         env:
           NODE_ENV: production

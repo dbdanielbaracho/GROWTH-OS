@@ -4927,3 +4927,24 @@ Regras obrigatórias:
 - a tentativa de executar Playwright localmente não conseguiu instalar dependências do Chromium porque o ambiente negou operações de usuário do `apt`; a tentativa sem `--with-deps` também encontrou timeout/502 no CDN do Playwright. Isso é uma limitação do ambiente local e não é usado como aprovação do Browser Product Gate.
 
 **Próximo gate obrigatório:** publicar a correção no mesmo branch do PR #205, executar o CI completo no runner GitHub, exigir todos os passos verdes e somente então mesclar. Depois validar migration/deploy 071 no Railway canônico e continuar pelas pendências enterprise, hardening, provas reais de provider e Production Truth Gate, sem usar TinyFish e sem declarar como concluído aquilo que depende de OAuth, credencial ou autorização humana real.
+
+### Fechamento do PR #205 e início do bloco enterprise/privacy — 2026-09-20
+
+O head final do PR #205, `ab10af22af3f249cdb4742e98afa7cc250ac0f5a`, passou integralmente o CI #1350 (`35523042221`). O Browser Product Gate voltou a ficar verde sem relaxar Axe, navegadores, overflow ou acessibilidade; migrations, todos os gates SQL, integrações, shell same-origin e o Test final também passaram. O PR foi mesclado com merge commit `f3710e66dc772bf07915ebdbbe1bb938c6910f82`.
+
+O CI de `main` #1351 (`35523343009`) terminou `success`. No Railway canônico `successful-embrace` / `production`, o migrator `e718bb8b-4728-4a53-a53c-5885d1c2b7b5` aplicou `071_intelligence_module_capabilities.sql`, reconciliou as migrations e repetiu com PASS os smokes de fila/dead-letter, reconciliação e cancelamento. O app `5db44b4d-226a-48ff-9dd7-935ca647dcc3` e o worker `04d9bc16-0cf9-456c-a604-0e8085858df9` terminaram `SUCCESS`; o app confirmou a identidade Railway do deploy.
+
+Em seguida foi aberta localmente a branch `feat/enterprise-privacy-operations` a partir da `main` aceita. A auditoria confirmou que a base de entitlements/policy existe, mas as superfícies operacionais de agência, suporte, consentimento e exclusão ainda faltavam. A candidata implementa:
+
+- migration 072 com `agency_client_links`, `support_cases` e `support_case_events`, RLS/FORCE e nenhum acesso direto do `app_runtime`;
+- vínculo de cliente somente quando o ator já é owner/admin tanto no workspace de agência quanto no cliente;
+- casos de suporte auditáveis sem payloads ou credenciais de provider;
+- registro de consentimento append-only sobre a tabela canônica `consent_events`, com versão de política e audit event;
+- exclusão em duas etapas: pedido validado por escopo/target e tombstone explícito; nenhum purge é declarado completo sem evidência dos subsistemas;
+- APIs tipadas e uma superfície autenticada Enterprise Operations com confirmação adicional antes de aplicar tombstone;
+- gate SQL 072 e inclusão explícita dos gates 071/072 no CI;
+- registro da migration no reconciliador canônico de produção.
+
+Validações locais desta candidata: Test Integrity PASS, Release Hardening PASS, `git diff --check` PASS, typecheck PASS, build PASS e 71/71 testes unitários da API PASS. O ambiente local não contém Docker/Postgres (`docker: command not found`), portanto a aplicação física de todas as migrations e os gates SQL dependem do runner GitHub; não há alegação local de PASS SQL.
+
+Próximo ponto: publicar o branch pela conexão autenticada GitHub, abrir PR, executar CI completo — incluindo Browser Product Gate e gates SQL 071/072 —, corrigir qualquer achado real, mesclar somente verde e validar migration/deploy 072 no Railway antes de seguir ao hardening Phase 11.

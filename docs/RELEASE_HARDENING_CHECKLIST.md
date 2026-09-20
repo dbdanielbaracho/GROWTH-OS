@@ -5,7 +5,7 @@ This document is the release gate for the complete material cycle. It is evidenc
 ## Before Claude review
 
 1. Confirm the PR head SHA is the exact candidate SHA and GitHub CI is green.
-2. Confirm all migrations and gates are present through the current release ceiling (migration 067 / gate 068 for the active candidate).
+2. Confirm all migrations and gates are present through the current release ceiling (migration/gate 072 for the active candidate).
 3. Confirm no synthetic opportunity, observation, recommendation, experiment outcome or automation request is used as production proof.
 4. Confirm automation requests are evidence-bound, pending by default, quota-limited and kill-switchable.
 5. Confirm commercial state is internal/auditable and no external charge is implied without a configured billing provider.

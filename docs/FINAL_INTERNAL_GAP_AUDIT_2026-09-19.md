@@ -49,6 +49,8 @@ Implemented: Growth Intelligence / Opportunity Radar, evidence/epistemic states,
 
 Confirmed scope/evidence gap: `Global Trend Migration`, `Competitor Intelligence` and `Viral DNA` appear as roadmap modules but not as distinct product modules. They must be implemented only within provider-permitted data. The product must surface unavailable/constrained capability states instead of fabricating public competitor data where provider APIs do not supply it.
 
+Closed by PR #205 on 2026-09-20: all three modules now exist as explicit evidence-bounded product surfaces backed by migration 071 and provider capability states. CI #1350 and merged-main CI #1351 passed; the canonical Railway migrator applied migration 071 and app/migrator/worker deployments reached SUCCESS on merge `f3710e66dc772bf07915ebdbbe1bb938c6910f82`.
+
 ## Phase 8 — Experiments and multiplication
 
 Implemented: experiment plan/hypothesis/decision rule, variants, lineage, evidence-linked outcomes, winner/loser/inconclusive recording, measured-learning integration, `multiply_variant` Autopilot action and user-facing experiment workflows.
@@ -68,6 +70,8 @@ Remaining acceptance: exact-head CI, production deployment and real operational 
 Implemented foundation/UI: workspace entitlements, plan/subscription state, automation usage/limits, enterprise policy and retention/governance surface.
 
 Remaining internal audit/completion: agency multi-client administration, support/admin tooling, consent/deletion/compliance operations and any billing-provider workflow explicitly adopted by product scope. External billing integration is not treated as mandatory unless adopted, consistent with prior roadmap reconciliation.
+
+Active candidate after PR #205: branch `feat/enterprise-privacy-operations` implements migration/gate 072, tenant-scoped agency portfolio links, support cases/events, append-only consent decisions, two-step deletion request/tombstone operations, typed APIs and the authenticated Enterprise Operations product surface. It remains a candidate until exact-head CI, merge and production migration/deploy evidence pass.
 
 ## Phase 11 — Production hardening and launch
 

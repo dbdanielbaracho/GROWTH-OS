@@ -92,6 +92,8 @@ async function mockApi(
       "/v1/opportunities", `/v1/opportunities/${opportunity.id}`,
       "/v1/recommendations", "/v1/experiments", "/v1/automation/policy", "/v1/automation/requests",
       "/v1/commercial/entitlements", "/v1/commercial/enterprise-policy", "/v1/intelligence/modules",
+      "/v1/enterprise/agency-clients", "/v1/enterprise/support-cases",
+      "/v1/privacy/consents", "/v1/privacy/deletion-requests",
       "/v1/creative/requests", "/v1/creative/generations", "/v1/media-assets", "/v1/media-assets/lineage"
     ].includes(path)) return json(route, 401, { status: "unauthorized" });
 
@@ -264,6 +266,19 @@ async function mockApi(
       });
     }
 
+    if (mode === "authenticated" && path === "/v1/enterprise/agency-clients") {
+      return json(route, 200, { status: "ok", clients: [] });
+    }
+    if (mode === "authenticated" && path === "/v1/enterprise/support-cases") {
+      return json(route, 200, { status: "ok", cases: [] });
+    }
+    if (mode === "authenticated" && path === "/v1/privacy/consents") {
+      return json(route, 200, { status: "ok", consents: [] });
+    }
+    if (mode === "authenticated" && path === "/v1/privacy/deletion-requests") {
+      return json(route, 200, { status: "ok", requests: [] });
+    }
+
     unhandled.push(`${route.request().method()} ${path}`);
     return json(route, 501, { status: "browser_quality_unhandled" });
   });
@@ -354,6 +369,26 @@ test("evidence-bounded intelligence modules expose provider limits without synth
   await expect(region.getByText("Provider limited", { exact: true })).toBeVisible();
   await expect(region.getByText("browser-quality-trend-evidence", { exact: true })).toBeVisible();
   await expect(region.getByText("No qualifying stored signal is being substituted with synthetic data.").first()).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  expect(unhandled).toEqual([]);
+});
+
+test("enterprise operations expose bounded agency, support and privacy workflows", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  await page.goto("/");
+
+  const region = page.getByRole("region", { name: "Agency, support and privacy" });
+  await expect(region).toBeVisible();
+  await expect(region.getByRole("heading", { name: "Agency portfolio" })).toBeVisible();
+  await expect(region.getByRole("heading", { name: "Support console" })).toBeVisible();
+  await expect(region.getByRole("heading", { name: "Consent ledger" })).toBeVisible();
+  await expect(region.getByRole("heading", { name: "Deletion operations" })).toBeVisible();
+  await expect(region.getByText("A deletion request never claims purge completion.")).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   await expectNoSeriousAccessibilityViolations(page);
