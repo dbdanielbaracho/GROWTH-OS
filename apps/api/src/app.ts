@@ -70,6 +70,7 @@ import {
   updateSupportCase
 } from "./enterprise-operations.js";
 import { executePublicationIntent } from "./publication-worker.js";
+import { registerOperationalTelemetry } from "./operational-telemetry.js";
 
 function databaseStatus(error: unknown): { code: number; status: string } {
   const pgCode =
@@ -252,6 +253,7 @@ export function buildApp(logger = false) {
   });
 
   app.register(cookie);
+  registerOperationalTelemetry(app);
   registerIdentityRoutes(app);
 
   async function requestPrincipal(request: Parameters<typeof resolvePrincipal>[0], reply: any): Promise<AuthPrincipal | null> {

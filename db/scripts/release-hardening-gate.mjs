@@ -16,9 +16,23 @@ for (let number = 1; number <= 38; number += 1) {
 }
 
 const workflow = await readFile(join(root, ".github", "workflows", "ci.yml"), "utf8");
-for (const gate of ["053_experiment_lineage.sql", "054_automation_policy_control.sql", "055_commercial_entitlements.sql"]) {
+for (const gate of [
+  "053_experiment_lineage.sql",
+  "054_automation_policy_control.sql",
+  "055_commercial_entitlements.sql",
+  "071_intelligence_module_capabilities.sql",
+  "072_enterprise_privacy_operations.sql",
+  "phase11-runtime-acceptance.integration.mts",
+  "phase11-restore-drill.mjs"
+]) {
   if (!workflow.includes(gate)) {
     throw new Error("release hardening: CI is missing " + gate);
+  }
+}
+
+for (const migration of ["071_intelligence_module_capabilities.sql", "072_enterprise_privacy_operations.sql"]) {
+  if (!files.includes(migration)) {
+    throw new Error("release hardening: missing current release migration " + migration);
   }
 }
 

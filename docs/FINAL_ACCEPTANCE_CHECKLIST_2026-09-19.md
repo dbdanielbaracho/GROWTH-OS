@@ -17,6 +17,7 @@ Purpose: evidence-bounded checklist for the final production freeze. A checked i
 - [x] Experiment plan, variants, evidence-linked outcomes and measured-learning foundations.
 - [x] Autopilot request -> approval -> explicit execution with emergency stop and audit trail.
 - [x] Evidence-grounded conversational Copilot that is workspace-scoped, fail-closed and read-only.
+- [x] Agency portfolio, support, consent and explicit deletion/tombstone operations within adopted enterprise scope.
 - [x] Copilot/Autopilot operational runbook.
 - [x] Deterministic dependency install, exact-SHA CI, migration gates and Railway health/deployment identity.
 - [x] Automated responsive/accessibility/cross-browser browser gate.

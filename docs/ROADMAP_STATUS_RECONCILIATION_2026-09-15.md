@@ -14,7 +14,9 @@ Authenticated production revalidation on 2026-09-18 confirmed real Instagram opp
 
 PR #204 closed the Creative Studio and publication-calendar product-surface gaps. PR #205 closed the distinct evidence-bounded Global Trend Migration, Competitor Intelligence and Viral DNA module gap. Accepted runtime/repository SHA is `f3710e66dc772bf07915ebdbbe1bb938c6910f82`; PR CI #1350 and merged-main CI #1351 succeeded. Railway app, migrator and publication worker deployments succeeded, and migration 071 was applied by the canonical migrator.
 
-The active Phase 10 candidate is `feat/enterprise-privacy-operations` with migration/gate 072. It adds agency portfolio links only where the actor already administers both workspaces, workspace support cases/events, append-only consent records and two-step deletion request/tombstone operations. External billing remains out of adopted scope, and no purge or provider success is claimed before its own evidence exists.
+PR #206 closed the adopted Phase 10 operational gap with migration/gate 072. Agency links require administration in both workspaces; support cases are audited; consent is append-only; deletion remains request -> tombstone -> separately evidenced purge. CI #1353/#1354 passed and Railway promoted exact SHA `f7b11bdfaeaf8365618e6eb4ed4ce2ae2a599775`, including migration 072. External billing remains out of adopted scope.
+
+The active internal candidate is `feat/phase11-hardening`: bounded load/resilience, payload-free operational telemetry, SLO/alert rules and a PostgreSQL quarantine restore drill that replays deletion tombstones before serving restored data.
 
 ## Authority and history
 
