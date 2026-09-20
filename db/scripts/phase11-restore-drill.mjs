@@ -47,11 +47,25 @@ const userId = "a0000000-0000-4000-8000-000000000001";
 const contentId = randomUUID();
 const deletionRequestId = randomUUID();
 
+function libpqEnvironment(databaseUrl) {
+  const parsed = new URL(databaseUrl);
+  const environment = {
+    PGHOST: parsed.hostname,
+    PGPORT: parsed.port || "5432",
+    PGUSER: decodeURIComponent(parsed.username),
+    PGPASSWORD: decodeURIComponent(parsed.password),
+    PGDATABASE: parsed.pathname.slice(1)
+  };
+  const sslMode = parsed.searchParams.get("sslmode");
+  if (sslMode) environment.PGSSLMODE = sslMode;
+  return environment;
+}
+
 function run(command, args, databaseUrl) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, PGDATABASE: databaseUrl }
+      env: { ...process.env, ...libpqEnvironment(databaseUrl) }
     });
     let stderr = "";
     child.stderr.on("data", (chunk) => { stderr += String(chunk); });
