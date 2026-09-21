@@ -63,17 +63,18 @@ function CopilotPanel() {
   if (!authenticated) return null;
 
   return (
-    <aside className="copilot-panel" aria-live="polite">
+    <aside className={`copilot-panel ${expanded ? "is-expanded" : "is-collapsed"}`} aria-live="polite">
       <button
         type="button"
         className="copilot-toggle"
+        aria-label={`${expanded ? "Close" : "Open"} Copilot — Evidence grounded`}
         aria-expanded={expanded}
         aria-controls="copilot-panel-body"
         onClick={() => setExpanded((value) => !value)}
       >
         <span className="copilot-spark" aria-hidden="true">✦</span>
-        <span><strong>Copilot</strong><small>Evidence grounded</small></span>
-        <span aria-hidden="true">{expanded ? "×" : "+"}</span>
+        <span className="copilot-toggle-copy"><strong>Copilot</strong><small>Evidence grounded</small></span>
+        <span className="copilot-toggle-state" aria-hidden="true">{expanded ? "×" : "+"}</span>
       </button>
 
       {expanded && (
