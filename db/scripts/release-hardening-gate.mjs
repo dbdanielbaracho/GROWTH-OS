@@ -34,11 +34,31 @@ for (const gate of [
 for (const migration of [
   "071_intelligence_module_capabilities.sql",
   "072_enterprise_privacy_operations.sql",
-  "073_youtube_connection_revocation.sql"
+  "073_youtube_connection_revocation.sql",
+  "074_metric_quality_anomalies_runtime_fix.sql"
 ]) {
   if (!files.includes(migration)) {
     throw new Error("release hardening: missing current release migration " + migration);
   }
+}
+
+const qualityRuntimeFix = await readFile(
+  join(migrationDir, "074_metric_quality_anomalies_runtime_fix.sql"),
+  "utf8",
+);
+for (const marker of [
+  "grouped.complete_observations < grouped.observation_count",
+  "grouped.fresh_observations < grouped.observation_count",
+  "tenant_context_valid"
+]) {
+  if (!qualityRuntimeFix.includes(marker)) {
+    throw new Error("release hardening: metric quality runtime fix marker missing " + marker);
+  }
+}
+
+const qualityGate = await readFile(join(root, "db", "tests", "051_metric_quality_anomalies.sql"), "utf8");
+if (!qualityGate.includes("FROM growth.list_metric_quality_anomalies")) {
+  throw new Error("release hardening: metric quality gate must execute the helper at runtime");
 }
 
 const automationGate = await readFile(join(root, "db", "tests", "054_automation_policy_control.sql"), "utf8");
