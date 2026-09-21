@@ -603,6 +603,59 @@ test("secondary panels can each be opened and closed by pointer on desktop and m
 });
 
 
+test("a connected YouTube channel can be revoked and offered a safe reconnect", async ({ page }) => {
+  const unhandled = await mockApi(page, "authenticated");
+  const connectionId = "c0000000-0000-4000-8000-000000000073";
+  const managedAccountId = "c0000000-0000-4000-8000-000000000074";
+  let connected = true;
+  const revocations: string[] = [];
+
+  await page.route("**/v1/integrations/youtube/status", (route) => json(route, 200, {
+    status: "ok",
+    configured: true,
+    derived_analytics_policy_accepted: false,
+    integrations: [{
+      managed_account_id: managedAccountId,
+      owner_type: "direct",
+      authority_status: "contractually_granted",
+      contribution_eligibility: "eligible",
+      connection_id: connectionId,
+      connection_state: connected ? "connected" : "revoked",
+      connection_updated_at: "2026-09-21T12:00:00.000Z",
+      social_account_id: "d0000000-0000-4000-8000-000000000073",
+      provider_account_id: "youtube-channel-073",
+      handle: "@controlled-youtube",
+      account_type: "channel",
+      market: "US",
+      source_timezone: "America/Los_Angeles"
+    }]
+  }));
+  await page.route(`**/v1/integrations/youtube/${connectionId}/revoke`, async (route, request) => {
+    if (request.method() !== "POST") return route.fallback();
+    revocations.push(new URL(request.url()).pathname);
+    connected = false;
+    return json(route, 200, { status: "ok", connectionId, state: "revoked" });
+  });
+
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("stored credential will be removed");
+    await dialog.accept();
+  });
+  await page.goto("/");
+
+  const youtube = page.locator("#youtube-integration-root");
+  await youtube.locator(".youtube-panel-toggle").click();
+  await expect(youtube.getByRole("button", { name: "Revoke connection", exact: true })).toBeVisible();
+  await youtube.getByRole("button", { name: "Revoke connection", exact: true }).click();
+
+  await expect(youtube.getByText("revoked", { exact: true })).toBeVisible();
+  await expect(youtube.getByRole("button", { name: "Reconnect YouTube", exact: true })).toBeVisible();
+  expect(revocations).toEqual([`/v1/integrations/youtube/${connectionId}/revoke`]);
+  await expectNoHorizontalOverflow(page);
+  await expectNoSeriousAccessibilityViolations(page);
+  expect(unhandled).toEqual([]);
+});
+
 test("publication preparation requires an explicit connected account for the draft platform", async ({ page }) => {
   const draftId = "b0000000-0000-4000-8000-000000000003";
   const versionId = "b0000000-0000-4000-8000-000000000004";

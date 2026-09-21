@@ -652,6 +652,13 @@ export async function syncYoutube(
   });
 }
 
+export async function revokeYoutube(connectionId: string): Promise<void> {
+  await requestNoContent(
+    `/v1/integrations/youtube/${encodeURIComponent(connectionId)}/revoke`,
+    { method: "POST" }
+  );
+}
+
 export async function fetchInstagramStatus(): Promise<InstagramStatusResponse> {
   return requestJson<InstagramStatusResponse>("/v1/integrations/instagram/status");
 }

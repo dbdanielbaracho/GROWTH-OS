@@ -5,6 +5,7 @@ import {
   authorizeYoutube,
   fetchAuthSession,
   fetchYoutubeStatus,
+  revokeYoutube,
   syncYoutube,
   type YoutubeIntegration,
   type YoutubeStatusResponse,
@@ -173,6 +174,33 @@ function YoutubeIntegrationPanel() {
     }
   }
 
+  async function revoke(row: YoutubeIntegration) {
+    if (!row.connection_id) return;
+    if (!window.confirm("Revoke this YouTube connection locally? The stored credential will be removed.")) return;
+    const connectionId = row.connection_id;
+    setBusyId(connectionId);
+    setMessage(null);
+    try {
+      await revokeYoutube(connectionId);
+      setPendingNonce((current) => {
+        const next = { ...current };
+        delete next[connectionId];
+        return next;
+      });
+      setLastSync((current) => {
+        const next = { ...current };
+        delete next[connectionId];
+        return next;
+      });
+      setReauthorizationRequired((current) => ({ ...current, [connectionId]: false }));
+      await refresh();
+    } catch (error) {
+      setMessage(friendlyError(error));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (!authenticated) return null;
 
   return (
@@ -245,6 +273,9 @@ function YoutubeIntegrationPanel() {
                       <button className="youtube-primary" type="button" disabled={busy} onClick={() => void sync(row)}>
                         {busy ? "Syncing…" : pendingNonce[row.connection_id!] ? "Retry same sync" : "Sync selected window"}
                       </button>
+                      <button className="youtube-secondary" type="button" disabled={busy} onClick={() => void revoke(row)}>
+                        Revoke connection
+                      </button>
                     </div>
                     {reauthorizationRequired[row.connection_id!] && (
                       <button className="youtube-primary" type="button" disabled={busy} onClick={() => void connect(row)}>
@@ -265,7 +296,7 @@ function YoutubeIntegrationPanel() {
                   </>
                 ) : (
                   <button className="youtube-primary" type="button" disabled={busy || !status.configured} onClick={() => void connect(row)}>
-                    {busy ? "Opening Google…" : row.connection_state === "authorizing" ? "Restart authorization" : "Connect YouTube"}
+                    {busy ? "Opening Google…" : row.connection_state === "authorizing" ? "Restart authorization" : row.connection_state ? "Reconnect YouTube" : "Connect YouTube"}
                   </button>
                 )}
               </section>

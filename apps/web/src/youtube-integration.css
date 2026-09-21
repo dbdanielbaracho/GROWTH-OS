@@ -162,6 +162,20 @@
 .youtube-primary:hover:not(:disabled) { background: #111720; }
 .youtube-primary:disabled { opacity: .55; cursor: wait; }
 
+.youtube-secondary {
+  width: 100%;
+  border: 1px solid #d8dce2;
+  border-radius: 11px;
+  background: #fff;
+  color: #4d5663;
+  padding: 9px 12px;
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.youtube-secondary:hover:not(:disabled) { border-color: #c65f58; color: #9c3f39; }
+.youtube-secondary:disabled { opacity: .55; cursor: wait; }
+
 .youtube-sync-result {
   margin-bottom: 0;
   background: #f2f7ff;
@@ -290,6 +304,18 @@
 
 .youtube-primary:hover:not(:disabled) {
   background: #f0c96e;
+}
+
+.youtube-secondary {
+  border-color: #4a4b43;
+  border-radius: 2px;
+  background: #1a1b18;
+  color: #c8c7bd;
+}
+
+.youtube-secondary:hover:not(:disabled) {
+  border-color: #b9655c;
+  color: #f0b9b0;
 }
 
 .youtube-sync-result {
