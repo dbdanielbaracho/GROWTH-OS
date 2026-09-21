@@ -13,6 +13,14 @@ body:has(.youtube-integration-panel.expanded, .instagram-integration-panel.expan
   display: none;
 }
 
+/* When closed, Copilot must not remain a full-width floating bar over product
+   content. Reduce it to a small reopen control anchored at the viewport edge. */
+.copilot-panel.is-collapsed {
+  right: 18px;
+  bottom: 18px;
+  width: 56px;
+}
+
 .copilot-toggle {
   width: 100%;
   min-height: 64px;
@@ -30,10 +38,28 @@ body:has(.youtube-integration-panel.expanded, .instagram-integration-panel.expan
   cursor: pointer;
 }
 
+.copilot-panel.is-collapsed .copilot-toggle {
+  width: 56px;
+  height: 56px;
+  min-height: 56px;
+  border-radius: 999px;
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+  gap: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.copilot-panel.is-collapsed .copilot-toggle-copy,
+.copilot-panel.is-collapsed .copilot-toggle-state {
+  display: none;
+}
+
 .copilot-toggle strong,
 .copilot-toggle small { display: block; }
 .copilot-toggle small { color: #c7c7c7; margin-top: 2px; }
 .copilot-spark { font-size: 22px; }
+.copilot-panel.is-collapsed .copilot-spark { font-size: 24px; line-height: 1; }
 
 .copilot-body {
   margin-top: 10px;
@@ -116,6 +142,8 @@ body:has(.youtube-integration-panel.expanded, .instagram-integration-panel.expan
 
 @media (max-width: 600px) {
   .copilot-panel { right: 12px; bottom: 186px; width: calc(100vw - 24px); }
+  .copilot-panel.is-collapsed { right: 12px; bottom: 12px; width: 52px; }
+  .copilot-panel.is-collapsed .copilot-toggle { width: 52px; height: 52px; min-height: 52px; }
   .copilot-body { max-height: calc(100vh - 280px); padding: 16px; }
   .copilot-pulse { grid-template-columns: 1fr; }
   .copilot-input-row { grid-template-columns: 1fr; }
