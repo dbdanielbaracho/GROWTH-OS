@@ -20,6 +20,7 @@ const migrationPath = path.join(
 const hiddenMigrationPath = `${migrationPath}.production-reconciled`;
 const applyMigrationScript = path.join(root, 'db', 'scripts', 'apply-migration.mjs');
 const coreReconciler = path.join(root, 'db', 'scripts', 'apply-production-migrations-core.mjs');
+const metricQualitySmoke = path.join(root, 'db', 'scripts', 'metric-quality-operational-smoke.mjs');
 
 async function runNode(scriptPath, args = []) {
   await new Promise((resolve, reject) => {
@@ -56,3 +57,9 @@ try {
     await fs.rename(hiddenMigrationPath, migrationPath);
   }
 }
+
+// Production Truth Gate for this runtime defect. This is read-only apart from
+// transaction-local session context and always rolls back. A failure here makes
+// the migrator deployment fail instead of allowing the application to ship with
+// an unexecuted PL/pgSQL regression.
+await runNode(metricQualitySmoke);
