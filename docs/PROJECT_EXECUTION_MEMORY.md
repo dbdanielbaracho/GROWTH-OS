@@ -5000,3 +5000,18 @@ Limites preservados: o restore drill de CI não prova por si só a retenção de
 **Limite de evidência:** o restore drill de CI prova mecânica de recuperação em quarentena descartável; não prova política/retensão de backup do Railway. Nenhum OAuth, publicação externa, medição de post real ou parecer de revisor externo é inventado.
 
 **Próximo ponto de execução:** manter `d1e3296c5a431a7443584e84e52cb7bff081f994` como runtime aceito enquanto alterações forem apenas documentais. Executar automaticamente todos os gates que não exigem humano; quando chegar a OAuth/publicação/revisor externo, registrar o gate como dependência externa real e não como defeito interno.
+
+
+## Continuação — botão de revogação da conexão YouTube — 2026-09-21
+
+**Pedido exato do usuário:** `"criar um botão no youtube para revogar a conexão igual tem na conexao do instagram"`.
+
+**Ponto verificado de retomada:** a superfície do Instagram já possuía confirmação e ação `Revoke locally`, apoiada por endpoint autenticado e helper SQL que remove o segredo em `provider_credentials`. A superfície do YouTube exibia sincronização e reconexão somente após erro de autorização, mas não oferecia ao usuário uma ação direta de revogação. O repositório partiu do head documental `17f73d724adf60b4d12c4c87eaae53b16d1f874c`; o runtime aceito permaneceu `d1e3296c5a431a7443584e84e52cb7bff081f994` durante a preparação da candidata.
+
+**Candidata implementada:** botão `Revoke connection` no painel YouTube com confirmação explícita; cliente web tipado; endpoint autenticado `POST /v1/integrations/youtube/:connectionId/revoke`; remoção imediata do OAuth cifrado; limpeza de scopes e expiração; estado `revoked`; preservação somente da identidade não secreta do canal para permitir reconexão segura ao mesmo canal; rejeição de channel mismatch já existente mantida. A migration 073 também torna o helper de atualização capaz de reinserir a credencial após revogação e retornar a conexão a `connected`, sem conceder acesso direto do `app_runtime` às tabelas protegidas.
+
+**Gates adicionados:** `db/tests/073_youtube_connection_revocation.sql` verifica SECURITY DEFINER/owner/grants, remoção física da credencial, estado revogado, falha fechada para ID desconhecido e reconexão atômica; o CI executa esse gate. O Browser Product Gate recebeu jornada que confirma o diálogo, a chamada de revogação e a oferta subsequente de `Reconnect YouTube`.
+
+**Validação local antes da publicação:** `git diff --check` PASS; typecheck de API/web PASS; build de API/web PASS; 74/74 testes unitários da API PASS pelo runner direto `node --import tsx`; teste web não-browser PASS. O comando padrão `tsx --test` encontrou a limitação local já conhecida de socket IPC (`listen EPERM`) e foi substituído sem alteração do produto pelo runner Node. A execução Playwright local foi preparada, mas o Chromium não estava presente e o download do CDN expirou; portanto nenhum Browser Product Gate local foi alegado como PASS. A prova browser e a aplicação física da migration/gate SQL ficam obrigatoriamente para o runner GitHub isolado.
+
+**Próximo gate obrigatório:** abrir o PR da candidata, exigir CI integralmente verde, corrigir qualquer achado real, mesclar somente após todos os gates e validar migration 073, app e healthcheck no Railway canônico antes de declarar o botão disponível em produção.

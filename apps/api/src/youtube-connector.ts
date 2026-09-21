@@ -381,14 +381,39 @@ async function reusableYoutubeConnection(
        from growth.youtube_integration_status()
       where managed_account_id = $1
         and connection_id is not null
-        and connection_state = 'connected'
+        and connection_state in ('connected','degraded','reauth_required','failed','revoked')
         and social_account_id is not null
         and provider_account_id is not null
-      order by connection_updated_at desc nulls last
+      order by
+        case connection_state
+          when 'connected' then 0
+          when 'reauth_required' then 1
+          when 'degraded' then 2
+          when 'failed' then 3
+          when 'revoked' then 4
+          else 5
+        end,
+        connection_updated_at desc nulls last
       limit 1`,
     [managedAccountId]
   );
   return result.rows[0] ?? null;
+}
+
+export async function revokeYoutubeConnection(
+  principal: AuthPrincipal,
+  connectionId: string
+): Promise<{ connectionId: string; state: "revoked" }> {
+  const result = await withTenantTransaction(principal, (client) =>
+    client.query<{ revoked: boolean }>(
+      "select growth.youtube_revoke_connection($1) as revoked",
+      [connectionId]
+    )
+  );
+  if (result.rows[0]?.revoked !== true) {
+    throw new YoutubeConnectorError("youtube_connection_not_found", 404);
+  }
+  return { connectionId, state: "revoked" };
 }
 
 async function youtubeConnectionForCallback(

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { resolvePrincipal } from "./auth.js";
 import {
@@ -13,9 +14,14 @@ import {
   YoutubeSyncSchema,
   beginYoutubeAuthorization,
   completeYoutubeAuthorizationFromCallback,
+  revokeYoutubeConnection,
   syncYoutubeAnalytics,
   youtubeConnectorConfigured
 } from "./youtube-connector.js";
+
+export const YoutubeConnectionParamsSchema = z.object({
+  connectionId: z.string().uuid()
+});
 
 type YoutubeIntegrationStatusRow = {
   managed_account_id: string;
@@ -169,6 +175,20 @@ export async function registerYoutubeRoutes(app: FastifyInstance): Promise<void>
         parsed.data.requestNonce,
         parsed.data.lookbackDays
       );
+      return { status: "ok", ...result };
+    } catch (error) {
+      return integrationError(app, reply, error);
+    }
+  });
+
+  app.post("/v1/integrations/youtube/:connectionId/revoke", async (request, reply) => {
+    const principal = await principalOrReply(request, reply);
+    if (!principal) return;
+    const parsed = YoutubeConnectionParamsSchema.safeParse(request.params);
+    if (!parsed.success) return reply.code(400).send({ status: "invalid_request" });
+
+    try {
+      const result = await revokeYoutubeConnection(principal, parsed.data.connectionId);
       return { status: "ok", ...result };
     } catch (error) {
       return integrationError(app, reply, error);
