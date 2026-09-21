@@ -29,8 +29,10 @@ BEGIN
      OR position('completeness_status' IN lower(quality_def)) = 0
      OR position('freshness_status' IN lower(quality_def)) = 0
      OR position('366 days' IN lower(quality_def)) = 0
+     OR position('grouped.complete_observations < grouped.observation_count' IN lower(quality_def)) = 0
+     OR position('grouped.fresh_observations < grouped.observation_count' IN lower(quality_def)) = 0
   THEN
-    RAISE EXCEPTION '051 failed: quality helper lacks tenant/provenance/window guards';
+    RAISE EXCEPTION '051 failed: quality helper lacks tenant/provenance/window/runtime qualification guards';
   END IF;
 
   SELECT r.rolname, p.prosecdef
@@ -59,6 +61,31 @@ BEGIN
 END;
 $quality_gate$;
 
+-- Runtime proof: the original defect passed the definition/privilege checks but
+-- failed only when PL/pgSQL compiled the RETURN QUERY. Execute the helper with
+-- a valid deterministic tenant context so ambiguous output-column references
+-- can never regress to a false-green CI result.
+SELECT set_config('app.user_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('app.workspace_id', 'b0000000-0000-4000-8000-000000000001', true);
+
+DO $runtime_gate$
+DECLARE
+  anomaly_count bigint;
+BEGIN
+  SELECT count(*)
+    INTO anomaly_count
+  FROM growth.list_metric_quality_anomalies(
+    'b0000000-0000-4000-8000-000000000001'::uuid,
+    now() - interval '7 days',
+    now()
+  );
+
+  IF anomaly_count < 0 THEN
+    RAISE EXCEPTION '051 failed: impossible anomaly count';
+  END IF;
+END;
+$runtime_gate$;
+
 ROLLBACK;
 
-SELECT 'TEST-051 PASS: metric quality anomaly projection' AS result;
+SELECT 'TEST-051 PASS: metric quality anomaly projection runtime' AS result;
