@@ -645,6 +645,7 @@ test("a connected YouTube channel can be revoked and offered a safe reconnect", 
 
   const youtube = page.locator("#youtube-integration-root");
   await youtube.locator(".youtube-panel-toggle").click();
+  await expect(page.locator(".copilot-panel")).toBeHidden();
   await expect(youtube.getByRole("button", { name: "Revoke connection", exact: true })).toBeVisible();
   await youtube.getByRole("button", { name: "Revoke connection", exact: true }).click();
 
