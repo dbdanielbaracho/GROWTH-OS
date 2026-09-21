@@ -67,7 +67,7 @@ function CopilotPanel() {
       <button
         type="button"
         className="copilot-toggle"
-        aria-label={expanded ? "Close Copilot" : "Open Copilot"}
+        aria-label={`${expanded ? "Close" : "Open"} Copilot — Evidence grounded`}
         aria-expanded={expanded}
         aria-controls="copilot-panel-body"
         onClick={() => setExpanded((value) => !value)}
