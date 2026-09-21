@@ -22,6 +22,7 @@ for (const gate of [
   "055_commercial_entitlements.sql",
   "071_intelligence_module_capabilities.sql",
   "072_enterprise_privacy_operations.sql",
+  "073_youtube_connection_revocation.sql",
   "phase11-runtime-acceptance.integration.mts",
   "phase11-restore-drill.mjs"
 ]) {
@@ -30,7 +31,11 @@ for (const gate of [
   }
 }
 
-for (const migration of ["071_intelligence_module_capabilities.sql", "072_enterprise_privacy_operations.sql"]) {
+for (const migration of [
+  "071_intelligence_module_capabilities.sql",
+  "072_enterprise_privacy_operations.sql",
+  "073_youtube_connection_revocation.sql"
+]) {
   if (!files.includes(migration)) {
     throw new Error("release hardening: missing current release migration " + migration);
   }

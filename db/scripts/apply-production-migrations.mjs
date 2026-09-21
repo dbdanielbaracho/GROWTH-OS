@@ -710,6 +710,31 @@ const steps = [
       return result.rows[0]?.present === true;
     },
   },
+  {
+    file: '073_youtube_connection_revocation.sql',
+    present: async () => {
+      const revokeSignature = 'growth.youtube_revoke_connection(uuid)';
+      const updateSignature = 'growth.youtube_update_connection_credential(uuid,bytea,text,text,timestamptz,boolean,text[])';
+      if (!(await functionExists(revokeSignature)) || !(await functionExists(updateSignature))) return false;
+      const result = await client.query(`
+        select
+          position(
+            'delete from growth.provider_credentials'
+            in lower(pg_get_functiondef($1::regprocedure))
+          ) > 0
+          and position(
+            'on conflict (workspace_id, platform_connection_id) do update'
+            in lower(pg_get_functiondef($2::regprocedure))
+          ) > 0
+          and has_function_privilege('app_runtime', $1::regprocedure, 'EXECUTE')
+          and has_function_privilege('app_runtime', $2::regprocedure, 'EXECUTE')
+          and not has_function_privilege('public', $1::regprocedure, 'EXECUTE')
+          and not has_function_privilege('public', $2::regprocedure, 'EXECUTE')
+          as present
+      `, [revokeSignature, updateSignature]);
+      return result.rows[0]?.present === true;
+    },
+  },
 
 ];
 
