@@ -1,0 +1,812 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
+import pg from 'pg';
+
+const { Client } = pg;
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('DATABASE_URL is required');
+  process.exit(2);
+}
+
+const migrationsDir = path.resolve('db/migrations');
+const client = new Client({ connectionString: databaseUrl });
+
+function normalizeSqlForPgDriver(sql, filePath) {
+  return sql
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.trim();
+      if (/^\\set\s+ON_ERROR_STOP\s+(?:on|off)\s*$/i.test(trimmed)) return '';
+      if (/^\\/.test(trimmed)) {
+        throw new Error(`Unsupported psql meta-command in ${filePath}: ${trimmed}`);
+      }
+      return line;
+    })
+    .join('\n');
+}
+
+async function configurePublicationWorkerCredential() {
+  const password = process.env.PUBLICATION_WORKER_DATABASE_PASSWORD;
+  if (!password) return;
+
+  const statement = await client.query(
+    "select format('alter role growth_worker password %L', $1::text) as sql",
+    [password],
+  );
+  await client.query(statement.rows[0].sql);
+  console.log('Configured dedicated publication worker database credential');
+}
+
+async function functionExists(signature) {
+  const result = await client.query(
+    'select to_regprocedure($1) is not null as present',
+    [signature],
+  );
+  return result.rows[0].present;
+}
+
+async function functionDefinitionContains(signature, fragment) {
+  const result = await client.query(
+    'select coalesce(pg_get_functiondef(to_regprocedure($1)), \'\') like $2 as present',
+    [signature, `%${fragment}%`],
+  );
+  return result.rows[0].present;
+}
+
+async function tableExists(qualifiedName) {
+  const result = await client.query(
+    'select to_regclass($1) is not null as present',
+    [qualifiedName],
+  );
+  return result.rows[0].present;
+}
+
+async function columnExists(tableName, columnName) {
+  const result = await client.query(
+    'select exists(select 1 from information_schema.columns where table_schema = $1 and table_name = $2 and column_name = $3) as present',
+    ['growth', tableName, columnName],
+  );
+  return result.rows[0].present;
+}
+
+async function constraintDefinitionContains(schemaName, tableName, constraintName, fragment) {
+  const result = await client.query(`
+    select coalesce(pg_get_constraintdef(c.oid), '') like ('%' || $4 || '%') as present
+      from pg_constraint c
+      join pg_class t on t.oid = c.conrelid
+      join pg_namespace n on n.oid = t.relnamespace
+     where n.nspname = $1
+       and t.relname = $2
+       and c.conname = $3
+  `, [schemaName, tableName, constraintName, fragment]);
+  return result.rows[0]?.present ?? false;
+}
+
+const steps = [
+  {
+    file: '006_identity_v1.sql',
+    present: async () =>
+      (await tableExists('growth.auth_identities'))
+      && (await tableExists('growth.password_credentials'))
+      && (await tableExists('growth.sessions'))
+      && (await functionExists('growth.identity_lookup_password(text)'))
+      && (await functionExists('growth.identity_create_session(uuid,text,text[],timestamptz,timestamptz,inet,text)')),
+  },
+  {
+    file: '009_production_identity_adapter_support.sql',
+    present: async () =>
+      (await functionExists('growth.identity_touch_session(uuid,timestamptz)'))
+      && (await functionExists('growth.identity_begin_login_attempt(text,inet,text,interval,integer,integer)'))
+      && (await functionExists('growth.identity_complete_login_attempt(uuid)'))
+      && (await functionExists('growth.identity_upgrade_password_hash(uuid,text,smallint)')),
+  },
+  {
+    file: '014_youtube_integration_status.sql',
+    present: () => functionExists('growth.youtube_integration_status()'),
+  },
+  {
+    file: '015_youtube_growth_intelligence.sql',
+    present: () => functionExists('growth.recompute_youtube_growth_intelligence(uuid)'),
+  },
+  {
+    file: '016_identity_signup_verification.sql',
+    present: () => functionExists('growth.identity_signup_with_verification(text,text,smallint,text,timestamptz)'),
+  },
+  {
+    file: '017_instagram_connector_foundation.sql',
+    present: () => functionExists('growth.instagram_integration_status()'),
+  },
+  {
+    file: '018_instagram_token_lifecycle.sql',
+    present: () => functionExists('growth.instagram_revoke_connection(uuid)'),
+  },
+  {
+    file: '019_instagram_media_metrics_sync.sql',
+    present: async () =>
+      (await tableExists('growth.instagram_media'))
+      && (await functionExists('growth.instagram_record_media(uuid,text,text,text,text,text,timestamptz,text,text,timestamptz,text,text)'))
+      && (await functionExists('growth.instagram_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text)')),
+  },
+  {
+    file: '020_instagram_observation_idempotency_hardening.sql',
+    present: () => functionDefinitionContains(
+      'growth.instagram_record_metric_observation(uuid,text,text,numeric,text,timestamptz,timestamptz,text,text,text,text,text,text,timestamptz,timestamptz,timestamptz,timestamptz,timestamptz,text,timestamptz,timestamptz,text,text,uuid,text,text,text,text)',
+      'retry-time policy metadata',
+    ),
+  },
+  {
+    file: '021_instagram_authorization_deduplication.sql',
+    present: () => functionDefinitionContains(
+      'growth.instagram_integration_status()',
+      'LEFT JOIN LATERAL',
+    ),
+  },
+  {
+    file: '022_publication_intent_foundation.sql',
+    present: () => functionExists('growth.create_publication_intent(uuid,uuid,uuid,uuid,text)'),
+  },
+  {
+    file: '023_publication_intent_claim.sql',
+    present: async () =>
+      (await columnExists('publication_intents', 'current_attempt_no'))
+      && (await columnExists('publication_intents', 'claim_token')),
+  },
+  {
+    file: '024_publication_intent_finalization.sql',
+    present: async () => {
+      const result = await client.query("select exists(select 1 from pg_proc where pronamespace = 'growth'::regnamespace and proname = 'finalize_publication_intent') as present");
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '025_publication_asset_binding.sql',
+    present: () => columnExists('publication_intents', 'media_asset_id'),
+  },
+  {
+    file: '026_publication_execution_context.sql',
+    present: async () => {
+      const result = await client.query("select exists(select 1 from pg_proc where pronamespace = 'growth'::regnamespace and proname = 'get_publication_execution_context') as present");
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '027_publication_retry_scheduling.sql',
+    present: async () =>
+      (await columnExists('publication_intents', 'retry_count'))
+      && (await columnExists('publication_intents', 'last_error_class')),
+  },
+  {
+    file: '028_publication_cancellation.sql',
+    present: async () =>
+      (await columnExists('publication_intents', 'cancelled_at'))
+      && (await columnExists('publication_intents', 'cancelled_by')),
+  },
+  {
+    file: '029_publication_reconciliation.sql',
+    present: async () => {
+      const result = await client.query("select exists(select 1 from pg_proc where pronamespace = 'growth'::regnamespace and proname = 'record_publication_reconciliation') as present");
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '030_publication_worker_service_principal.sql',
+    present: async () =>
+      (await tableExists('growth.worker_service_principals'))
+      && (await columnExists('jobs', 'service_principal_id')),
+  },
+  {
+    file: '031_publication_status_projection.sql',
+    present: () => functionExists('growth.list_publication_intents(uuid,integer)'),
+  },
+  {
+    file: '032_publication_worker_runtime_context.sql',
+    present: () => functionExists('growth.complete_publication_job(uuid,uuid,text,timestamptz,text)'),
+  },
+  {
+    file: '033_metric_analytics_summary.sql',
+    present: () => functionExists('growth.list_metric_analytics_summary(uuid,timestamptz,timestamptz)'),
+  },
+  {
+    file: '034_metric_quality_anomalies.sql',
+    present: () => functionExists('growth.list_metric_quality_anomalies(uuid,timestamptz,timestamptz)'),
+  },
+  {
+    file: '035_recommendation_feedback.sql',
+    present: async () =>
+      (await tableExists('growth.recommendations'))
+      && (await tableExists('growth.recommendation_feedback')),
+  },
+  {
+    file: '036_experiment_lineage.sql',
+    present: async () =>
+      (await tableExists('growth.experiment_variant_plans'))
+      && (await tableExists('growth.experiment_feedback')),
+  },
+  {
+    file: '037_automation_policy_control.sql',
+    present: async () =>
+      (await tableExists('growth.automation_policies'))
+      && (await tableExists('growth.automation_action_requests')),
+  },
+  {
+    file: '038_commercial_entitlements.sql',
+    present: async () =>
+      (await tableExists('growth.billing_plans'))
+      && (await tableExists('growth.workspace_subscriptions'))
+      && (await tableExists('growth.usage_counters'))
+      && (await tableExists('growth.enterprise_policies')),
+  },
+  {
+    file: '039_instagram_growth_intelligence.sql',
+    present: () => functionExists('growth.recompute_instagram_growth_intelligence(uuid)'),
+  },
+  {
+    file: '040_identity_account_cleanup.sql',
+    present: () => tableExists('growth.identity_account_cleanup_040'),
+  },
+  {
+    file: '041_identity_signup_runtime_privileges.sql',
+    present: () => functionExists('growth.identity_signup_with_verification_v2(text,text,smallint,text,timestamptz)'),
+  },
+  {
+    file: '042_identity_signup_fk_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_schema_privilege('growth_identity_helper', 'growth', 'USAGE')
+          and has_table_privilege('growth_identity_helper', 'growth.users', 'REFERENCES')
+          and has_table_privilege('growth_identity_helper', 'growth.auth_identities', 'REFERENCES')
+          and has_table_privilege('growth_identity_helper', 'growth.password_credentials', 'INSERT')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '043_identity_signup_fk_runtime_context.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_schema_privilege('app_runtime', 'growth', 'USAGE')
+          and has_schema_privilege('growth_identity_helper', 'growth', 'USAGE')
+          and has_schema_privilege('growth_migrator', 'growth', 'USAGE')
+          and has_table_privilege('app_runtime', 'growth.auth_identities', 'REFERENCES')
+          and has_table_privilege('growth_identity_helper', 'growth.auth_identities', 'REFERENCES')
+          and has_table_privilege('growth_migrator', 'growth.auth_identities', 'REFERENCES')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '044_identity_signup_smoke_cleanup.sql',
+    present: () => tableExists('growth.identity_signup_smoke_cleanup_044'),
+  },
+  {
+    file: '045_production_helper_privileges.sql',
+    present: () => tableExists('growth.production_helper_privileges_045'),
+  },
+  {
+    file: '046_managed_account_onboarding.sql',
+    present: () => tableExists('growth.managed_account_onboarding_046'),
+  },
+  {
+    file: '047_provider_status_runtime_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_function_privilege('app_runtime', 'growth.youtube_integration_status()', 'EXECUTE')
+          and has_function_privilege('app_runtime', 'growth.instagram_integration_status()', 'EXECUTE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '048_provider_status_helper_call_chain_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_function_privilege('growth_migrator', 'growth.current_workspace_id()', 'EXECUTE')
+          and has_function_privilege('growth_migrator', 'growth.current_app_user_id()', 'EXECUTE')
+          and has_function_privilege('growth_migrator', 'growth.tenant_context_valid(uuid)', 'EXECUTE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '049_provider_status_membership_privilege.sql',
+    present: async () => {
+      const result = await client.query(`
+        select has_table_privilege(
+          'growth_migrator',
+          'growth.memberships',
+          'SELECT'
+        ) as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '050_provider_helper_table_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.memberships', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.managed_accounts', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.platform_connections', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.social_accounts', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.worker_service_principals', 'SELECT')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '051_provider_helper_jobs_privilege.sql',
+    present: async () => {
+      const result = await client.query(`
+        select has_table_privilege(
+          'growth_migrator',
+          'growth.jobs',
+          'SELECT'
+        ) as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '052_provider_authorization_runtime_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.users', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.workspaces', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.provider_credentials', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.platform_connections', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.platform_connections', 'UPDATE')
+          and has_table_privilege('growth_migrator', 'growth.social_accounts', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.social_accounts', 'UPDATE')
+          and has_function_privilege('app_runtime', 'growth.instagram_begin_authorization(uuid,text[])', 'EXECUTE')
+          and has_function_privilege('app_runtime', 'growth.youtube_begin_authorization(uuid,text[])', 'EXECUTE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '053_instagram_authorization_lock_privilege.sql',
+    present: () => functionDefinitionContains(
+      'growth.instagram_begin_authorization(uuid,text[])',
+      'pg_advisory_xact_lock',
+    ),
+  },
+  {
+    file: '054_instagram_factual_signal_type.sql',
+    present: () => constraintDefinitionContains(
+      'growth',
+      'factual_signals',
+      'factual_signals_signal_type_check',
+      'likes_acceleration',
+    ),
+  },
+  {
+    file: '055_instagram_media_observability.sql',
+    present: () => functionDefinitionContains(
+      'growth.list_instagram_media(uuid,integer,integer)',
+      'instagram.media.observability.v2',
+    ),
+  },
+  {
+    file: '056_publication_worker_principal_seed.sql',
+    present: async () => {
+      const result = await client.query(
+        "select exists(select 1 from growth.worker_service_principals where id = '5d3f0c0e-7a6e-4b4b-9d8e-2e8f7f2a6c11'::uuid and name = 'growth-os-publication-worker' and status = 'active') as present",
+      );
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '057_publication_worker_jobs_update_privilege.sql',
+    present: async () => {
+      const result = await client.query(
+        `select (
+          has_table_privilege('growth_migrator', 'growth.jobs', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.jobs', 'UPDATE')
+        ) as present`,
+      );
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '058_publication_worker_security_reconciliation.sql',
+    present: async () => {
+      const result = await client.query(
+        "select p.prosecdef as present from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'growth' and p.proname = 'claim_due_publication_job' and has_function_privilege('growth_worker', 'growth.claim_due_publication_job(uuid,timestamptz,integer)', 'EXECUTE')",
+      );
+      return result.rows[0]?.present ?? false;
+    },
+  },
+  {
+    file: '059_publication_queue_status_projection.sql',
+    present: () => functionExists('growth.list_publication_intents_v2(uuid,integer)'),
+  },
+  {
+    file: '060_publication_reconciliation_runtime_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.publication_intents', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.publication_intents', 'UPDATE')
+          and has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.publication_reconciliation_attempts', 'UPDATE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '061_authority_projection_trigger_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          coalesce((
+            select bool_and(
+              function_row.prosecdef
+              and pg_get_userbyid(function_row.proowner) = 'growth_migrator'
+              and function_row.proconfig = array['search_path=pg_catalog, growth']::text[]
+            )
+            from (
+              values
+                ('growth.check_managed_account_projection_consistency()'::regprocedure),
+                ('growth.check_authority_history_projection_consistency()'::regprocedure)
+            ) as expected(function_oid)
+            join pg_proc function_row on function_row.oid = expected.function_oid
+          ), false)
+          and has_table_privilege('growth_migrator', 'growth.managed_accounts', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.authority_history', 'SELECT')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '062_identity_runtime_table_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('app_runtime', 'growth.workspaces', 'SELECT')
+          and not has_table_privilege('app_runtime', 'growth.workspaces', 'UPDATE')
+          and has_table_privilege('app_runtime', 'growth.memberships', 'SELECT')
+          and has_table_privilege('app_runtime', 'growth.memberships', 'INSERT')
+          and has_table_privilege('app_runtime', 'growth.memberships', 'UPDATE')
+          and has_table_privilege('app_runtime', 'growth.memberships', 'DELETE')
+          and has_function_privilege(
+            'app_runtime',
+            'growth.can_manage_memberships(uuid)',
+            'EXECUTE'
+          )
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '063_experiment_outcome_learning_loop.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          to_regprocedure('growth.list_experiment_variants(uuid,uuid)') is not null
+          and has_function_privilege(
+            'app_runtime',
+            'growth.list_experiment_variants(uuid,uuid)',
+            'EXECUTE'
+          )
+          and position(
+            'update growth.experiments'
+            in lower(pg_get_functiondef(
+              'growth.record_experiment_feedback(uuid,uuid,uuid,text,text,text)'::regprocedure
+            ))
+          ) > 0
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '064_learning_recommendation_feedback.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          to_regprocedure('growth.opportunity_learning_context(uuid,uuid)') is not null
+          and not has_function_privilege(
+            'app_runtime',
+            'growth.opportunity_learning_context(uuid,uuid)',
+            'EXECUTE'
+          )
+          and position(
+            'opportunity_learning_context'
+            in lower(pg_get_functiondef(
+              'growth.create_recommendation(uuid,uuid,text)'::regprocedure
+            ))
+          ) > 0
+          and position(
+            'update growth.recommendations'
+            in lower(pg_get_functiondef(
+              'growth.record_experiment_feedback(uuid,uuid,uuid,text,text,text)'::regprocedure
+            ))
+          ) > 0
+          and position(
+            'opportunity_learning_context'
+            in lower(pg_get_functiondef(
+              'growth.record_recommendation_feedback(uuid,uuid,text,text)'::regprocedure
+            ))
+          ) > 0
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '065_content_review_submission.sql',
+    present: async () => {
+      const submissionSignature = 'growth.content_submit_for_review(uuid,uuid,text)';
+      const versionSignature = 'growth.content_new_version(uuid,uuid,text,text,jsonb,jsonb)';
+      if (!(await tableExists('growth.content_review_submissions'))) return false;
+      if (!(await functionExists(submissionSignature))) return false;
+      if (!(await functionExists(versionSignature))) return false;
+
+      const result = await client.query(`
+        select
+          has_function_privilege(
+            'app_runtime',
+            $1::regprocedure,
+            'EXECUTE'
+          )
+          and position(
+            'content_review_submissions'
+            in lower(pg_get_functiondef($1::regprocedure))
+          ) > 0
+          and position(
+            'set status = ''draft'''
+            in lower(pg_get_functiondef($2::regprocedure))
+          ) > 0
+          and position(
+            'ready_for_review'
+            in lower(pg_get_functiondef($2::regprocedure))
+          ) = 0
+          as present
+      `, [submissionSignature, versionSignature]);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '066_experiment_runtime_owner_privileges.sql',
+    present: async () => {
+      const result = await client.query(`
+        select
+          has_table_privilege('growth_migrator', 'growth.opportunities', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.opportunity_evidence', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.hypotheses', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.hypotheses', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'SELECT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'INSERT')
+          and has_table_privilege('growth_migrator', 'growth.experiments', 'UPDATE')
+          and not has_table_privilege('app_runtime', 'growth.hypotheses', 'INSERT')
+          and not has_table_privilege('app_runtime', 'growth.experiments', 'INSERT')
+          and not has_table_privilege('app_runtime', 'growth.experiments', 'UPDATE')
+          as present
+      `);
+      return result.rows[0].present;
+    },
+  },
+  {
+    file: '067_experiment_variant_status_qualification.sql',
+    present: async () => {
+      const signature = 'growth.add_experiment_variant(uuid,uuid,text,jsonb)';
+      if (!(await functionExists(signature))) return false;
+
+      const result = await client.query(`
+        select
+          has_function_privilege('app_runtime', $1::regprocedure, 'EXECUTE')
+          and position(
+            'and e.status = ''draft'''
+            in lower(pg_get_functiondef($1::regprocedure))
+          ) > 0
+          and position(
+            'and status = ''draft'''
+            in lower(pg_get_functiondef($1::regprocedure))
+          ) = 0
+          as present
+      `, [signature]);
+      return result.rows[0].present;
+    },
+  },
+
+  {
+    file: '068_automation_action_execution.sql',
+    present: async () => {
+      const claimSignature = 'growth.claim_automation_action_execution(uuid,uuid)';
+      const finalizeSignature = 'growth.finalize_automation_action_execution(uuid,uuid,text,text,text)';
+      return (await columnExists('automation_action_requests', 'action_payload'))
+        && (await columnExists('automation_action_requests', 'execution_status'))
+        && (await functionExists(claimSignature))
+        && (await functionExists(finalizeSignature));
+    },
+  },
+
+  {
+    file: '069_youtube_reauthorization_cleanup.sql',
+    present: async () => {
+      const result = await client.query(`
+        select position(
+          'delete from growth.platform_connections'
+          in lower(pg_get_functiondef('growth.youtube_begin_authorization(uuid,text[])'::regprocedure))
+        ) > 0 as present
+      `);
+      return result.rows[0]?.present === true;
+    },
+  },
+  {
+    file: '070_scheduled_publication_dispatch.sql',
+    present: async () => {
+      const scheduleSignature = 'growth.schedule_publication_intent(uuid,uuid,timestamptz)';
+      const dispatchSignature = 'growth.enqueue_due_scheduled_publications(uuid,timestamptz,integer)';
+      if (!(await functionExists(scheduleSignature)) || !(await functionExists(dispatchSignature))) return false;
+      const result = await client.query(`
+        select
+          has_function_privilege('app_runtime', $1::regprocedure, 'EXECUTE')
+          and has_function_privilege('growth_worker', $2::regprocedure, 'EXECUTE')
+          and not has_function_privilege('public', $1::regprocedure, 'EXECUTE')
+          and not has_function_privilege('public', $2::regprocedure, 'EXECUTE')
+          as present
+      `, [scheduleSignature, dispatchSignature]);
+      return result.rows[0]?.present === true;
+    },
+  },
+  {
+    file: '071_intelligence_module_capabilities.sql',
+    present: async () => {
+      if (!(await functionExists('growth.list_intelligence_module_capabilities(uuid)'))
+          || !(await functionExists('growth.list_competitor_intelligence_evidence(uuid,integer)'))
+          || !(await functionExists('growth.list_viral_dna_evidence(uuid,integer)'))) return false;
+      const result = await client.query(`
+        select count(*) = 9
+          and count(*) filter (where evidence_ref is not null and btrim(evidence_ref) <> '') = 9
+          as present
+          from growth.capabilities
+         where capability in (
+           'intelligence_global_trend_migration',
+           'intelligence_competitor_intelligence',
+           'intelligence_viral_dna'
+         )
+      `);
+      return result.rows[0]?.present === true;
+    },
+  },
+  {
+    file: '072_enterprise_privacy_operations.sql',
+    present: async () => {
+      if (!(await tableExists('growth.agency_client_links'))
+          || !(await tableExists('growth.support_cases'))
+          || !(await tableExists('growth.support_case_events'))
+          || !(await functionExists('growth.list_agency_clients(uuid)'))
+          || !(await functionExists('growth.record_workspace_consent(uuid,uuid,text,text,text)'))
+          || !(await functionExists('growth.create_deletion_request(uuid,text,uuid,text)'))
+          || !(await functionExists('growth.tombstone_deletion_request(uuid,uuid)'))) return false;
+      const result = await client.query(`
+        select not has_table_privilege('app_runtime','growth.agency_client_links','SELECT')
+          and not has_table_privilege('app_runtime','growth.support_cases','SELECT')
+          and has_function_privilege('app_runtime','growth.list_agency_clients(uuid)','EXECUTE')
+          and has_function_privilege('app_runtime','growth.list_latest_consents(uuid)','EXECUTE')
+          and has_function_privilege('app_runtime','growth.list_deletion_requests(uuid,integer)','EXECUTE')
+          as present
+      `);
+      return result.rows[0]?.present === true;
+    },
+  },
+  {
+    file: '073_youtube_connection_revocation.sql',
+    present: async () => {
+      const revokeSignature = 'growth.youtube_revoke_connection(uuid)';
+      const updateSignature = 'growth.youtube_update_connection_credential(uuid,bytea,text,text,timestamptz,boolean,text[])';
+      if (!(await functionExists(revokeSignature)) || !(await functionExists(updateSignature))) return false;
+      const result = await client.query(`
+        select
+          position(
+            'delete from growth.provider_credentials'
+            in lower(pg_get_functiondef($1::regprocedure))
+          ) > 0
+          and position(
+            'on conflict (workspace_id, platform_connection_id) do update'
+            in lower(pg_get_functiondef($2::regprocedure))
+          ) > 0
+          and has_function_privilege('app_runtime', $1::regprocedure, 'EXECUTE')
+          and has_function_privilege('app_runtime', $2::regprocedure, 'EXECUTE')
+          and not has_function_privilege('public', $1::regprocedure, 'EXECUTE')
+          and not has_function_privilege('public', $2::regprocedure, 'EXECUTE')
+          as present
+      `, [revokeSignature, updateSignature]);
+      return result.rows[0]?.present === true;
+    },
+  },
+
+];
+
+try {
+  await client.connect();
+  const server = await client.query(
+    'select current_database() as database, current_user as user',
+  );
+  console.log('Production migration target:', server.rows[0]);
+
+
+  const migrationFiles = (await fs.readdir(migrationsDir))
+    .filter((file) => /^\d+_.*\.sql$/.test(file));
+  const registeredMigrations = new Set(steps.map((step) => step.file));
+  const baselineMigrations = new Set([
+    '001_initial_schema.sql',
+    '002_rc9_security_policy_fix.sql',
+    '003_post_rc9_content_reconciliation.sql',
+    '004_creative_production.sql',
+    '005_workspace_write_policy_hardening.sql',
+    // These migrations predate the production reconciliation checks and are
+    // already part of the established production baseline.
+    '007_public_execute_least_privilege.sql',
+    '008_opportunity_radar_evidence_read.sql',
+    '010_youtube_connector_foundation.sql',
+    '011_youtube_connector_hardening.sql',
+    '012_youtube_rls_helper_execute.sql',
+    '013_youtube_observation_idempotency_hardening.sql',
+  ]);
+  const unregisteredMigrations = migrationFiles
+    .filter((file) => !registeredMigrations.has(file) && !baselineMigrations.has(file))
+    .sort();
+
+  if (unregisteredMigrations.length > 0) {
+    throw new Error(
+      'Unregistered production migrations: ' + unregisteredMigrations.join(', '),
+    );
+  }
+
+  for (const step of steps) {
+    if (await step.present()) {
+      console.log(`Skipped migration (already present): ${step.file}`);
+      continue;
+    }
+
+    const filePath = path.join(migrationsDir, step.file);
+    const sql = normalizeSqlForPgDriver(
+      await fs.readFile(filePath, 'utf8'),
+      filePath,
+    );
+    await client.query(sql);
+    console.log(`Applied migration: ${step.file}`);
+  }
+
+  if (await tableExists('growth.identity_account_cleanup_040')) {
+    const cleanupResult = await client.query(
+      'select action, blocking_reference_count from growth.identity_account_cleanup_040 limit 1',
+    );
+    console.log('Identity cleanup result:', cleanupResult.rows[0] ?? { action: 'missing' });
+  }
+
+  if (await tableExists('growth.identity_signup_smoke_cleanup_044')) {
+    const smokeCleanupResult = await client.query(
+      'select action, blocking_reference_count from growth.identity_signup_smoke_cleanup_044 limit 1',
+    );
+    console.log('Signup smoke cleanup result:', smokeCleanupResult.rows[0] ?? { action: 'missing' });
+  }
+
+
+  await configurePublicationWorkerCredential();
+
+  console.log('Production migration reconciliation complete');
+} finally {
+  await client.end();
+}
