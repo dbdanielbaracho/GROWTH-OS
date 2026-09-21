@@ -5026,3 +5026,12 @@ Limites preservados: o restore drill de CI não prova por si só a retenção de
 
 
 **Reconciliação da identidade final do app:** o deploy do app do PR #210 saiu de `WAITING` para `SUCCESS`. Nova prova pública: `/health/ready` retornou `{"status":"ready","database":"ok"}` e `/v1/deployment` retornou SHA `b1d86b41311a5400d682746aca42b1c2253eded6`, deployment `738e8489-c284-4fd4-bfad-166b49268a4f`. Este par substitui o deploy inicial do PR #209 como identidade final aceita, sem alterar a conclusão funcional do botão.
+
+
+## Correção visual — Copilot cobria a revogação YouTube — 2026-09-21
+
+**Relato exato do usuário:** `"nao tem o botão\ncade"`, acompanhado de captura autenticada de produção.
+
+**Achado reproduzido pela captura e pelo código:** o controle `Revoke connection` estava renderizado entre `Sync selected window` e o resultado da sincronização, mas a barra fixa do Copilot (`z-index: 61`) ocupava exatamente essa faixa sobre o drawer YouTube (`z-index: 60`). Assim, o backend e o botão existiam, porém a ação ficava visualmente encoberta no viewport demonstrado; a alegação anterior de disponibilidade visual precisava desta correção.
+
+**Correção candidata:** ocultar o Copilot automaticamente enquanto o drawer YouTube ou Instagram estiver expandido, preservando todos os controles de integração sem sobreposição. O Browser Product Gate da revogação passa a exigir que o Copilot esteja oculto antes de exigir `Revoke connection` visível. Validação local: `git diff --check`, typecheck e build PASS; teste web não-browser PASS. O Browser Product Gate integral permanece obrigatório no CI antes de merge/deploy.

@@ -18,6 +18,7 @@ This section supersedes the PR #207 accepted checkpoint below for the repository
 - Railway migrator `a79e97aa-5c1c-4a41-93ae-239a5338a4c8` is `SUCCESS` and explicitly logged `Applied migration: 073_youtube_connection_revocation.sql`. Publication worker `8428e157-54d2-4d57-b99c-263b13cd93c0` is `SUCCESS` on PR #210 lineage.
 - Production probes after the final app deployment returned `/health/ready` = `{"status":"ready","database":"ok"}` and `/v1/deployment` = SHA `b1d86b41311a5400d682746aca42b1c2253eded6` / deployment `738e8489-c284-4fd4-bfad-166b49268a4f`; the served JavaScript bundle contains `Revoke connection`.
 - The central browser and SQL gates prove revoke -> credential removal -> revoked state -> safe reconnect. A human can now revoke the YouTube credential directly from the YouTube panel without visiting Google account settings.
+- A production screenshot then exposed the fixed Copilot bar covering the lower YouTube actions. The follow-up layout fix hides Copilot while either integration drawer is expanded and adds browser coverage that the revocation control is unobstructed.
 - Remaining external final gates are unchanged: real YouTube reauthorization/seven-day sync, explicitly authorized provider publication and measurement, same-task visual acceptance, external adversarial review and final Production Truth Gate/issue #26 closure.
 
 ## Current accepted checkpoint — 2026-09-20 — PR #207 Phase 11 operational hardening
