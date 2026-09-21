@@ -4,8 +4,21 @@
 
 Every request to continue this project, including repeated or abbreviated requests, must receive a separate dated entry in `docs/PROJECT_EXECUTION_MEMORY.md`. Record the exact available request text, verified starting point, every performed action/attempt/check/correction, actual result, any blocker and the next pending action. Consult the last entry before resuming and update the central record during work and before ending the response. A request is not execution evidence. Preserve repetitions and history; never invent unavailable messages, timestamps or results, and never reproduce secrets. Full standing instruction: central memory, “Regra permanente — registrar cada pedido de continuação — v1.0 — 2026-09-15”.
 
-Last updated: 2026-09-20
+Last updated: 2026-09-21
 Purpose: single operational checkpoint for resuming Growth OS work without relying on chat memory.
+
+## Current accepted checkpoint — 2026-09-21 — YouTube user-controlled revocation
+
+This section supersedes the PR #207 accepted checkpoint below for the repository/application baseline while preserving it as historical evidence.
+
+- PR #209 added the authenticated YouTube `Revoke connection` control, physical encrypted-credential deletion, cleared scopes/expiry, `revoked` state and safe same-channel reconnect. PR CI #1367 (`35548633582`) and merged-main CI #1368 (`35548974548`) completed `SUCCESS`.
+- PR #209 application runtime: `032c160a23df7138da2c0b17f4dfe4c3050e9b92`; Railway app deployment `df1a97d8-f195-48be-8716-4c670012d25e` is `SUCCESS` on that exact SHA.
+- The first migrator attempt exposed a real missing production-registry entry for migration 073. It was not accepted as applied.
+- PR #210 registered migration 073 in the canonical reconciler and hardened the release gate. PR CI #1369 (`35549202437`) and merged-main CI #1370 (`35549544596`) completed `SUCCESS` at repository head `b1d86b41311a5400d682746aca42b1c2253eded6`.
+- Railway migrator `a79e97aa-5c1c-4a41-93ae-239a5338a4c8` is `SUCCESS` and explicitly logged `Applied migration: 073_youtube_connection_revocation.sql`. Publication worker `8428e157-54d2-4d57-b99c-263b13cd93c0` is `SUCCESS` on PR #210 lineage.
+- Production probes after the migration returned `/health/ready` = `{"status":"ready","database":"ok"}`; `/v1/deployment` identifies the accepted app runtime/deployment above; the served JavaScript bundle contains `Revoke connection`.
+- The central browser and SQL gates prove revoke -> credential removal -> revoked state -> safe reconnect. A human can now revoke the YouTube credential directly from the YouTube panel without visiting Google account settings.
+- Remaining external final gates are unchanged: real YouTube reauthorization/seven-day sync, explicitly authorized provider publication and measurement, same-task visual acceptance, external adversarial review and final Production Truth Gate/issue #26 closure.
 
 ## Current accepted checkpoint — 2026-09-20 — PR #207 Phase 11 operational hardening
 
